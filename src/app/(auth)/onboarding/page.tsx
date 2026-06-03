@@ -170,7 +170,7 @@ export default function OnboardingPage() {
             Your DayLog is ready. Start by planning today&apos;s blocks — or
             apply a template to get going fast.
           </p>
-          <div className="grid grid-cols-3 gap-3 mb-6 text-left">
+          <div className="grid grid-cols-2 gap-3 mb-6 text-left">
             <div className="bg-[#EEEEFF] rounded-2xl p-4">
               <i className="fa-solid fa-clock text-[#6C6FDF] mb-2 block"></i>
               <div className="text-xs font-bold text-[#1A1A2E]">
@@ -178,15 +178,6 @@ export default function OnboardingPage() {
               </div>
               <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                 Plan hour by hour
-              </div>
-            </div>
-            <div className="bg-[#DCFCE7] rounded-2xl p-4">
-              <i className="fa-solid fa-bolt text-[#15803D] mb-2 block"></i>
-              <div className="text-xs font-bold text-[#1A1A2E]">
-                Honest Score
-              </div>
-              <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                Weighted by duration
               </div>
             </div>
             <div className="bg-[#FEF3C7] rounded-2xl p-4">

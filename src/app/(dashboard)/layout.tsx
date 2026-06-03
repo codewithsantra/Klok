@@ -7,7 +7,6 @@ import { useState, useEffect } from "react";
 const NAV_ITEMS = [
   { name: "Dashboard", icon: "fa-house", href: "/dashboard" },
   { name: "Today's Log", icon: "fa-calendar-day", href: "/today" },
-  { name: "Analytics", icon: "fa-chart-bar", href: "/analytics" },
   { name: "Templates", icon: "fa-layer-group", href: "/templates" },
   { name: "Recurring Blocks", icon: "fa-rotate", href: "/recurring-blocks" },
 ];
@@ -15,7 +14,7 @@ const NAV_ITEMS = [
 const MOBILE_NAV = [
   { name: "Home", icon: "fa-house", href: "/dashboard", screen: "dashboard" },
   { name: "Today", icon: "fa-calendar-day", href: "/today", screen: "today" },
-  { name: "Analytics", icon: "fa-chart-bar", href: "/analytics", screen: "analytics" },
+  { name: "Templates", icon: "fa-layer-group", href: "/templates", screen: "templates" },
   { name: "Settings", icon: "fa-gear", href: "/settings", screen: "settings" },
 ];
 

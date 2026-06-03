@@ -66,13 +66,6 @@ export default function LandingPage() {
           </div>
           <div className="stat-divider w-px h-10 bg-[#E5E7EB]"></div>
           <div className="text-center">
-            <div className="text-3xl font-extrabold text-[#6C6FDF]">74%</div>
-            <div className="text-sm text-[#6B7280] mt-1 font-medium">
-              Avg Productivity Score
-            </div>
-          </div>
-          <div className="stat-divider w-px h-10 bg-[#E5E7EB]"></div>
-          <div className="text-center">
             <div className="text-3xl font-extrabold text-[#1A1A2E]">12+</div>
             <div className="text-sm text-[#6B7280] mt-1 font-medium">
               Built-in Activity Tags
@@ -83,20 +76,13 @@ export default function LandingPage() {
 
       {/* Features */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
           <FeatureCard
             icon="fa-clock"
             iconBg="bg-[#EEEEFF]"
             iconColor="text-[#6C6FDF]"
             title="Hourly Time Blocks"
             description="Plan your day in blocks with nested tasks. See exactly where every hour goes."
-          />
-          <FeatureCard
-            icon="fa-bolt"
-            iconBg="bg-[#DCFCE7]"
-            iconColor="text-[#15803D]"
-            title="Honest Productivity Score"
-            description="Score weighted by duration. A 2hr block matters more than a 15-min one."
           />
           <FeatureCard
             icon="fa-layer-group"
@@ -111,13 +97,6 @@ export default function LandingPage() {
             iconColor="text-[#F59E0B]"
             title="Streak Tracking"
             description="Track how many days you've logged consecutively. Missing a day breaks the chain."
-          />
-          <FeatureCard
-            icon="fa-arrow-right"
-            iconBg="bg-[#DBEAFE]"
-            iconColor="text-[#1D4ED8]"
-            title="Carry Forward"
-            description="Didn't finish a task? Push it to tomorrow's schedule with one tap. Nothing falls through."
           />
           <FeatureCard
             icon="fa-rotate"

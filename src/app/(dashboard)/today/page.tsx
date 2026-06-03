@@ -19,7 +19,7 @@ const BLOCKS = [
     status: "partial", statusLabel: null,
     todos: [
       { text: "Read Chapter 5: Server Components", done: true },
-      { text: "Complete practice exercises", done: false, incomplete: true, comment: "Got distracted by notifications. Will do at 2pm." },
+      { text: "Complete practice exercises", done: false, incomplete: true },
       { text: "Watch lecture on API routes", done: false },
     ],
   },
@@ -88,16 +88,6 @@ export default function TodayPage() {
         </div>
       </div>
 
-      {/* Carry Forward bar */}
-      <div className="card p-4 mb-5 flex flex-col sm:flex-row items-start sm:items-center gap-3 border-l-4 border-[#F59E0B]" style={{ borderRadius: "16px" }}>
-        <i className="fa-solid fa-arrow-turn-down text-[#F59E0B] text-sm"></i>
-        <div className="flex-1">
-          <span className="text-sm font-bold text-[#1A1A2E]">1 item carried forward from yesterday</span>
-          <span className="ml-2 text-xs text-[#9CA3AF]">Complete project proposal</span>
-        </div>
-        <button className="btn btn-primary text-xs py-2" style={{ fontSize: "11px", padding: "7px 14px" }}>Assign to block</button>
-      </div>
-
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Timeline */}
@@ -110,28 +100,6 @@ export default function TodayPage() {
 
         {/* Right panel */}
         <div className="space-y-4">
-          {/* Score */}
-          <div className="card p-5">
-            <h3 className="font-bold text-sm text-[#1A1A2E] mb-4">Today&apos;s Score</h3>
-            <div className="flex items-center justify-center mb-4">
-              <div className="prod-ring"><div className="prod-ring-val">74%</div></div>
-            </div>
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#6B7280]">Blocks completed</span>
-                <span className="font-bold text-[#1A1A2E]">5 / 8</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#6B7280]">Hours planned</span>
-                <span className="font-bold text-[#1A1A2E]">8 hrs</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[#6B7280]">Hours completed</span>
-                <span className="font-bold text-[#6C6FDF]">4.5 hrs</span>
-              </div>
-            </div>
-          </div>
-
           {/* Todos Progress */}
           <div className="card p-5">
             <h3 className="font-bold text-sm text-[#1A1A2E] mb-3">Todos Progress</h3>
@@ -263,33 +231,17 @@ function TodoItem({ todo }: { todo: { text: string; done: boolean; incomplete?: 
 
   if (todo.incomplete) {
     return (
-      <div className="rounded-xl p-2.5" style={{ background: "#FFFBEB", border: "1px solid #FDE68A" }}>
-        <div className="flex items-start gap-2.5">
-          <div className="cb cb-warn mt-0.5"><i className="fa-solid fa-exclamation text-[#F59E0B]" style={{ fontSize: "8px" }}></i></div>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-semibold text-[#1A1A2E]">{todo.text}</span>
-            {todo.comment && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <i className="fa-solid fa-comment text-[#9CA3AF] text-[10px]"></i>
-                <span className="text-[10px] text-[#6B7280] italic">&quot;{todo.comment}&quot;</span>
-              </div>
-            )}
-          </div>
-          <button className="text-[10px] font-semibold text-[#6C6FDF] bg-[#EEEEFF] px-2 py-1 rounded-lg whitespace-nowrap hover:bg-[#6C6FDF] hover:text-white transition-colors">
-            Carry →
-          </button>
-        </div>
+      <div className="flex items-center gap-2.5">
+        <div className="cb cb-warn"><i className="fa-solid fa-exclamation text-[#F59E0B]" style={{ fontSize: "8px" }}></i></div>
+        <span className="text-xs text-[#1A1A2E]">{todo.text}</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2.5 group">
+    <div className="flex items-center gap-2.5">
       <div className="cb"></div>
       <span className="text-xs text-[#1A1A2E] flex-1">{todo.text}</span>
-      <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-semibold text-[#9CA3AF] hover:text-[#DC2626] flex items-center gap-1 whitespace-nowrap">
-        <i className="fa-solid fa-comment text-[9px]"></i> Add comment
-      </button>
     </div>
   );
 }

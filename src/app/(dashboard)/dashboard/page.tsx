@@ -21,7 +21,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <Link href="/today" className="card p-5 stat-card flex items-center gap-4 cursor-pointer">
           <div className="w-12 h-12 bg-[#DCFCE7] rounded-2xl flex items-center justify-center flex-shrink-0">
             <i className="fa-solid fa-check text-[#15803D] text-lg"></i>
@@ -34,17 +34,7 @@ export default function DashboardPage() {
           </div>
           <i className="fa-solid fa-arrow-right text-[#D1D5DB] text-xs"></i>
         </Link>
-        <Link href="/analytics" className="card p-5 stat-card flex items-center gap-4 cursor-pointer">
-          <div className="w-12 h-12 bg-[#EEEEFF] rounded-2xl flex items-center justify-center flex-shrink-0">
-            <i className="fa-solid fa-bolt text-[#6C6FDF] text-lg"></i>
-          </div>
-          <div className="flex-1">
-            <div className="text-2xl font-extrabold text-[#6C6FDF]">74%</div>
-            <div className="text-xs font-semibold text-[#6B7280] mt-0.5">Productivity Score</div>
-          </div>
-          <i className="fa-solid fa-arrow-right text-[#D1D5DB] text-xs"></i>
-        </Link>
-        <Link href="/analytics" className="card p-5 stat-card flex items-center gap-4 cursor-pointer">
+        <div className="card p-5 stat-card flex items-center gap-4">
           <div className="w-12 h-12 bg-[#FEF3C7] rounded-2xl flex items-center justify-center flex-shrink-0">
             <span className="text-2xl">🔥</span>
           </div>
@@ -54,8 +44,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-xs font-semibold text-[#6B7280] mt-0.5">Current Streak</div>
           </div>
-          <i className="fa-solid fa-arrow-right text-[#D1D5DB] text-xs"></i>
-        </Link>
+        </div>
       </div>
 
       {/* Main grid */}
@@ -93,43 +82,10 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-4">
-          {/* Carry Forward */}
-          <div className="card p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-bold text-[#1A1A2E] text-sm">
-                <i className="fa-solid fa-arrow-right text-[#F59E0B] mr-1.5"></i>
-                Carry Forward
-              </h2>
-              <span className="text-[10px] text-[#9CA3AF]">1 item</span>
-            </div>
-            <div className="p-2.5 bg-[#FFFBEB] rounded-xl border border-[#FDE68A]">
-              <div className="flex items-center gap-2.5 mb-2">
-                <div className="w-5 h-5 rounded-md bg-[#FEF3C7] border border-[#F59E0B] flex items-center justify-center flex-shrink-0">
-                  <i className="fa-solid fa-arrow-right text-[#F59E0B] text-[9px]"></i>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-[#1A1A2E] truncate">Complete project proposal</div>
-                  <div className="text-[10px] text-[#9CA3AF]">From yesterday · Work</div>
-                </div>
-              </div>
-              <div className="flex gap-1.5">
-                <button className="btn btn-primary text-[10px] flex-1 justify-center py-1.5" style={{ fontSize: "10px", padding: "5px 8px" }}>
-                  Assign to block
-                </button>
-                <button className="btn btn-ghost text-[10px] py-1.5 border border-[#E5E7EB]" style={{ fontSize: "10px", padding: "5px 8px" }}>
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </div>
-
           {/* This Week mini chart placeholder */}
           <div className="card p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-bold text-[#1A1A2E] text-sm">This Week</h2>
-              <Link href="/analytics" className="text-xs text-[#6C6FDF] font-semibold hover:underline">
-                Full view →
-              </Link>
             </div>
             {/* Chart will go here - placeholder bars */}
             <div className="flex items-end justify-between gap-1.5 h-16">
