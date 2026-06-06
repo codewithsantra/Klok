@@ -413,43 +413,6 @@ This project deliberately demonstrates each item from the class checklist:
 
 ---
 
-## 13. Assumptions and Limitations
-
-- **Single timezone (UTC).** All dates are stored and compared in UTC.
-  The app does not adjust for the user's local timezone. A user in IST
-  may see edge cases around midnight UTC. Fixing this requires storing
-  a timezone on each user — out of scope for this version.
-
-- **Recurrence engine is v2.** The `Block.recurrence` and
-  `recurrenceEndDate` fields exist in the schema, but the engine that
-  materialises future occurrences is not built. The Recurring Blocks
-  page communicates this clearly and points users to Templates as the
-  alternative.
-
-- **Carry Forward not implemented.** Todos cannot be auto-rolled into
-  the next day. This was originally scoped but cut to keep the project
-  focused.
-
-- **Mark Incomplete + comment not implemented.** The `TodoStatus` enum
-  includes `INCOMPLETE` and the schema has a `comment` field, but the
-  UI does not expose a way to set them. Todos can only be PENDING or
-  DONE.
-
-- **No password reset flow.** Sign-in supports email + password only.
-
-- **No image uploads.** Profile avatars are gradient initials based on
-  the user's name.
-
-- **No charting library.** Analytics charts are pure CSS bars and a
-  CSS-grid heatmap. Keeps the dependency footprint small for the
-  assignment scope.
-
-- **Onboarding day-start preference not persisted.** The day-start time
-  picker UI was removed because we don't yet have a `dayStartTime`
-  column on the user. Tag toggles in onboarding DO persist.
-
----
-
 ## Project Structure
 
 ```
@@ -501,33 +464,6 @@ prisma/
 └── migrations/
 prisma.config.ts               # Datasource config
 ```
-
----
-
-## Database Schema Reference
-
-| Model | Key fields |
-|---|---|
-| **User** | id, email (unique), name, password (bcrypt hash), createdAt, updatedAt |
-| **Tag** | id, userId, name, emoji, active, createdAt |
-| **Block** | id, userId, tagId (nullable), date, startTime, endTime, title, status, recurrence, recurrenceEndDate, createdAt, updatedAt |
-| **Todo** | id, blockId, text, status, comment, completedLaterAt, createdAt, updatedAt |
-| **Template** | id, userId, name, icon, iconColor, createdAt, updatedAt |
-| **TemplateBlock** | id, templateId, tagId, startTime, endTime, title, createdAt |
-| **TemplateTodo** | id, templateBlockId, text, createdAt |
-
-### Enums
-
-- `BlockStatus` — PLANNED, DONE, PARTIAL, SKIPPED
-- `TodoStatus` — PENDING, DONE, INCOMPLETE
-- `Recurrence` — NONE, DAILY, WEEKDAYS, WEEKLY, CUSTOM
-
-### Cascade behavior
-
-- Deleting a User cascades to their Tags, Blocks, and Templates
-- Deleting a Block cascades to its Todos
-- Deleting a Tag sets `tagId` to NULL on dependent Blocks and TemplateBlocks
-- Deleting a Template cascades to its TemplateBlocks and TemplateTodos
 
 ---
 
