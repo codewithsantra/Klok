@@ -1,53 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-
-const TIME_OPTIONS = ["5 AM", "6 AM", "7 AM", "8 AM", "9 AM", "10 AM", "11 AM", "12 PM"];
-
-const DEFAULT_TAGS = [
-  { emoji: "😴", name: "Sleep", on: true },
-  { emoji: "📚", name: "Study", on: true },
-  { emoji: "💻", name: "Work", on: true },
-  { emoji: "🍳", name: "Breakfast", on: true },
-  { emoji: "🍽", name: "Lunch", on: true },
-  { emoji: "🌙", name: "Dinner", on: true },
-  { emoji: "🏃", name: "Exercise", on: true },
-  { emoji: "☕", name: "Break", on: true },
-  { emoji: "🧘", name: "Personal", on: true },
-  { emoji: "🎮", name: "Gaming", on: false },
-  { emoji: "📖", name: "Reading", on: false },
-  { emoji: "🎵", name: "Music", on: false },
-  { emoji: "🚗", name: "Commute", on: false },
-  { emoji: "🛁", name: "Self-care", on: false },
-];
+import { useState, useTransition } from "react";
+import { DEFAULT_TAGS } from "@/lib/constants";
+import { saveOnboardingTagsAction } from "@/actions/onboarding";
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
-  const [selectedTime, setSelectedTime] = useState("5 AM");
   const [tags, setTags] = useState(DEFAULT_TAGS);
+  const [isPending, startTransition] = useTransition();
 
   const toggleTag = (index: number) => {
     setTags((prev) =>
-      prev.map((t, i) => (i === index ? { ...t, on: !t.on } : t))
+      prev.map((t, i) => (i === index ? { ...t, on: !t.on } : t)),
     );
+  };
+
+  // Save tag toggles, then advance to step 2
+  const handleStep1Continue = () => {
+    const offNames = tags.filter((t) => !t.on).map((t) => t.name);
+    startTransition(async () => {
+      await saveOnboardingTagsAction(offNames);
+      setStep(2);
+    });
   };
 
   return (
     <>
-      {/* Logo */}
-      <div className="text-center mb-6">
-        <div className="inline-flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-[#6C6FDF] rounded-xl flex items-center justify-center shadow-lg shadow-[#6C6FDF]/30">
-            <i className="fa-solid fa-calendar-check text-white text-sm"></i>
-          </div>
-          <span className="text-xl font-extrabold text-[#1A1A2E]">DayLog</span>
-        </div>
-      </div>
-
       {/* Step dots */}
       <div className="flex items-center justify-center gap-2 mb-6">
-        {[1, 2, 3].map((s) => (
+        {[1, 2].map((s) => (
           <div
             key={s}
             className={`h-2 rounded-full transition-all ${
@@ -61,58 +43,8 @@ export default function OnboardingPage() {
         ))}
       </div>
 
-      {/* Step 1: Day start time */}
+      {/* Step 1: Pick tags */}
       {step === 1 && (
-        <div className="card p-8 animate-fade-in">
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-3">👋</div>
-            <h1 className="text-2xl font-extrabold text-[#1A1A2E]">
-              Welcome to DayLog!
-            </h1>
-            <p className="text-sm text-[#6B7280] mt-2 leading-relaxed">
-              One quick question before you start — when does your day usually
-              begin?
-            </p>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#1A1A2E] mb-3">
-                My day starts at
-              </label>
-              <div className="grid grid-cols-4 gap-2">
-                {TIME_OPTIONS.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setSelectedTime(t)}
-                    className={`time-chip ${
-                      selectedTime === t ? "time-chip-active" : ""
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Link
-                href="/dashboard"
-                className="btn btn-ghost border border-[#E5E7EB] text-xs"
-              >
-                Skip setup →
-              </Link>
-              <button
-                onClick={() => setStep(2)}
-                className="btn btn-primary flex-1 justify-center"
-              >
-                Continue <i className="fa-solid fa-arrow-right"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Pick tags */}
-      {step === 2 && (
         <div className="card p-8 animate-fade-in">
           <div className="text-center mb-5">
             <div className="text-4xl mb-3">🏷️</div>
@@ -120,7 +52,8 @@ export default function OnboardingPage() {
               Pick your activity tags
             </h1>
             <p className="text-sm text-[#6B7280] mt-2">
-              Select the ones you want to track. You can change these later.
+              Select the ones you want to track. You can change them later in
+              Settings.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 mb-6">
@@ -135,12 +68,6 @@ export default function OnboardingPage() {
             ))}
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => setStep(1)}
-              className="btn btn-ghost border border-[#E5E7EB]"
-            >
-              <i className="fa-solid fa-arrow-left"></i>
-            </button>
             <Link
               href="/dashboard"
               className="btn btn-ghost border border-[#E5E7EB] text-xs"
@@ -148,17 +75,19 @@ export default function OnboardingPage() {
               Skip →
             </Link>
             <button
-              onClick={() => setStep(3)}
-              className="btn btn-primary flex-1 justify-center"
+              onClick={handleStep1Continue}
+              disabled={isPending}
+              className="btn btn-primary flex-1 justify-center disabled:opacity-50"
             >
-              Continue <i className="fa-solid fa-arrow-right"></i>
+              {isPending ? "Saving..." : "Continue"}{" "}
+              <i className="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: All set */}
-      {step === 3 && (
+      {/* Step 2: All set */}
+      {step === 2 && (
         <div className="card p-8 animate-fade-in text-center">
           <div className="w-16 h-16 bg-[#DCFCE7] rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fa-solid fa-check text-[#16a34a] text-2xl"></i>
@@ -173,20 +102,16 @@ export default function OnboardingPage() {
           <div className="grid grid-cols-3 gap-3 mb-6 text-left">
             <div className="bg-[#EEEEFF] rounded-2xl p-4">
               <i className="fa-solid fa-clock text-[#6C6FDF] mb-2 block"></i>
-              <div className="text-xs font-bold text-[#1A1A2E]">
-                Time Blocks
-              </div>
+              <div className="text-xs font-bold text-[#1A1A2E]">Time Blocks</div>
               <div className="text-[10px] text-[#9CA3AF] mt-0.5">
                 Plan hour by hour
               </div>
             </div>
             <div className="bg-[#DCFCE7] rounded-2xl p-4">
-              <i className="fa-solid fa-bolt text-[#15803D] mb-2 block"></i>
-              <div className="text-xs font-bold text-[#1A1A2E]">
-                Honest Score
-              </div>
+              <i className="fa-solid fa-layer-group text-[#15803D] mb-2 block"></i>
+              <div className="text-xs font-bold text-[#1A1A2E]">Templates</div>
               <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                Weighted by duration
+                Save and reuse days
               </div>
             </div>
             <div className="bg-[#FEF3C7] rounded-2xl p-4">

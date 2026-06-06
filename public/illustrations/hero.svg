@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 280" fill="none">
+  <!-- Background blob -->
+  <ellipse cx="210" cy="170" rx="180" ry="90" fill="#EEEEFF" opacity="0.6"/>
+
+  <!-- Calendar body -->
+  <rect x="90" y="55" width="240" height="180" rx="20" fill="#FFFFFF" stroke="#6C6FDF" stroke-width="2.5"/>
+
+  <!-- Calendar header band -->
+  <path d="M90 75 a20 20 0 0 1 20 -20 h200 a20 20 0 0 1 20 20 v20 h-240 z" fill="#6C6FDF"/>
+
+  <!-- Header dots (calendar tabs) -->
+  <circle cx="120" cy="45" r="6" fill="#9B9EEF"/>
+  <circle cx="300" cy="45" r="6" fill="#9B9EEF"/>
+  <rect x="116" y="35" width="8" height="20" rx="4" fill="#5558CC"/>
+  <rect x="296" y="35" width="8" height="20" rx="4" fill="#5558CC"/>
+
+  <!-- Calendar title -->
+  <rect x="115" y="80" width="80" height="6" rx="3" fill="#FFFFFF" opacity="0.85"/>
+
+  <!-- Day rows -->
+  <!-- Row 1: completed -->
+  <rect x="110" y="115" width="200" height="22" rx="10" fill="#DCFCE7"/>
+  <circle cx="125" cy="126" r="7" fill="#22C55E"/>
+  <path d="M122 126 l2.5 2.5 l4.5 -5" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <rect x="140" y="121" width="120" height="6" rx="3" fill="#15803D" opacity="0.55"/>
+  <rect x="140" y="129" width="80" height="4" rx="2" fill="#15803D" opacity="0.3"/>
+
+  <!-- Row 2: in progress -->
+  <rect x="110" y="145" width="200" height="22" rx="10" fill="#EEEEFF"/>
+  <circle cx="125" cy="156" r="7" fill="#6C6FDF"/>
+  <circle cx="125" cy="156" r="3" fill="#FFFFFF"/>
+  <rect x="140" y="151" width="100" height="6" rx="3" fill="#5558CC" opacity="0.6"/>
+  <rect x="140" y="159" width="60" height="4" rx="2" fill="#5558CC" opacity="0.3"/>
+
+  <!-- Row 3: planned -->
+  <rect x="110" y="175" width="200" height="22" rx="10" fill="#F9F9FD"/>
+  <circle cx="125" cy="186" r="7" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="2"/>
+  <rect x="140" y="181" width="90" height="6" rx="3" fill="#9CA3AF" opacity="0.5"/>
+  <rect x="140" y="189" width="70" height="4" rx="2" fill="#9CA3AF" opacity="0.3"/>
+
+  <!-- Row 4: planned -->
+  <rect x="110" y="205" width="200" height="22" rx="10" fill="#F9F9FD"/>
+  <circle cx="125" cy="216" r="7" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="2"/>
+  <rect x="140" y="211" width="110" height="6" rx="3" fill="#9CA3AF" opacity="0.5"/>
+  <rect x="140" y="219" width="50" height="4" rx="2" fill="#9CA3AF" opacity="0.3"/>
+
+  <!-- Floating decorative sparkles -->
+  <g fill="#6C6FDF">
+    <circle cx="50" cy="80" r="3"/>
+    <circle cx="60" cy="200" r="4"/>
+    <circle cx="370" cy="100" r="3"/>
+    <circle cx="380" cy="220" r="5"/>
+  </g>
+  <g fill="#FBBF24">
+    <circle cx="45" cy="135" r="2.5"/>
+    <circle cx="385" cy="170" r="3"/>
+  </g>
+
+  <!-- Sparkle marks -->
+  <g stroke="#6C6FDF" stroke-width="2" stroke-linecap="round">
+    <path d="M375 50 l0 8 M371 54 l8 0"/>
+    <path d="M40 240 l0 6 M37 243 l6 0"/>
+  </g>
+
+  <!-- Streak fire icon at top right -->
+  <g transform="translate(345 30)">
+    <path d="M8 0 c-1 4 -3 5 -3 9 a5 5 0 0 0 6 0 c0 -4 -3 -5 -3 -9 z" fill="#F59E0B"/>
+    <path d="M8 4 c-0.5 2 -2 3 -2 6 a3 3 0 0 0 4 0 c0 -3 -2 -4 -2 -6 z" fill="#FCD34D"/>
+  </g>
+</svg>

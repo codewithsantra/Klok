@@ -1,3 +1,9 @@
+// Rendering: SSG (Static Site Generation).
+// This is a marketing landing page with no per-request data. Next.js
+// statically generates the HTML at build time and serves it as a static
+// asset on every request. Fastest possible page load.
+
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LandingPage() {
@@ -30,6 +36,19 @@ export default function LandingPage() {
           <i className="fa-solid fa-fire text-xs"></i>
           Plan. Track. Improve. Every Single Day.
         </div>
+
+        {/* Hero illustration — uses next/image for automatic optimization */}
+        <div className="flex justify-center mb-8">
+          <Image
+            src="/illustrations/hero.svg"
+            alt="A calendar showing a day's planned blocks with some completed and some upcoming"
+            width={420}
+            height={280}
+            priority
+            className="max-w-full h-auto"
+          />
+        </div>
+
         <h1 className="hero-title text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.12] text-[#1A1A2E] mb-6">
           Plan Your Day.
           <br />
@@ -59,23 +78,23 @@ export default function LandingPage() {
         {/* Stats */}
         <div className="landing-stats flex items-center justify-center gap-8 lg:gap-12 mt-12 lg:mt-16 flex-wrap">
           <div className="text-center">
-            <div className="text-3xl font-extrabold text-[#1A1A2E]">🔥 26</div>
+            <div className="text-3xl font-extrabold text-[#1A1A2E]">🔥</div>
             <div className="text-sm text-[#6B7280] mt-1 font-medium">
-              Day Streak Record
+              Build Streaks
             </div>
           </div>
           <div className="stat-divider w-px h-10 bg-[#E5E7EB]"></div>
           <div className="text-center">
-            <div className="text-3xl font-extrabold text-[#6C6FDF]">74%</div>
+            <div className="text-3xl font-extrabold text-[#6C6FDF]">⚡</div>
             <div className="text-sm text-[#6B7280] mt-1 font-medium">
-              Avg Productivity Score
+              Honest Score
             </div>
           </div>
           <div className="stat-divider w-px h-10 bg-[#E5E7EB]"></div>
           <div className="text-center">
-            <div className="text-3xl font-extrabold text-[#1A1A2E]">12+</div>
+            <div className="text-3xl font-extrabold text-[#1A1A2E]">📊</div>
             <div className="text-sm text-[#6B7280] mt-1 font-medium">
-              Built-in Activity Tags
+              Daily Insights
             </div>
           </div>
         </div>
@@ -89,42 +108,42 @@ export default function LandingPage() {
             iconBg="bg-[#EEEEFF]"
             iconColor="text-[#6C6FDF]"
             title="Hourly Time Blocks"
-            description="Plan your day in blocks with nested tasks. See exactly where every hour goes."
+            description="Plan your day in blocks with nested todos. See exactly where every hour goes."
           />
           <FeatureCard
-            icon="fa-bolt"
+            icon="fa-list-check"
             iconBg="bg-[#DCFCE7]"
             iconColor="text-[#15803D]"
-            title="Honest Productivity Score"
-            description="Score weighted by duration. A 2hr block matters more than a 15-min one."
+            title="Nested Todos"
+            description="Each block has its own checklist. Status updates from your todos automatically."
           />
           <FeatureCard
             icon="fa-layer-group"
             iconBg="bg-[#F3E8FF]"
             iconColor="text-[#7E22CE]"
             title="Day Templates"
-            description='Save your routine as a template. Apply "My Typical Monday" to any future date.'
+            description='Save today as a template. Apply "My Typical Monday" to any future date.'
           />
           <FeatureCard
             icon="fa-fire"
             iconBg="bg-[#FEF3C7]"
             iconColor="text-[#F59E0B]"
             title="Streak Tracking"
-            description="Track how many days you've logged consecutively. Missing a day breaks the chain."
+            description="Log consistently and watch your streak grow. Missing a day breaks the chain."
           />
           <FeatureCard
-            icon="fa-arrow-right"
+            icon="fa-tag"
             iconBg="bg-[#DBEAFE]"
             iconColor="text-[#1D4ED8]"
-            title="Carry Forward"
-            description="Didn't finish a task? Push it to tomorrow's schedule with one tap. Nothing falls through."
+            title="Activity Tags"
+            description="9 default tags plus custom ones. Color-code your day and group blocks by activity."
           />
           <FeatureCard
-            icon="fa-rotate"
+            icon="fa-chart-bar"
             iconBg="bg-[#DCFCE7]"
             iconColor="text-[#15803D]"
-            title="Recurring Blocks"
-            description="Set a block to repeat daily or weekly. It auto-fills your schedule every time."
+            title="Weekly Insights"
+            description="Week, month, and year views — see when you're winning and where you slip."
           />
         </div>
       </div>

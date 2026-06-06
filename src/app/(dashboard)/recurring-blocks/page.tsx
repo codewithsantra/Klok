@@ -1,65 +1,68 @@
-"use client";
+// Rendering: SSG (no per-request data).
+// This is a placeholder page — the feature is on the v2 roadmap. The
+// schema already supports `Block.recurrence` and `recurrenceEndDate`,
+// but the engine that materializes future occurrences hasn't been built.
+// Documented in README under "Assumptions and Limitations."
 
-const RECURRING = [
-  { title: "🌅 Morning Routine", tag: "Personal", tagClass: "tag-personal", icon: "fa-person-running", iconBg: "bg-[#EEEEFF]", iconColor: "text-[#6C6FDF]", schedule: "6:00 – 7:00 AM · Daily · Never ends", next: "Tomorrow, Tue 3 Jun", active: true },
-  { title: "📚 Study Time", tag: "Study", tagClass: "tag-study", icon: "fa-book", iconBg: "bg-[#EEEEFF]", iconColor: "text-[#6C6FDF]", schedule: "9:00 – 11:00 AM · Weekdays · Never ends", next: "Tomorrow, Tue 3 Jun", active: true },
-  { title: "🏃 Exercise", tag: "Health", tagClass: "tag-health", icon: "fa-dumbbell", iconBg: "bg-[#DCFCE7]", iconColor: "text-[#15803D]", schedule: "6:00 – 7:00 PM · Daily · Until 31 Dec 2026", next: "Tomorrow, Tue 3 Jun", active: true },
-  { title: "💻 Deep Work Session", tag: "Work", tagClass: "tag-work", icon: "fa-computer", iconBg: "bg-[#F3F4F6]", iconColor: "text-[#9CA3AF]", schedule: "2:00 – 4:00 PM · Mon–Fri · Never ends", next: null, active: false },
-];
+import Link from "next/link";
 
 export default function RecurringBlocksPage() {
   return (
     <div className="animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-1">
-        <h1 className="text-xl font-extrabold text-[#1A1A2E]">Recurring Blocks</h1>
-        <button className="btn btn-primary text-xs py-2 flex-shrink-0" style={{ fontSize: "11px" }}>
-          <i className="fa-solid fa-plus"></i> Add Recurring Block
-        </button>
+        <h1 className="text-xl font-extrabold text-[#1A1A2E]">
+          Recurring Blocks
+        </h1>
       </div>
       <p className="text-sm text-[#9CA3AF] mb-5">
-        Blocks set to repeat auto-fill your timeline every day. Manage them all here.
+        Schedule a block to repeat daily, weekly, or on custom days.
       </p>
 
-      {/* List */}
-      <div className="card p-2">
-        {RECURRING.map((item, i) => (
-          <div key={item.title}>
-            <div className="flex flex-wrap sm:flex-nowrap items-start gap-4 p-4 rounded-xl transition-colors hover:bg-[#FAFAFA]" style={{ opacity: item.active ? 1 : 0.6 }}>
-              <div className={`w-10 h-10 ${item.iconBg} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                <i className={`fa-solid ${item.icon} ${item.iconColor}`}></i>
+      <div className="card p-8 md:p-12 text-center">
+        <div className="w-16 h-16 bg-[#EEEEFF] rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <i className="fa-solid fa-rotate text-[#6C6FDF] text-2xl"></i>
+        </div>
+        <p className="text-base font-bold text-[#1A1A2E]">Coming in v2</p>
+        <p className="text-sm text-[#9CA3AF] mt-2 mb-6 max-w-lg mx-auto leading-relaxed">
+          The recurrence engine — generating future occurrences based on a
+          rule like &quot;every weekday until December 31&quot; — is on the
+          v2 roadmap. The data model already supports it
+          (<code className="text-[10px] bg-[#F3F4F6] px-1.5 py-0.5 rounded">
+            Block.recurrence
+          </code>{" "}
+          and{" "}
+          <code className="text-[10px] bg-[#F3F4F6] px-1.5 py-0.5 rounded">
+            recurrenceEndDate
+          </code>
+          ), but the background job that materializes occurrences hasn&apos;t
+          been built.
+        </p>
+
+        <div
+          className="max-w-md mx-auto p-4 rounded-2xl text-left"
+          style={{ background: "#F9F9FF", border: "1px solid #EEEEFF" }}
+        >
+          <div className="flex items-start gap-3">
+            <i className="fa-solid fa-lightbulb text-[#6C6FDF] mt-0.5"></i>
+            <div>
+              <div className="text-xs font-bold text-[#1A1A2E] mb-1">
+                In the meantime — use Templates
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <div className="font-bold text-sm text-[#1A1A2E]">{item.title}</div>
-                  <span className={`tag ${item.tagClass}`}>{item.tag}</span>
-                  {!item.active && (
-                    <span className="text-[10px] font-bold text-[#9CA3AF] bg-[#F3F4F6] px-2 py-0.5 rounded-lg">Paused</span>
-                  )}
-                </div>
-                <div className="text-xs text-[#9CA3AF]">{item.schedule}</div>
-                {item.next ? (
-                  <div className="text-[10px] text-[#6C6FDF] font-semibold mt-1">Next: {item.next}</div>
-                ) : (
-                  <div className="text-[10px] text-[#9CA3AF] mt-1">Paused — toggle on to resume</div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <button className="w-7 h-7 bg-[#F3F4F6] rounded-lg flex items-center justify-center hover:bg-[#EEEEFF]">
-                  <i className="fa-solid fa-pen text-[#9CA3AF] text-xs"></i>
-                </button>
-                <label className="toggle">
-                  <input type="checkbox" defaultChecked={item.active} />
-                  <span className="slider"></span>
-                </label>
-                <button className="w-7 h-7 bg-[#F3F4F6] rounded-lg flex items-center justify-center hover:bg-[#FEE2E2]">
-                  <i className="fa-solid fa-trash text-[#9CA3AF] text-xs"></i>
-                </button>
-              </div>
+              <p className="text-xs text-[#6B7280] leading-relaxed">
+                Save your typical day&apos;s blocks as a template, then apply
+                it to any future date with one click. Same outcome with one
+                more step.
+              </p>
             </div>
-            {i < RECURRING.length - 1 && <div className="h-px bg-[#F9F9FF] mx-4"></div>}
           </div>
-        ))}
+          <Link
+            href="/templates"
+            className="btn btn-primary text-xs py-2 mt-3 w-full justify-center"
+            style={{ fontSize: "12px" }}
+          >
+            <i className="fa-solid fa-layer-group"></i> Go to Templates
+          </Link>
+        </div>
       </div>
     </div>
   );

@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useActionState } from "react";
+import { signUpAction, type AuthState } from "@/actions/auth";
 
 export default function SignUpPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [showPwd2, setShowPwd2] = useState(false);
+  const [state, formAction, pending] = useActionState<
+    AuthState | undefined,
+    FormData
+  >(signUpAction, undefined);
 
   return (
     <>
-      {/* Heading */}
       <div className="text-center mb-6">
         <h1 className="text-3xl font-extrabold text-[#1A1A2E]">
           Create account
@@ -19,23 +23,30 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      {/* Card */}
       <div className="card p-8">
-        <div className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-[#1A1A2E] mb-1.5">
               Full Name
             </label>
-            <input className="inp" type="text" placeholder="Your name" />
+            <input
+              name="name"
+              className="inp"
+              type="text"
+              placeholder="Your name"
+              required
+            />
           </div>
           <div>
             <label className="block text-sm font-semibold text-[#1A1A2E] mb-1.5">
               Email
             </label>
             <input
+              name="email"
               className="inp"
               type="email"
               placeholder="you@example.com"
+              required
             />
           </div>
           <div>
@@ -44,9 +55,11 @@ export default function SignUpPage() {
             </label>
             <div className="relative">
               <input
+                name="password"
                 className="inp pr-10"
                 type={showPwd ? "text" : "password"}
                 placeholder="Min. 8 characters"
+                required
               />
               <button
                 type="button"
@@ -65,9 +78,11 @@ export default function SignUpPage() {
             </label>
             <div className="relative">
               <input
+                name="confirmPassword"
                 className="inp pr-10"
                 type={showPwd2 ? "text" : "password"}
                 placeholder="••••••••"
+                required
               />
               <button
                 type="button"
@@ -80,13 +95,25 @@ export default function SignUpPage() {
               </button>
             </div>
           </div>
-          <Link
-            href="/onboarding"
-            className="btn btn-primary w-full justify-center py-3 rounded-xl text-sm"
+
+          {state?.error && (
+            <div className="flex items-center gap-2 p-3 bg-[#FFF5F5] rounded-xl border border-[#FEE2E2]">
+              <i className="fa-solid fa-circle-exclamation text-[#DC2626] text-sm"></i>
+              <span className="text-xs text-[#DC2626] font-medium">
+                {state.error}
+              </span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="btn btn-primary w-full justify-center py-3 rounded-xl text-sm disabled:opacity-50"
           >
-            Create Account
-          </Link>
-        </div>
+            {pending ? "Creating..." : "Create Account"}
+          </button>
+        </form>
+
         <p className="text-center text-sm text-[#6B7280] mt-6">
           Already have an account?
           <Link

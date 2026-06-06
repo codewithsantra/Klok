@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BlockStatus {
+  PLANNED
+  DONE
+  PARTIAL
+  SKIPPED
+}
+
+enum TodoStatus {
+  PENDING
+  DONE
+  INCOMPLETE
+}
+
+enum Recurrence {
+  NONE
+  DAILY
+  WEEKDAYS
+  WEEKLY
+  CUSTOM
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  password  String
+  tags      Tag[]
+  blocks    Block[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  templates Template[]
+}
+
+model Tag {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  emoji          String
+  active         Boolean         @default(true)
+  blocks         Block[]
+  createdAt      DateTime        @default(now())
+  templateBlocks TemplateBlock[]
+}
+
+model Block {
+  id                String      @id @default(cuid())
+  userId            String
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId             String?
+  tag               Tag?        @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  date              DateTime    @db.Date
+  startTime         String
+  endTime           String
+  title             String
+  status            BlockStatus @default(PLANNED)
+  recurrence        Recurrence  @default(NONE)
+  recurrenceEndDate DateTime?   @db.Date
+  todos             Todo[]
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+}
+
+model Todo {
+  id               String     @id @default(cuid())
+  blockId          String
+  block            Block      @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  text             String
+  status           TodoStatus @default(PENDING)
+  comment          String?
+  completedLaterAt String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Template {
+  id        String          @id @default(cuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  icon      String?
+  iconColor String?
+  blocks    TemplateBlock[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model TemplateBlock {
+  id         String         @id @default(cuid())
+  templateId String
+  template   Template       @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  tagId      String?
+  tag        Tag?           @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  startTime  String
+  endTime    String
+  title      String
+  todos      TemplateTodo[]
+  createdAt  DateTime       @default(now())
+}
+
+model TemplateTodo {
+  id              String        @id @default(cuid())
+  templateBlockId String
+  templateBlock   TemplateBlock @relation(fields: [templateBlockId], references: [id], onDelete: Cascade)
+  text            String
+  createdAt       DateTime      @default(now())
+}
