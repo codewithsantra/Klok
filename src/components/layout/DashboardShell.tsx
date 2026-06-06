@@ -75,7 +75,7 @@ export default function DashboardShell({
           <div className="w-8 h-8 bg-[#6C6FDF] rounded-xl flex items-center justify-center shadow-md shadow-[#6C6FDF]/40">
             <i className="fa-solid fa-calendar-check text-white text-xs"></i>
           </div>
-          <span className="text-lg font-extrabold text-[#1A1A2E]">DayLog</span>
+          <span className="text-lg font-extrabold text-[#1A1A2E]">Klok</span>
         </div>
 
         {/* Nav */}
@@ -149,7 +149,7 @@ export default function DashboardShell({
               <i className="fa-solid fa-bars text-[#6B7280] text-sm"></i>
             </button>
             <div>
-              <div className="text-xs font-semibold text-[#9CA3AF]">DayLog</div>
+              <div className="text-xs font-semibold text-[#9CA3AF]">Klok</div>
               <div className="text-base lg:text-lg font-extrabold text-[#1A1A2E]">
                 Hello, {displayName}! 👋
               </div>

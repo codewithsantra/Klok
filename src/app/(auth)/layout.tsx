@@ -18,7 +18,7 @@ export default function AuthLayout({
               <i className="fa-solid fa-calendar-check text-white"></i>
             </div>
             <span className="text-2xl font-extrabold text-[#1A1A2E]">
-              DayLog
+              Klok
             </span>
           </Link>
         </div>

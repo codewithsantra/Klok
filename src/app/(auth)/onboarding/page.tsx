@@ -96,7 +96,7 @@ export default function OnboardingPage() {
             You&apos;re all set!
           </h1>
           <p className="text-sm text-[#6B7280] mb-6 leading-relaxed">
-            Your DayLog is ready. Start by planning today&apos;s blocks — or
+            Your Klok is ready. Start by planning today&apos;s blocks — or
             apply a template to get going fast.
           </p>
           <div className="grid grid-cols-3 gap-3 mb-6 text-left">

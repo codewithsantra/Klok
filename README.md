@@ -1,408 +1,560 @@
-# DayLog
+# Klok
 
-> A daily tracker built for honest reflection. Plan your day, track what
-> actually happened, and watch the patterns over time.
+## 1. Project Title
 
-DayLog is a full-stack Next.js 16 application built as a class project to
-demonstrate file-based routing, layouts, multiple rendering strategies,
-API routes, server actions, database integration with Prisma, and
-authentication with sessions.
+**Klok — Plan your day. Own your reality.**
+
+## 2. Project Overview
+
+Klok is a full-stack productivity tracker built with Next.js 16. It helps you
+plan your day in hourly time blocks, nest todos inside each block, track what
+actually happens, and reflect on patterns over weeks and months.
+
+The app is designed around real workflows — every input persists to a real
+database, every status updates automatically when you check off todos, and
+every analytics number is computed from actual data.
+
+This README is structured to map directly to the project's requirements
+checklist so reviewers can verify each item quickly.
 
 ---
 
-## Tech Stack
+## 3. Tech Stack Used
 
 | Layer | Tech |
 |---|---|
 | Framework | Next.js 16 (App Router + Turbopack) |
 | Language | TypeScript |
 | UI | React 19 + Tailwind CSS v4 |
-| Auth | Custom — `jose` (JWT) + `bcryptjs` (password hashing) + httpOnly cookies |
+| Authentication | Custom — `jose` (JWT) + `bcryptjs` (password hashing) + httpOnly cookies |
 | Database | Neon (serverless PostgreSQL) |
 | ORM | Prisma 7 with `@prisma/adapter-neon` (HTTP driver) |
-| Font | `next/font` — Plus Jakarta Sans |
+| Fonts | `next/font/google` — Plus Jakarta Sans |
+| Images | `next/image` — automatic optimization |
 | Icons | Font Awesome |
-| Deployment target | Vercel |
+| Deployment | Vercel |
 
 ---
 
-## Features Implemented
+## 4. Features Implemented
 
-### Auth
-- Sign up (with password hashing + default tag seeding)
-- Sign in / sign out
-- JWT sessions in httpOnly cookies
-- Proxy (formerly middleware) protecting all dashboard routes
+### Authentication
+- Sign up with email + password + name (with default tag seeding on creation)
+- Sign in with secure bcrypt password verification
+- Sign out (clears httpOnly session cookie)
+- Sessions via signed JWT (7-day expiry)
+- Proxy (Next.js 16's renamed middleware) protects all dashboard routes
 
-### Time Blocks (the core feature)
-- Create / edit / delete time blocks for any date
-- Add / edit / delete todos inside a block
-- Toggle todos between PENDING and DONE
-- Block status auto-computed from its todos (PLANNED / PARTIAL / DONE)
-- Date navigation (`/today?date=YYYY-MM-DD`)
+### Onboarding
+- 2-step flow after sign-up
+- Pick which activity tags to keep active — selection actually saves to DB
+- Skippable
+
+### Today's Log
+- Hourly time blocks for any date
+- Date navigation: prev / next arrows + date picker + URL-driven (`?date=YYYY-MM-DD`)
+- Create block with optional todos, optional tag, and **date picker** (plan future days)
+- Edit block via inline modal
+- Delete block (cascades to its todos)
+- Add todos inline beneath any block
+- Toggle individual todo done / pending (auto-recomputes block status)
+- Delete a todo
+- **Mark a whole block done in one click** — works for blocks with or without todos
+- Apply Template inline modal
+
+### Time-aware Status Badges
+- Blocks display smart badges based on current time + status:
+  - `Now`, `Upcoming`, `Missed`, `Partial`, `Done ✓`, `Skipped`
 
 ### Tags
-- 9 default tags seeded on sign up (Sleep, Study, Work, etc.)
-- Add custom tag with emoji + name
-- Toggle tag active/inactive
-- Delete tag
-- Attach tags to blocks for color and grouping
+- Click to toggle active / inactive
+- Add custom tags via built-in **emoji picker** (35+ emojis)
+- Delete tags
 
 ### Templates
-- Save today's blocks (and their todos) as a reusable template
-- Apply a template to any target date — duplicates blocks and todos
+- Save today's blocks (with todos) as a reusable named template
+- Apply a template to any future date
 - Delete a template
 
 ### Analytics
-- Week view: last 7 days completion %, best/worst day, top tags
-- Month view: 30-day heatmap + monthly summary
-- Year view: 12-month average completion bars
+- Three views via URL: `?view=week`, `?view=month`, `?view=year`
+- Period navigation: prev / current / next arrows
+- "Next" disabled at the current period
+- **Week**: 7-day bar chart + best day / worst day + top tags
+- **Month**: heatmap (color intensity = completion %) + month summary
+- **Year**: 12 monthly average bars + best month
+- Future days never count in best / worst / avg
 
 ### Dashboard
-- "Welcome back" greeting with streak hint
-- Live stats: blocks completed today, productivity score, current streak
-- Today's blocks preview (first 4)
+- Personalised greeting + streak hint
+- Real stats: blocks completed today, productivity score, current streak
+- Today's blocks preview (first 4 with smart status badges)
 - 7-day mini chart
 
+### Settings
+- Update display name
+- Change password (verifies current with bcrypt)
+- Manage activity tags (add / toggle / delete)
+- Delete account with strong native confirmation (cascades all data)
+
 ### Public Pages
-- Landing page (`/`)
-- About page (`/about`) — public stats via ISR
+- Production-style landing page with hero, how-it-works, features, philosophy, CTA, footer
+- About page with live platform stats
 
 ---
 
-## Rendering Strategies
+## 5. How to Run Locally
 
-The project explicitly demonstrates all three strategies in the App Router.
+```bash
+# 1. Clone the repo
+git clone <your-repo-url>
+cd klok
 
-| Route | Strategy | Why |
+# 2. Install dependencies
+npm install
+
+# 3. Copy the env template and fill in real values (see Section 6)
+cp .env.example .env
+
+# 4. Apply Prisma migrations to your Neon DB and generate the client
+npx prisma migrate deploy
+npx prisma generate
+
+# 5. Start the dev server
+npm run dev
+```
+
+App is now live at [http://localhost:3000](http://localhost:3000).
+
+### Optional — browse the database
+
+```bash
+npx prisma studio
+```
+
+Opens a UI at [http://localhost:5555](http://localhost:5555).
+
+---
+
+## 6. Environment Variables Required
+
+A template is committed at `.env.example`. Copy it to `.env` and fill in:
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string. Required at build + runtime. |
+| `JWT_SECRET` | Secret used to sign session JWTs. Any long random string (32+ chars). |
+
+### Generating `JWT_SECRET`
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### Why two files?
+
+- `.env` — real secrets, gitignored, lives only on your machine and on Vercel
+- `.env.example` — committed template showing what variables are needed (no secrets)
+
+---
+
+## 7. Database Setup Instructions
+
+### Step 1 — Create a Neon project (free)
+
+1. Sign up at [neon.com](https://neon.com)
+2. Create a new project (any name)
+3. From the project dashboard, copy the **connection string** — it looks
+   like:
+   ```
+   postgresql://user:password@ep-…neon.tech/dbname?sslmode=require
+   ```
+
+### Step 2 — Add it to your `.env`
+
+```
+DATABASE_URL="postgresql://user:password@ep-...neon.tech/dbname?sslmode=require"
+```
+
+### Step 3 — Apply migrations to your Neon DB
+
+This creates all the tables defined in `prisma/schema.prisma`:
+
+```bash
+npx prisma migrate deploy
+```
+
+This is what `migrate deploy` does:
+- Reads every migration in `prisma/migrations/`
+- Runs them against your Neon DB in order
+- Skips any that have already been applied
+
+### Step 4 — Generate the Prisma Client
+
+```bash
+npx prisma generate
+```
+
+This generates `src/generated/prisma/` — the type-safe TypeScript client
+the app imports as `@/lib/db`.
+
+### Step 5 — Verify it worked
+
+Open Prisma Studio:
+
+```bash
+npx prisma studio
+```
+
+You should see 7 tables in the sidebar: `User`, `Tag`, `Block`, `Todo`,
+`Template`, `TemplateBlock`, `TemplateTodo` — all empty until you sign up.
+
+### Optional — change the schema
+
+In active development, when you change `prisma/schema.prisma`, run:
+
+```bash
+npx prisma migrate dev --name describe_your_change
+```
+
+This creates a new migration file and applies it.
+
+---
+
+## 8. Routes / Pages Included
+
+### Public Routes (no auth required)
+
+| Path | Page | Strategy |
 |---|---|---|
-| `/` | **SSG** | Marketing page, no per-request data — generated at build time. |
-| `/sign-in`, `/sign-up`, `/onboarding` | **SSG** | Static forms, no DB at render time. |
-| `/about` | **ISR** | Public DB-backed stats (total users, total blocks). Cached HTML, regenerated every hour via `export const revalidate = 3600`. |
-| `/dashboard`, `/today`, `/templates`, `/recurring-blocks`, `/settings`, `/analytics` | **SSR** | Per-user data + auth cookie. Cannot be cached, runs on every request. |
-| `/api/*` | Dynamic (always server) | Route handlers — never cached. |
+| `/` | Landing — hero, features, how it works, CTA, footer | SSG |
+| `/about` | About — platform stats refreshed hourly | ISR (1h) |
+| `/sign-in` | Sign in form | SSG |
+| `/sign-up` | Sign up form | SSG |
 
-Each page file starts with a comment explaining the chosen strategy.
+### Authenticated Routes (proxy redirects to `/sign-in` if not logged in)
 
-You can verify by running `npm run build` and looking at the route table
-output (`○` static, `●` ISR, `ƒ` dynamic).
+| Path | Page | Strategy |
+|---|---|---|
+| `/onboarding` | 2-step setup after sign-up | SSG |
+| `/dashboard` | Greeting, stats cards, today's blocks preview, week chart | SSR |
+| `/today` | Hourly timeline for any date, add / edit / delete blocks and todos | SSR |
+| `/today?date=YYYY-MM-DD` | Same page, different date | SSR |
+| `/analytics` | Default Week view | SSR |
+| `/analytics?view=week` | 7-day chart, best / worst day, top tags | SSR |
+| `/analytics?view=month` | Heatmap + month summary | SSR |
+| `/analytics?view=year` | Monthly average bars + best month | SSR |
+| `/analytics?view=*&period=*` | Navigate previous / next periods | SSR |
+| `/templates` | List templates, save today, apply to future date | SSR |
+| `/recurring-blocks` | Placeholder — see "Assumptions" below | SSR |
+| `/settings` | Profile, password, tags, danger zone | SSR |
+
+### Special Files
+
+| File | Purpose |
+|---|---|
+| `src/app/loading.tsx` | Root-level loading skeleton (shown during navigation) |
+| `src/app/not-found.tsx` | Custom 404 |
+| `src/proxy.ts` | Next.js 16 "Proxy" (formerly `middleware.ts`) — auth gate |
 
 ---
 
-## API Routes
+## 9. API Routes Included
 
-The project demonstrates the four HTTP methods required by the syllabus.
+The project demonstrates all four required HTTP methods.
 
 | Method | Path | Action |
 |---|---|---|
-| `GET` | `/api/blocks?date=YYYY-MM-DD` | List the current user's blocks for a date |
-| `POST` | `/api/blocks` | Create a block (with optional todos) |
-| `PATCH` | `/api/blocks/[id]` | Update a block (partial — only supplied fields) |
-| `DELETE` | `/api/blocks/[id]` | Delete a block (cascades to its todos) |
+| `GET` | `/api/blocks?date=YYYY-MM-DD` | List the current user's blocks for the given date |
+| `POST` | `/api/blocks` | Create a new block (with optional nested todos) |
+| `PATCH` | `/api/blocks/[id]` | Partial update of a block (title, time, tag, status) |
+| `DELETE` | `/api/blocks/[id]` | Delete a block (cascades to todos) |
 
-### Response shape
-
-All API routes return a consistent JSON envelope:
+### Consistent response shape
 
 - **Success**: `{ data: ... }` with status 200 (or 201 for create)
-- **Error**: `{ error: "human-readable message" }` with status 4xx / 5xx
+- **Error**: `{ error: "human-readable message" }` with 4xx / 5xx
 
-### Status codes used
+### HTTP status codes used
 
-- `200` — successful GET/PATCH/DELETE
-- `201` — successful POST
-- `400` — bad/missing input
-- `401` — not signed in
-- `404` — resource not found OR doesn't belong to current user
-- `500` — uncaught server error
+| Code | Meaning |
+|---|---|
+| 200 | Successful GET / PATCH / DELETE |
+| 201 | Successful POST |
+| 400 | Bad / missing input (e.g. invalid time format) |
+| 401 | Not signed in |
+| 404 | Resource not found OR doesn't belong to current user |
+| 500 | Uncaught server error |
 
-### Ownership checks
+### Security: Ownership Checks
 
-Every PATCH/DELETE first verifies the resource belongs to the current user
-(by filtering `userId` in the lookup query). If the resource doesn't exist
-or belongs to someone else, a `404` is returned — without leaking whether
-the id exists for another user.
+Every PATCH / DELETE first verifies the resource belongs to the current
+user by filtering `userId` in the lookup query. If the resource doesn't
+exist or belongs to someone else, a `404` is returned — never leaking
+whether the ID exists for another user.
 
 ---
 
-## Server Actions
+## 10. Server Actions Used
 
-Server Actions are used for in-app form submissions where Server Actions
-fit more naturally than HTTP endpoints.
+Every action is in `src/actions/` and marked with `"use server"`.
 
-| Action | File | Use |
+| Action | File | Purpose |
 |---|---|---|
-| `signUpAction` | `src/actions/auth.ts` | Form-driven sign up + default tag seeding |
-| `signInAction` | `src/actions/auth.ts` | Form-driven sign in, sets session cookie |
-| `signOutAction` | `src/actions/auth.ts` | Button-driven sign out, clears cookie |
-| `addTagAction` | `src/actions/tags.ts` | Add a custom activity tag |
-| `toggleTagAction` | `src/actions/tags.ts` | Flip a tag's `active` flag |
-| `deleteTagAction` | `src/actions/tags.ts` | Delete a tag |
-| `toggleTodoAction` | `src/actions/todos.ts` | Toggle a todo's status (also recomputes parent block status) |
-| `addTodoAction` | `src/actions/todos.ts` | Add a todo to an existing block |
-| `deleteTodoAction` | `src/actions/todos.ts` | Delete a todo |
-| `saveTodayAsTemplateAction` | `src/actions/templates.ts` | Save today's blocks as a template (nested write) |
-| `applyTemplateAction` | `src/actions/templates.ts` | Duplicate template blocks onto a target date (`prisma.$transaction`) |
-| `deleteTemplateAction` | `src/actions/templates.ts` | Delete a template (cascades to its blocks and todos) |
+| `signUpAction` | `actions/auth.ts` | Form-driven sign up + default tag seeding |
+| `signInAction` | `actions/auth.ts` | Form-driven sign in, sets session cookie |
+| `signOutAction` | `actions/auth.ts` | Button-driven sign out, clears cookie |
+| `addTagAction` | `actions/tags.ts` | Add a custom activity tag |
+| `toggleTagAction` | `actions/tags.ts` | Flip a tag's `active` flag |
+| `deleteTagAction` | `actions/tags.ts` | Delete a tag |
+| `toggleTodoAction` | `actions/todos.ts` | Toggle a todo done / pending (auto-recomputes block status) |
+| `addTodoAction` | `actions/todos.ts` | Add a todo to an existing block |
+| `deleteTodoAction` | `actions/todos.ts` | Delete a todo |
+| `setBlockStatusAction` | `actions/blocks.ts` | Manually mark a block done / not-done |
+| `markAllTodosAction` | `actions/blocks.ts` | Mark every todo in a block done in one action |
+| `saveTodayAsTemplateAction` | `actions/templates.ts` | Save today's blocks as a template (nested writes) |
+| `applyTemplateAction` | `actions/templates.ts` | Duplicate template blocks onto a target date (`prisma.$transaction`) |
+| `deleteTemplateAction` | `actions/templates.ts` | Delete a template (cascades) |
+| `updateProfileAction` | `actions/account.ts` | Change display name |
+| `updatePasswordAction` | `actions/account.ts` | Verify current password and set new one |
+| `deleteAccountAction` | `actions/account.ts` | Delete user + all related data |
+| `saveOnboardingTagsAction` | `actions/onboarding.ts` | Persist tag toggles from onboarding |
 
-### Why Server Actions and not API Routes?
+### Difference: Server Actions vs API Routes
 
-API Routes are an HTTP boundary — useful when external clients (mobile apps,
-integrations) might want to call them. Server Actions are tightly coupled
-to React forms and use the bind + form-action pattern. For in-app form
-submissions where we never need an external client, Server Actions are
-simpler.
+Both are used deliberately to demonstrate when each pattern fits.
 
-### Why API Routes and not Server Actions?
+- **Server Actions** are used for in-app form submissions where the
+  function is tightly coupled to a React form. The form passes the
+  action to its `action={...}` prop and React handles serialisation,
+  loading state, and revalidation. No HTTP boundary, no `fetch()`,
+  no JSON parsing. Most app mutations live here.
 
-The block CRUD endpoints (`/api/blocks` and `/api/blocks/[id]`) are
-intentionally exposed as REST so the data could be consumed programmatically
-later — and to clearly demonstrate GET/POST/PATCH/DELETE for the assignment.
+- **API Routes** are used for the block CRUD (`/api/blocks/*`) because
+  they expose a clean REST surface that could be consumed
+  programmatically — a mobile app, an integration, an automation
+  script — without needing a React form. They demonstrate all four
+  required HTTP methods cleanly.
 
 ---
 
-## Database Schema
+## 11. Rendering Strategies Used
 
-Models defined in `prisma/schema.prisma`:
+Each page's source file has a comment at the top stating its strategy.
+You can verify by running `npm run build` — the route table prints
+explicit symbols (`○` Static / `●` ISR / `ƒ` Dynamic).
 
-- **User** — id, email (unique), name, password (hashed), timestamps
-- **Tag** — id, userId, name, emoji, active, timestamps
-- **Block** — id, userId, tagId (nullable), date, startTime, endTime, title, status, recurrence, recurrenceEndDate, timestamps
-- **Todo** — id, blockId, text, status, comment, completedLaterAt, timestamps
-- **Template** — id, userId, name, icon, iconColor, timestamps
-- **TemplateBlock** — id, templateId, tagId, startTime, endTime, title, timestamps
-- **TemplateTodo** — id, templateBlockId, text, timestamps
+### SSR (Server-Side Rendering)
 
-Enums:
-- `BlockStatus` (PLANNED, DONE, PARTIAL, SKIPPED)
-- `TodoStatus` (PENDING, DONE, INCOMPLETE)
-- `Recurrence` (NONE, DAILY, WEEKDAYS, WEEKLY, CUSTOM)
+Used where the page shows **per-user data** and must run on every request.
+The auth cookie also forces dynamic rendering.
 
-Deletes cascade where appropriate — e.g. deleting a User removes all their
-blocks, tags, and templates.
+- `/dashboard` — today's blocks, streak, week chart
+- `/today` — timeline for any date
+- `/analytics` — week / month / year stats
+- `/templates` — user's templates
+- `/recurring-blocks` — placeholder page
+- `/settings` — profile, tags
+
+### SSG (Static Site Generation)
+
+Used for pages with **no per-request data** — generated once at build
+time and served as static HTML.
+
+- `/` — landing page (marketing copy)
+- `/sign-in`, `/sign-up` — static auth forms
+- `/onboarding` — static onboarding shell
+- `/_not-found` — custom 404
+
+### ISR (Incremental Static Regeneration)
+
+Used for **public data that's identical for every visitor** and changes
+slowly.
+
+- `/about` — total users, blocks, todos completed
+- Configured with `export const revalidate = 3600` (1 hour)
+- The first visitor triggers a fresh render
+- Subsequent visitors within 1 hour see the cached HTML instantly
+- After 1 hour, the next visit triggers a background re-render
+
+This pattern gives fast page loads with data that's never more than ~1
+hour stale, all without hitting the DB on every page view.
+
+---
+
+## 12. Concepts from Class Covered
+
+This project deliberately demonstrates each item from the class checklist:
+
+- **File-based routing** — every URL maps to a folder under `src/app/`
+- **Route groups** — `(auth)` and `(dashboard)` organise layouts without affecting URLs
+- **Layouts** — root, auth, and dashboard layouts compose cleanly
+- **Dynamic routes** — `/api/blocks/[id]` uses a dynamic segment with `await context.params`
+- **`next/font`** — Plus Jakarta Sans loaded via `next/font/google`
+- **`next/link`** — used for client-side navigation throughout
+- **`next/image`** — landing hero illustration uses `<Image>` with `priority`
+- **`next/navigation`** — `useRouter`, `usePathname`, `redirect`, `useActionState`
+- **`loading.tsx`** — root-level loading skeleton
+- **`not-found.tsx`** — custom 404
+- **Server Components** — default for pages; pull DB data with top-level `await`
+- **Client Components** — `"use client"` used only where needed (state, browser APIs, event handlers)
+- **SSR** — dashboard, today, analytics, templates, settings, recurring-blocks
+- **SSG** — landing, sign-in, sign-up, onboarding
+- **ISR** — `/about` with `export const revalidate = 3600`
+- **API Routes** — GET / POST / PATCH / DELETE under `/api/blocks`
+- **Structured API responses** — consistent `{ data }` / `{ error }` envelope
+- **HTTP status codes** — 200, 201, 400, 401, 404, 500 with appropriate semantics
+- **Server Actions** — `"use server"`, `useActionState`, `.bind()` for action arguments
+- **Database** — Prisma + Neon, migrations, nested writes, `prisma.$transaction`
+- **Environment variables** — `.env` + `.env.example`, no secrets committed
+- **Proxy (middleware)** — `src/proxy.ts` enforces auth on protected routes
+
+---
+
+## 13. Assumptions and Limitations
+
+- **Single timezone (UTC).** All dates are stored and compared in UTC.
+  The app does not adjust for the user's local timezone. A user in IST
+  may see edge cases around midnight UTC. Fixing this requires storing
+  a timezone on each user — out of scope for this version.
+
+- **Recurrence engine is v2.** The `Block.recurrence` and
+  `recurrenceEndDate` fields exist in the schema, but the engine that
+  materialises future occurrences is not built. The Recurring Blocks
+  page communicates this clearly and points users to Templates as the
+  alternative.
+
+- **Carry Forward not implemented.** Todos cannot be auto-rolled into
+  the next day. This was originally scoped but cut to keep the project
+  focused.
+
+- **Mark Incomplete + comment not implemented.** The `TodoStatus` enum
+  includes `INCOMPLETE` and the schema has a `comment` field, but the
+  UI does not expose a way to set them. Todos can only be PENDING or
+  DONE.
+
+- **No password reset flow.** Sign-in supports email + password only.
+
+- **No image uploads.** Profile avatars are gradient initials based on
+  the user's name.
+
+- **No charting library.** Analytics charts are pure CSS bars and a
+  CSS-grid heatmap. Keeps the dependency footprint small for the
+  assignment scope.
+
+- **Onboarding day-start preference not persisted.** The day-start time
+  picker UI was removed because we don't yet have a `dayStartTime`
+  column on the user. Tag toggles in onboarding DO persist.
 
 ---
 
 ## Project Structure
 
 ```
-daylog/
-├── prisma/
-│   ├── schema.prisma          # All models, enums, relations
-│   └── migrations/            # Migration history
-├── prisma.config.ts           # Datasource config (reads .env)
-├── src/
-│   ├── actions/               # Server Actions (auth, tags, todos, templates)
-│   ├── app/
-│   │   ├── (auth)/            # Route group: sign-in, sign-up, onboarding
-│   │   │   └── layout.tsx
-│   │   ├── (dashboard)/       # Route group: protected app pages
-│   │   │   ├── layout.tsx     # Sidebar + topbar (Server Component → DashboardShell)
-│   │   │   ├── dashboard/
-│   │   │   ├── today/
-│   │   │   ├── analytics/
-│   │   │   ├── templates/
-│   │   │   ├── recurring-blocks/
-│   │   │   └── settings/
-│   │   ├── about/             # Public ISR page
-│   │   ├── api/
-│   │   │   └── blocks/
-│   │   │       ├── route.ts       # GET, POST
-│   │   │       └── [id]/route.ts  # PATCH, DELETE
-│   │   ├── layout.tsx         # Root layout (font, globals)
-│   │   ├── page.tsx           # Landing
-│   │   ├── globals.css
-│   │   ├── not-found.tsx
-│   │   └── loading.tsx
-│   ├── components/
-│   │   ├── layout/DashboardShell.tsx    # Client component for sidebar interactivity
-│   │   └── today/BlockModal.tsx         # Add/edit block modal
-│   ├── lib/
-│   │   ├── auth.ts            # hashPassword, verify, sessions, getCurrentUser
-│   │   ├── constants.ts       # DAY_START_TIMES, DEFAULT_TAGS
-│   │   ├── db.ts              # Prisma client singleton (Neon adapter)
-│   │   ├── dates.ts           # Date helpers
-│   │   └── analytics-stats.ts # Pure aggregation helpers
-│   ├── generated/prisma/      # Auto-generated Prisma client (don't edit)
-│   └── proxy.ts               # Next.js 16 "Proxy" (formerly middleware)
-├── .env                       # Local secrets — NOT committed
-├── .env.example               # Template for required env vars — committed
-└── package.json
+src/
+├── actions/                   # Server Actions ("use server")
+│   ├── auth.ts                # sign up / sign in / sign out
+│   ├── tags.ts                # CRUD on tags
+│   ├── todos.ts               # toggle / add / delete + auto-status
+│   ├── blocks.ts              # mark block / mark all todos done
+│   ├── templates.ts           # save today / apply / delete
+│   ├── account.ts             # profile / password / delete account
+│   └── onboarding.ts          # save onboarding selections
+├── app/
+│   ├── (auth)/                # Route group — auth pages
+│   │   ├── layout.tsx
+│   │   ├── sign-in/
+│   │   ├── sign-up/
+│   │   └── onboarding/
+│   ├── (dashboard)/           # Route group — protected app
+│   │   ├── layout.tsx
+│   │   ├── dashboard/
+│   │   ├── today/
+│   │   ├── analytics/
+│   │   ├── templates/
+│   │   ├── recurring-blocks/
+│   │   └── settings/
+│   ├── about/                 # ISR
+│   ├── api/
+│   │   └── blocks/
+│   │       ├── route.ts       # GET, POST
+│   │       └── [id]/route.ts  # PATCH, DELETE
+│   ├── layout.tsx
+│   ├── page.tsx               # Landing (SSG)
+│   ├── loading.tsx
+│   └── not-found.tsx
+├── components/
+│   ├── layout/DashboardShell.tsx
+│   └── today/BlockModal.tsx
+├── lib/
+│   ├── auth.ts                # hashPassword, verify, sessions, getCurrentUser
+│   ├── constants.ts
+│   ├── db.ts                  # Prisma client singleton (Neon adapter)
+│   ├── dates.ts
+│   └── analytics-stats.ts
+├── generated/prisma/          # Auto-generated Prisma client
+└── proxy.ts                   # Next.js 16 "Proxy" (formerly middleware)
+prisma/
+├── schema.prisma
+└── migrations/
+prisma.config.ts               # Datasource config
 ```
 
 ---
 
-## Running Locally
+## Database Schema Reference
 
-### 1. Clone and install
-
-```bash
-git clone <your-repo-url>
-cd daylog
-npm install
-```
-
-### 2. Set up a Neon database
-
-1. Create a free account at [neon.com](https://neon.com)
-2. Create a new project (any name)
-3. Copy the **connection string** from the project dashboard
-   (it looks like `postgresql://user:password@ep-…neon.tech/dbname?sslmode=require`)
-
-### 3. Create your `.env` file
-
-Copy `.env.example` to `.env` and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env` and set:
-
-```
-DATABASE_URL="<your Neon connection string>"
-JWT_SECRET="<any long random string, 32+ chars recommended>"
-```
-
-You can generate a random JWT secret with:
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-### 4. Apply migrations
-
-```bash
-npx prisma migrate deploy   # runs the migration SQL against your Neon DB
-npx prisma generate         # builds the TypeScript client
-```
-
-(In active development, use `npx prisma migrate dev --name <change>` instead.)
-
-### 5. Run the dev server
-
-```bash
-npm run dev
-```
-
-App is now live at [http://localhost:3000](http://localhost:3000).
-
-### 6. (Optional) Browse your DB
-
-```bash
-npx prisma studio
-```
-
-Opens a UI at [http://localhost:5555](http://localhost:5555) where you can
-view and edit DB rows directly.
-
----
-
-## Environment Variables
-
-| Variable | Description |
+| Model | Key fields |
 |---|---|
-| `DATABASE_URL` | Neon PostgreSQL connection string. Required at build and runtime. |
-| `JWT_SECRET` | Secret used to sign session JWTs. Any long random string — keep it private. Changing it invalidates all existing sessions. |
+| **User** | id, email (unique), name, password (bcrypt hash), createdAt, updatedAt |
+| **Tag** | id, userId, name, emoji, active, createdAt |
+| **Block** | id, userId, tagId (nullable), date, startTime, endTime, title, status, recurrence, recurrenceEndDate, createdAt, updatedAt |
+| **Todo** | id, blockId, text, status, comment, completedLaterAt, createdAt, updatedAt |
+| **Template** | id, userId, name, icon, iconColor, createdAt, updatedAt |
+| **TemplateBlock** | id, templateId, tagId, startTime, endTime, title, createdAt |
+| **TemplateTodo** | id, templateBlockId, text, createdAt |
 
-`.env.example` is committed to the repo as a template. `.env` is gitignored.
+### Enums
 
----
+- `BlockStatus` — PLANNED, DONE, PARTIAL, SKIPPED
+- `TodoStatus` — PENDING, DONE, INCOMPLETE
+- `Recurrence` — NONE, DAILY, WEEKDAYS, WEEKLY, CUSTOM
 
-## Concepts from Class Covered
+### Cascade behavior
 
-This project demonstrates the following concepts as required by the
-assignment:
-
-- **File-based routing** — every URL maps to a folder under `src/app/`.
-- **Route groups** — `(auth)` and `(dashboard)` organize layouts without
-  affecting URLs.
-- **Layouts** — root, auth, and dashboard layouts compose nicely.
-- **Dynamic routes** — `/api/blocks/[id]` uses a dynamic segment with `await context.params`.
-- **`next/font`** — Plus Jakarta Sans loaded via `next/font/google`.
-- **`next/link`** — used for client-side navigation everywhere.
-- **`next/navigation`** — `useRouter`, `usePathname`, `redirect`, `useActionState`.
-- **`loading.tsx`** — root-level loading skeleton.
-- **`not-found.tsx`** — custom 404 page.
-- **Server Components** — default for all pages; pull DB data with `await`.
-- **Client Components** — `"use client"` directive used only where needed
-  (interactivity, state, browser APIs).
-- **SSR** — most dashboard pages, see Rendering Strategies table.
-- **SSG** — landing + auth pages.
-- **ISR** — `/about` with `export const revalidate = 3600`.
-- **API Routes** — GET / POST / PATCH / DELETE under `/api/blocks`.
-- **Structured API responses** — consistent `{ data }` / `{ error }` envelope.
-- **HTTP status codes** — 200, 201, 400, 401, 404, 500.
-- **Server Actions** — `"use server"`, `useActionState`, `.bind()` pattern.
-- **Database** — Prisma + Neon, migrations, nested writes, `$transaction`.
-- **Environment variables** — `.env` + `.env.example`, no secrets committed.
-- **Proxy (middleware)** — `src/proxy.ts` enforces auth on protected routes
-  and redirects authenticated users away from auth pages.
-
----
-
-## Assumptions and Limitations
-
-- **Single timezone (UTC).** All dates are stored and compared in UTC. The
-  app does not adjust for the user's local timezone. A user in IST setting
-  up at midnight may see "today" slip by a few hours either side. Fixing
-  this requires a `timezone` column on the User and consistent conversion
-  throughout — out of scope for the assignment.
-- **No password reset.** The Sign In page shows "Forgot password?" but the
-  link is not wired up.
-- **No `Recurrence` engine.** The `Block.recurrence` field exists in the
-  schema, but the Today's Log page only shows blocks explicitly stored on
-  the requested date. There is no background job materializing future
-  recurring instances.
-- **No carry-forward implementation.** UI placeholder exists; underlying
-  logic not built.
-- **No `Mark as INCOMPLETE` flow with comment.** Schema supports it; UI
-  uses only PENDING ↔ DONE.
-- **No charts library.** Analytics renders bars and a heatmap with raw
-  CSS — clean enough for the assignment, no dependency added.
-- **No image uploads.** Profile avatars are gradient initials only.
-- **No deletion confirmation modals.** Tag/template/todo deletes are
-  immediate. (Block deletion uses a native `confirm()` dialog.)
-- **Single Prisma generator output.** The generated client is written to
-  `src/generated/prisma` and imported via the `@/` alias — different from
-  the older `@prisma/client` convention.
+- Deleting a User cascades to their Tags, Blocks, and Templates
+- Deleting a Block cascades to its Todos
+- Deleting a Tag sets `tagId` to NULL on dependent Blocks and TemplateBlocks
+- Deleting a Template cascades to its TemplateBlocks and TemplateTodos
 
 ---
 
 ## Deployment
 
-The project is configured to deploy on **Vercel** with zero config.
+Configured for **Vercel** with zero config.
 
 1. Push the repo to GitHub.
-2. In Vercel, "New Project" → import the repo.
-3. Add `DATABASE_URL` and `JWT_SECRET` under **Project Settings → Environment Variables**
-   (set them for Production, Preview, and Development).
-4. Deploy.
-5. After the first deploy, Vercel will run `prisma migrate deploy` only if
-   you wire it up — easiest is to set the build command to:
-
+2. In Vercel, **New Project** → import the repo.
+3. Under **Project Settings → Environment Variables**, add `DATABASE_URL`
+   and `JWT_SECRET` for Production, Preview, and Development.
+4. Override the Build Command under
+   **Build & Development Settings**:
    ```
    npx prisma migrate deploy && npx prisma generate && next build
    ```
-
-   in **Project Settings → Build & Development Settings → Build Command**.
-   This applies any pending migrations to your Neon DB during each deploy.
+   This applies any pending migrations to your Neon DB on each deploy.
+5. Deploy.
 
 ---
 
 ## Scripts
 
-- `npm run dev` — start the Next.js dev server with Turbopack
-- `npm run build` — production build
-- `npm start` — run the production build
-- `npm run lint` — ESLint
-- `npx prisma migrate dev --name <name>` — create + apply a new migration
-- `npx prisma generate` — regenerate the Prisma client
-- `npx prisma studio` — open a UI to browse the DB
-
----
-
-## License
-
-This is a learning project. No license claim — please don't ship it as-is
-for production use without addressing the limitations above.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Start the Next.js dev server with Turbopack |
+| `npm run build` | Production build (prints the route table) |
+| `npm start` | Run the production build |
+| `npm run lint` | ESLint |
+| `npx prisma migrate dev --name <name>` | Create + apply a new migration |
+| `npx prisma generate` | Regenerate the Prisma client |
+| `npx prisma studio` | Open a UI to browse the DB |

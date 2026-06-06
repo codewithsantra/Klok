@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
-const COOKIE_NAME = "daylog_session";
+const COOKIE_NAME = "klok_session";
 
 const PROTECTED_PATHS = [
   "/dashboard",

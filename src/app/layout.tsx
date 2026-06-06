@@ -10,7 +10,7 @@ const plusJakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "DayLog — Plan Your Day. Own Your Reality.",
+  title: "Klok — Plan Your Day. Own Your Reality.",
   description:
     "The daily tracker that's honest about the gap between what you planned and what actually happened.",
 };

@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/db";
 
 const SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
-const COOKIE_NAME = "daylog_session";
+const COOKIE_NAME = "klok_session";
 const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
 
 export async function hashPassword(plain: string): Promise<string> {

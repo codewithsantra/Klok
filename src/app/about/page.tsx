@@ -26,7 +26,7 @@ export default async function AboutPage() {
           <div className="w-9 h-9 bg-[#6C6FDF] rounded-xl flex items-center justify-center shadow-md shadow-[#6C6FDF]/40">
             <i className="fa-solid fa-calendar-check text-white text-sm"></i>
           </div>
-          <span className="text-xl font-extrabold text-[#1A1A2E]">DayLog</span>
+          <span className="text-xl font-extrabold text-[#1A1A2E]">Klok</span>
         </Link>
         <div className="flex items-center gap-3">
           <Link href="/sign-in" className="btn btn-ghost px-5">
@@ -44,14 +44,14 @@ export default async function AboutPage() {
       {/* Hero */}
       <div className="max-w-4xl mx-auto px-4 md:px-8 pt-12 md:pt-20 pb-12 text-center">
         <div className="inline-flex items-center gap-2 bg-white border border-[#EEEEFF] px-4 py-2 rounded-full text-sm font-semibold text-[#6C6FDF] shadow-sm mb-6">
-          About DayLog
+          About Klok
         </div>
         <h1 className="text-3xl md:text-5xl font-extrabold leading-tight text-[#1A1A2E] mb-6">
           A daily tracker built for{" "}
           <span className="grad-text">honest reflection.</span>
         </h1>
         <p className="text-base lg:text-lg text-[#6B7280] max-w-2xl mx-auto leading-relaxed">
-          DayLog isn&apos;t a fancy planner that pretends every day goes
+          Klok isn&apos;t a fancy planner that pretends every day goes
           smoothly. It&apos;s a tracker designed around the truth: you plan,
           you execute, you miss things, you adjust. It helps you build a real
           rhythm without judgement.
@@ -61,9 +61,9 @@ export default async function AboutPage() {
       {/* Live (ISR) stats */}
       <div className="max-w-4xl mx-auto px-4 md:px-8 pb-12">
         <div className="card p-8">
-          <h2 className="font-bold text-[#1A1A2E] mb-1">DayLog by the numbers</h2>
+          <h2 className="font-bold text-[#1A1A2E] mb-1">Klok by the numbers</h2>
           <p className="text-xs text-[#9CA3AF] mb-6">
-            Updated hourly via Incremental Static Regeneration.
+            Updated hourly.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <StatBlock
