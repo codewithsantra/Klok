@@ -1,5 +1,7 @@
 # Klok
 
+**Live app:** [https://klok-daily-tracker.netlify.app](https://klok-daily-tracker.netlify.app)
+
 ## 1. Project Title
 
 **Klok — Plan your day. Own your reality.**
@@ -124,7 +126,7 @@ npx prisma generate
 npm run dev
 ```
 
-App is now live at [http://localhost:3000](http://localhost:3000).
+The app starts on the default Next.js dev port.
 
 ### Optional — browse the database
 
@@ -132,7 +134,7 @@ App is now live at [http://localhost:3000](http://localhost:3000).
 npx prisma studio
 ```
 
-Opens a UI at [http://localhost:5555](http://localhost:5555).
+Opens a Prisma Studio UI in your browser.
 
 ---
 
@@ -531,19 +533,25 @@ prisma.config.ts               # Datasource config
 
 ## Deployment
 
-Configured for **Vercel** with zero config.
+Deployed live on **Netlify**: [https://klok-daily-tracker.netlify.app](https://klok-daily-tracker.netlify.app)
+
+Steps to reproduce the deployment:
 
 1. Push the repo to GitHub.
-2. In Vercel, **New Project** → import the repo.
-3. Under **Project Settings → Environment Variables**, add `DATABASE_URL`
-   and `JWT_SECRET` for Production, Preview, and Development.
-4. Override the Build Command under
-   **Build & Development Settings**:
+2. In Netlify, **Add new site** → **Import an existing project** → connect
+   GitHub → pick the repo. Netlify auto-detects Next.js and installs
+   `@netlify/plugin-nextjs`.
+3. Under **Site settings → Environment variables**, add:
+   - `DATABASE_URL` — Neon pooled connection string
+   - `JWT_SECRET` — long random string (32+ chars)
+   - `NODE_VERSION` — `20`
+4. Override the **Build command** under **Build & deploy → Build settings**:
    ```
    npx prisma migrate deploy && npx prisma generate && next build
    ```
-   This applies any pending migrations to your Neon DB on each deploy.
-5. Deploy.
+   This applies any pending migrations to Neon and regenerates the Prisma
+   client on every deploy (since `src/generated/` is gitignored).
+5. Trigger a deploy.
 
 ---
 
