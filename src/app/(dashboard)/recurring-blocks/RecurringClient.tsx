@@ -1,35 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import {
+  createRecurringRuleAction,
+  updateRecurringRuleAction,
+  toggleRecurringRuleAction,
+  deleteRecurringRuleAction,
+  type RuleInput,
+} from "@/actions/recurring";
 
 // ──────────────────────────────────────────────────────────────
-// RecurringClient — full UI for recurring rules
-// ──────────────────────────────────────────────────────────────
-// CURRENT: receives mocked rules from page.tsx and stores state
-// locally. All actions (toggle/edit/delete/create) are stubs.
-//
-// TODO (user): wire to Server Actions:
-//   - createRecurringRuleAction(formData)
-//   - updateRecurringRuleAction(id, formData)
-//   - toggleRecurringRuleAction(id, active)
-//   - deleteRecurringRuleAction(id)
+// RecurringClient — full UI for recurring rules (wired to DB)
 // ──────────────────────────────────────────────────────────────
 
 type Recurrence = "DAILY" | "WEEKDAYS" | "WEEKLY" | "CUSTOM";
+type TagOption = { id: string; name: string; emoji: string };
 
 export type RuleData = {
   id: string;
   name: string;
   emoji: string;
+  tagId: string | null;
   tagName: string;
   startTime: string;
   endTime: string;
   recurrence: Recurrence;
   daysOfWeek: number[];
   active: boolean;
+  todos: string[];
   todosCount: number;
   nextRun: string;
-  createdAt: string;
 };
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -46,12 +47,16 @@ function recurrenceText(rule: RuleData): string {
 
 export default function RecurringClient({
   initialRules,
+  tags,
 }: {
   initialRules: RuleData[];
+  tags: TagOption[];
 }) {
+  const router = useRouter();
   const [rules, setRules] = useState<RuleData[]>(initialRules);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<RuleData | null>(null);
+  const [, startTx] = useTransition();
 
   const activeCount = rules.filter((r) => r.active).length;
   const totalRules = rules.length;
@@ -60,12 +65,18 @@ export default function RecurringClient({
     setRules((prev) =>
       prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r)),
     );
-    /* TODO (user): toggleRecurringRuleAction(id) */
+    startTx(async () => {
+      await toggleRecurringRuleAction(id);
+      router.refresh();
+    });
   }
 
   function handleDelete(id: string) {
     setRules((prev) => prev.filter((r) => r.id !== id));
-    /* TODO (user): deleteRecurringRuleAction(id) */
+    startTx(async () => {
+      await deleteRecurringRuleAction(id);
+      router.refresh();
+    });
   }
 
   function handleOpenCreate() {
@@ -78,17 +89,15 @@ export default function RecurringClient({
     setModalOpen(true);
   }
 
-  function handleSaveRule(rule: RuleData) {
-    if (rule.id) {
-      // Edit existing
-      setRules((prev) => prev.map((r) => (r.id === rule.id ? rule : r)));
-    } else {
-      // Create new
-      const newRule = { ...rule, id: `rule-${Date.now()}` };
-      setRules((prev) => [newRule, ...prev]);
+  async function handleSaveRule(id: string, input: RuleInput) {
+    const result = id
+      ? await updateRecurringRuleAction(id, input)
+      : await createRecurringRuleAction(input);
+    if (result && "error" in result && result.error) {
+      throw new Error(result.error);
     }
     setModalOpen(false);
-    /* TODO (user): createRecurringRuleAction or updateRecurringRuleAction */
+    router.refresh();
   }
 
   return (
@@ -97,8 +106,8 @@ export default function RecurringClient({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2">
         <div>
           <h1
-            className="text-xl font-bold"
-            style={{ color: "var(--text)", letterSpacing: "-0.02em" }}
+            className="font-display text-2xl font-extrabold"
+            style={{ color: "var(--text)" }}
           >
             Recurring Blocks
           </h1>
@@ -152,6 +161,7 @@ export default function RecurringClient({
       {modalOpen && (
         <RuleModal
           initial={editing}
+          tags={tags}
           onSave={handleSaveRule}
           onClose={() => setModalOpen(false)}
         />
@@ -425,17 +435,20 @@ function RuleCard({
 // ── Create / Edit Modal ──────────────────────────────────────
 function RuleModal({
   initial,
+  tags,
   onSave,
   onClose,
 }: {
   initial: RuleData | null;
-  onSave: (rule: RuleData) => void;
+  tags: TagOption[];
+  onSave: (id: string, input: RuleInput) => void | Promise<void>;
   onClose: () => void;
 }) {
   const isEdit = !!initial;
   const [name, setName] = useState(initial?.name ?? "");
-  const [emoji, setEmoji] = useState(initial?.emoji ?? "🌅");
-  const [tagName, setTagName] = useState(initial?.tagName ?? "Personal");
+  const [tagId, setTagId] = useState<string>(initial?.tagId ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [startTime, setStartTime] = useState(initial?.startTime ?? "07:00");
   const [endTime, setEndTime] = useState(initial?.endTime ?? "08:00");
   const [recurrence, setRecurrence] = useState<Recurrence>(
@@ -444,6 +457,9 @@ function RuleModal({
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>(
     initial?.daysOfWeek ?? [1, 2, 3, 4, 5],
   );
+  const [todos, setTodos] = useState<string[]>(
+    initial?.todos.length ? initial.todos : [""],
+  );
 
   function toggleDay(d: number) {
     setDaysOfWeek((prev) =>
@@ -451,37 +467,37 @@ function RuleModal({
     );
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    onSave({
-      id: initial?.id ?? "",
-      name,
-      emoji,
-      tagName,
-      startTime,
-      endTime,
-      recurrence,
-      daysOfWeek:
-        recurrence === "DAILY"
-          ? [0, 1, 2, 3, 4, 5, 6]
-          : recurrence === "WEEKDAYS"
-            ? [1, 2, 3, 4, 5]
-            : daysOfWeek,
-      active: initial?.active ?? true,
-      todosCount: initial?.todosCount ?? 0,
-      nextRun: "Tomorrow",
-      createdAt: initial?.createdAt ?? "just now",
-    });
+    setError(null);
+    setSubmitting(true);
+    const selectedTag = tags.find((t) => t.id === tagId);
+    const emoji = selectedTag?.emoji ?? "🔁";
+    try {
+      await onSave(initial?.id ?? "", {
+        name,
+        emoji,
+        tagId: tagId || null,
+        startTime,
+        endTime,
+        recurrence,
+        daysOfWeek,
+        todos: todos.map((t) => t.trim()).filter(Boolean),
+      });
+    } catch {
+      setError("Failed to save rule. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="card p-5 md:p-6 w-full max-w-lg animate-fade-in"
+        className="card modal-card w-full max-w-lg animate-fade-in"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxHeight: "90vh", overflowY: "auto" }}
       >
-        <div className="flex items-center justify-between mb-5">
+        <div className="modal-head flex items-center justify-between p-5 md:p-6">
           <h2 className="font-semibold" style={{ color: "var(--text)" }}>
             {isEdit ? "Edit Rule" : "New Recurring Rule"}
           </h2>
@@ -501,7 +517,8 @@ function RuleModal({
           </button>
         </div>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit}>
+          <div className="modal-body space-y-4 p-5 md:p-6">
           {/* Name */}
           <div>
             <label
@@ -520,37 +537,27 @@ function RuleModal({
             />
           </div>
 
-          {/* Emoji + tag */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label
-                className="block text-xs font-semibold mb-1.5"
-                style={{ color: "var(--text)" }}
-              >
-                Emoji
-              </label>
-              <input
-                value={emoji}
-                onChange={(e) => setEmoji(e.target.value)}
-                className="inp"
-                maxLength={2}
-                style={{ fontSize: 18 }}
-              />
-            </div>
-            <div>
-              <label
-                className="block text-xs font-semibold mb-1.5"
-                style={{ color: "var(--text)" }}
-              >
-                Tag
-              </label>
-              <input
-                value={tagName}
-                onChange={(e) => setTagName(e.target.value)}
-                className="inp"
-                placeholder="Personal / Work / Health..."
-              />
-            </div>
+          {/* Tag */}
+          <div>
+            <label
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: "var(--text)" }}
+            >
+              Tag{" "}
+              <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(optional)</span>
+            </label>
+            <select
+              value={tagId}
+              onChange={(e) => setTagId(e.target.value)}
+              className="inp"
+            >
+              <option value="">— No tag —</option>
+              {tags.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.emoji} {t.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Time range */}
@@ -641,21 +648,92 @@ function RuleModal({
             </div>
           )}
 
-          {/* Submit */}
-          <div className="flex gap-3 pt-2">
+          {/* Todos template */}
+          <div>
+            <label
+              className="block text-xs font-semibold mb-2"
+              style={{ color: "var(--text)" }}
+            >
+              Todos{" "}
+              <span style={{ color: "var(--text-3)", fontWeight: 400 }}>
+                (added to each generated block)
+              </span>
+            </label>
+            <div className="space-y-2">
+              {todos.map((t, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    value={t}
+                    onChange={(e) =>
+                      setTodos((prev) =>
+                        prev.map((x, idx) => (idx === i ? e.target.value : x)),
+                      )
+                    }
+                    className="inp flex-1"
+                    placeholder="e.g. Drink water, stretch..."
+                    maxLength={300}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTodos((prev) =>
+                        prev.length > 1
+                          ? prev.filter((_, idx) => idx !== i)
+                          : prev,
+                      )
+                    }
+                    className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: "var(--surface-2)",
+                      border: "1px solid var(--border)",
+                    }}
+                  >
+                    <i
+                      className="fa-solid fa-xmark text-xs"
+                      style={{ color: "var(--text-3)" }}
+                    ></i>
+                  </button>
+                </div>
+              ))}
+            </div>
             <button
               type="button"
-              onClick={onClose}
-              className="btn btn-outline flex-1 justify-center"
+              onClick={() => setTodos((prev) => [...prev, ""])}
+              className="text-xs font-semibold flex items-center gap-1.5 hover:underline mt-3"
+              style={{ color: "var(--accent)" }}
             >
-              Cancel
+              <i className="fa-solid fa-plus text-[10px]"></i> Add another todo
             </button>
-            <button
-              type="submit"
-              className="btn btn-primary flex-1 justify-center"
-            >
-              {isEdit ? "Save Changes" : "Create Rule"}
-            </button>
+          </div>
+
+          </div>{/* /modal-body */}
+
+          {/* Submit */}
+          <div className="modal-foot p-5 md:p-6 space-y-3">
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg"
+                style={{ background: "var(--danger-bg)", border: "1px solid rgba(220,38,38,.2)" }}>
+                <i className="fa-solid fa-circle-exclamation text-sm" style={{ color: "var(--danger)" }}></i>
+                <span className="text-xs font-medium" style={{ color: "var(--danger)" }}>{error}</span>
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={submitting}
+                className="btn btn-outline flex-1 justify-center disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn-primary flex-1 justify-center disabled:opacity-50"
+              >
+                {submitting ? "Saving..." : isEdit ? "Save Changes" : "Create Rule"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

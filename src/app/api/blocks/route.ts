@@ -25,8 +25,45 @@ export async function POST(request: NextRequest) {
     const endTime = String(body.endTime ?? "").trim();
     const tagId = body.tagId ? String(body.tagId) : null;
     const date = parseISODate(String(body.date ?? ""));
-    const todos: string[] = Array.isArray(body.todos)
-      ? body.todos.map((t: unknown) => String(t).trim()).filter(Boolean)
+
+    // Todos may arrive as plain strings (legacy) or objects with an
+    // optional metric goal: { text, metric?: { type, target, unit } }.
+    const METRIC_TYPES = ["TIME", "DISTANCE", "COUNT", "CUSTOM"] as const;
+    type TodoCreate = {
+      text: string;
+      metricType?: (typeof METRIC_TYPES)[number];
+      metricUnit?: string;
+      metricTarget?: number;
+    };
+    const todos: TodoCreate[] = Array.isArray(body.todos)
+      ? body.todos
+          .map((raw: unknown): TodoCreate | null => {
+            if (typeof raw === "string") {
+              const text = raw.trim();
+              return text ? { text } : null;
+            }
+            if (raw && typeof raw === "object") {
+              const o = raw as Record<string, unknown>;
+              const text = String(o.text ?? "").trim();
+              if (!text) return null;
+              const m = o.metric as Record<string, unknown> | null | undefined;
+              if (
+                m &&
+                METRIC_TYPES.includes(m.type as (typeof METRIC_TYPES)[number]) &&
+                Number(m.target) > 0
+              ) {
+                return {
+                  text,
+                  metricType: m.type as (typeof METRIC_TYPES)[number],
+                  metricTarget: Number(m.target),
+                  metricUnit: String(m.unit ?? "").slice(0, 20),
+                };
+              }
+              return { text };
+            }
+            return null;
+          })
+          .filter((t: TodoCreate | null): t is TodoCreate => t !== null)
       : [];
 
     // ── Validation ──
@@ -69,6 +106,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // ── Block-level tracking (optional) ──
+    const blockMetricType = METRIC_TYPES.includes(body.metricType) ? body.metricType : null;
+    const blockMetricTarget = blockMetricType && Number(body.metricTarget) > 0 ? Number(body.metricTarget) : null;
+    const blockMetricUnit = blockMetricType ? String(body.metricUnit ?? "").slice(0, 20) || null : null;
+
     // ── Create ──
     const block = await prisma.block.create({
       data: {
@@ -78,8 +120,18 @@ export async function POST(request: NextRequest) {
         date,
         startTime,
         endTime,
+        ...(blockMetricType ? { metricType: blockMetricType, metricTarget: blockMetricTarget, metricUnit: blockMetricUnit } : {}),
         todos: {
-          create: todos.map((text) => ({ text })),
+          create: todos.map((t) => ({
+            text: t.text,
+            ...(t.metricType
+              ? {
+                  metricType: t.metricType,
+                  metricTarget: t.metricTarget,
+                  metricUnit: t.metricUnit || null,
+                }
+              : {}),
+          })),
         },
       },
       include: { tag: true, todos: true },

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addTagAction, toggleTagAction, deleteTagAction, type TagActionState } from "@/actions/tags";
 import { updateProfileAction, updatePasswordAction, deleteAccountAction, type ProfileState, type PasswordState } from "@/actions/account";
+import { toast } from "@/lib/toast";
 
 const EMOJI_OPTIONS = [
   "🏷️","📚","💻","📝","✏️","💪","🏃","🧘","🧠","🛌",
@@ -12,7 +13,7 @@ const EMOJI_OPTIONS = [
 ];
 
 type Tag = { id: string; name: string; emoji: string; active: boolean };
-type User = { id: string; email: string; name: string | null };
+type User = { id: string; email: string; name: string | null; timeZone: string };
 
 export default function SettingsClient({ user, tags }: { user: User; tags: Tag[] }) {
   const [profileState, profileAction, profilePending] = useActionState<ProfileState | undefined, FormData>(updateProfileAction, undefined);
@@ -31,18 +32,17 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [pickerOpen]);
 
+  useEffect(() => { if (profileState?.success) toast("Profile saved"); }, [profileState]);
+  useEffect(() => { if (passwordState?.success) toast("Password changed"); }, [passwordState]);
+
   const displayName = user.name?.trim() || user.email.split("@")[0];
   const initial = (user.name?.trim() || user.email).charAt(0).toUpperCase();
 
-  function handleDelete() {
-    const ok = window.confirm("Are you SURE you want to delete your account? This permanently removes all your blocks, todos, tags, and templates. This cannot be undone.");
-    if (!ok) return;
-    return deleteAccountAction();
-  }
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div className="animate-fade-in">
-      <h1 className="text-xl font-bold mb-5" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>Settings</h1>
+      <h1 className="font-display text-2xl font-extrabold mb-5" style={{ color: "var(--text)" }}>Settings</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Profile */}
@@ -73,6 +73,15 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
                 Email <span className="font-normal" style={{ color: "var(--text-3)" }}>(read-only)</span>
               </label>
               <input className="inp" value={user.email} disabled style={{ opacity: 0.6 }} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>
+                Timezone <span className="font-normal" style={{ color: "var(--text-3)" }}>(auto-detected)</span>
+              </label>
+              <input className="inp" value={user.timeZone} disabled style={{ opacity: 0.6 }} />
+              <p className="text-[10px] mt-1" style={{ color: "var(--text-3)" }}>
+                Your day rolls over at midnight in this zone. Detected from your browser.
+              </p>
             </div>
             {profileState?.error && <p className="text-[10px] font-medium" style={{ color: "var(--danger)" }}>{profileState.error}</p>}
             {profileState?.success && <p className="text-[10px] font-medium" style={{ color: "var(--success)" }}>✓ Saved!</p>}
@@ -178,11 +187,43 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
           <p className="text-sm mb-4" style={{ color: "var(--text-2)" }}>
             Permanently delete your account and all your data. This cannot be undone.
           </p>
-          <form action={handleDelete}>
-            <button type="submit" className="btn btn-danger">Delete My Account</button>
-          </form>
+          <button type="button" onClick={() => setConfirmDelete(true)} className="btn btn-danger">
+            Delete My Account
+          </button>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="modal-backdrop" onClick={() => setConfirmDelete(false)}>
+          <div className="card modal-card w-full max-w-sm animate-fade-in" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
+                style={{ background: "var(--danger-bg)" }}>
+                <i className="fa-solid fa-triangle-exclamation" style={{ color: "var(--danger)", fontSize: 18 }}></i>
+              </div>
+              <h2 className="font-display text-lg font-extrabold mb-1.5" style={{ color: "var(--text)" }}>
+                Delete your account?
+              </h2>
+              <p className="text-sm mb-5" style={{ color: "var(--text-2)" }}>
+                This permanently removes all your blocks, todos, tags, and templates.
+                This <strong>cannot be undone</strong>.
+              </p>
+              <div className="flex gap-3">
+                <button type="button" onClick={() => setConfirmDelete(false)}
+                  className="btn btn-outline flex-1 justify-center">
+                  Cancel
+                </button>
+                <form action={deleteAccountAction} className="flex-1">
+                  <button type="submit" className="btn btn-danger w-full justify-center">
+                    Delete forever
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

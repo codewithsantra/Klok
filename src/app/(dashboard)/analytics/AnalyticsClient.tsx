@@ -25,7 +25,7 @@ export default function AnalyticsClient({
     <div className="animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
-        <h1 className="text-xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
+        <h1 className="font-display text-2xl font-extrabold" style={{ color: "var(--text)" }}>
           Analytics
         </h1>
         <div className="flex items-center gap-1 rounded-lg p-1 flex-shrink-0"
@@ -87,14 +87,11 @@ function WeekView({ week }: { week: WeekStats }) {
                 <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
                   style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                   <div
-                    className="w-full rounded"
+                    className="w-full rounded-md"
                     style={{
-                      height: `${d.total === 0 ? 0 : Math.max(d.pct, 4)}%`,
-                      background: d.total === 0 ? "transparent"
-                        : d.pct >= 80 ? "var(--accent)"
-                          : d.pct >= 60 ? "rgba(94,106,210,.6)"
-                            : "var(--accent-bg)",
-                      transition: "height 0.3s ease",
+                      height: `${d.total === 0 ? 0 : Math.max(d.pct, 5)}%`,
+                      background: d.total === 0 ? "transparent" : perfColor(d.pct),
+                      transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
                     }}
                     title={`${d.label}: ${d.done}/${d.total}`}
                   />
@@ -150,17 +147,11 @@ function MonthView({ month, monthName, year }: { month: MonthStats; monthName: s
                 <div key={d.date}
                   className="rounded flex items-center justify-center aspect-square text-[10px] font-semibold"
                   style={{
-                    background: d.pct === null ? "transparent"
-                      : d.pct >= 80 ? "var(--accent)"
-                        : d.pct >= 60 ? "rgba(94,106,210,.5)"
-                          : "var(--accent-bg)",
-                    color: d.pct === null ? "transparent"
-                      : d.pct >= 80 ? "white"
-                        : d.pct >= 60 ? "white"
-                          : "var(--accent)",
+                    background: d.pct === null ? "transparent" : `rgba(34,197,94,${(0.18 + (d.pct / 100) * 0.82).toFixed(2)})`,
+                    color: d.pct === null ? "transparent" : d.pct >= 45 ? "white" : "var(--success-text)",
                     border: d.pct === null ? "1px dashed var(--border)" : "none",
                   }}
-                  title={d.date}>
+                  title={`${d.date}${d.pct !== null ? ` · ${d.pct}%` : ""}`}>
                   {Number(d.date.split("-")[2])}
                 </div>
               ))}
@@ -168,9 +159,9 @@ function MonthView({ month, monthName, year }: { month: MonthStats; monthName: s
             <div className="flex items-center gap-3 mt-4">
               <span className="text-[10px]" style={{ color: "var(--text-3)" }}>Less</span>
               <div className="flex gap-1">
-                <div className="w-4 h-4 rounded" style={{ background: "var(--accent-bg)" }} />
-                <div className="w-4 h-4 rounded" style={{ background: "rgba(94,106,210,.5)" }} />
-                <div className="w-4 h-4 rounded" style={{ background: "var(--accent)" }} />
+                <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,.25)" }} />
+                <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,.55)" }} />
+                <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,1)" }} />
               </div>
               <span className="text-[10px]" style={{ color: "var(--text-3)" }}>More</span>
             </div>
@@ -209,11 +200,11 @@ function YearView({ year, yearNum }: { year: YearStats; yearNum: number }) {
                 </span>
                 <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
                   style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                  <div className="w-full rounded"
+                  <div className="w-full rounded-md"
                     style={{
-                      height: `${m.avgPct !== null ? Math.max(m.avgPct, 4) : 0}%`,
-                      background: m.avgPct === null ? "transparent" : "var(--accent)",
-                      transition: "height 0.3s ease",
+                      height: `${m.avgPct !== null ? Math.max(m.avgPct, 5) : 0}%`,
+                      background: m.avgPct === null ? "transparent" : perfColor(m.avgPct),
+                      transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
                     }}
                     title={`${m.label}: ${m.total} blocks`} />
                 </div>
@@ -244,5 +235,25 @@ function Row({ label, value, valueColor }: { label: string; value: string; value
 }
 
 function EmptyMessage({ text }: { text: string }) {
-  return <p className="text-sm text-center py-8" style={{ color: "var(--text-3)" }}>{text}</p>;
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-12 gap-3">
+      <div
+        className="w-12 h-12 rounded-xl flex items-center justify-center"
+        style={{ background: "var(--accent-bg)" }}
+      >
+        <i className="fa-solid fa-chart-column" style={{ color: "var(--accent)", fontSize: 18 }}></i>
+      </div>
+      <p className="text-sm font-medium" style={{ color: "var(--text-2)" }}>{text}</p>
+      <Link href="/today" className="btn btn-primary text-xs">
+        <i className="fa-solid fa-plus"></i> Plan a block
+      </Link>
+    </div>
+  );
+}
+
+// Performance-based bar color: green (strong), amber (ok), red (poor).
+function perfColor(pct: number): string {
+  if (pct >= 80) return "var(--success)";
+  if (pct >= 50) return "var(--warning)";
+  return "var(--danger)";
 }

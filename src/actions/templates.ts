@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { parseISODate, todayUTC, toISODate } from "@/lib/dates";
+import { parseISODate, todayInZone, toISODate } from "@/lib/dates";
 
 export type SaveTemplateState = {
   error?: string;
@@ -26,7 +26,7 @@ export async function saveTodayAsTemplateAction(
   if (name.length > 80) return { error: "Name too long." };
 
   // Fetch today's blocks with their todos and tag
-  const today = todayUTC();
+  const today = todayInZone(user.timeZone);
   const blocks = await prisma.block.findMany({
     where: { userId: user.id, date: today },
     include: { todos: { orderBy: { createdAt: "asc" } } },

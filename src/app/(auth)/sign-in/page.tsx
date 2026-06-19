@@ -15,8 +15,8 @@ export default function SignInPage() {
     <>
       <div className="text-center mb-6">
         <h1
-          className="text-2xl font-bold"
-          style={{ color: "var(--text)", letterSpacing: "-0.02em" }}
+          className="font-display text-3xl font-extrabold"
+          style={{ color: "var(--text)" }}
         >
           Welcome back
         </h1>
@@ -43,12 +43,21 @@ export default function SignInPage() {
             />
           </div>
           <div>
-            <label
-              className="block text-xs font-semibold mb-1.5"
-              style={{ color: "var(--text)" }}
-            >
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label
+                className="block text-xs font-semibold"
+                style={{ color: "var(--text)" }}
+              >
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs font-medium hover:underline"
+                style={{ color: "var(--accent)" }}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <div className="relative">
               <input
                 name="password"

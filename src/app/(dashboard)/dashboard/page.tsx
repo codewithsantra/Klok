@@ -3,7 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { todayUTC, addDays, isSameUTCDay, toISODate } from "@/lib/dates";
+import { todayInZone, nowHHMMInZone, addDays, isSameUTCDay } from "@/lib/dates";
+import { computeStreak, computeLongestStreak } from "@/lib/streak";
 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -11,7 +12,7 @@ export default async function DashboardPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const today = todayUTC();
+  const today = todayInZone(user.timeZone);
   const weekStart = addDays(today, -6);
 
   const [todayBlocks, weekBlocks, allBlockDates] = await Promise.all([
@@ -37,19 +38,19 @@ export default async function DashboardPage() {
     blocksTotal === 0 ? null : Math.round((blocksDone / blocksTotal) * 100);
 
   const streak = computeStreak(allBlockDates, today);
+  const longestStreak = computeLongestStreak(allBlockDates);
   const weekDays = buildWeekChart(weekBlocks, today);
   const previewBlocks = todayBlocks.slice(0, 4);
 
-  const now = new Date();
-  const nowHHMM = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const nowHHMM = nowHHMMInZone(user.timeZone);
 
   return (
     <div className="animate-fade-in">
       {/* Greeting */}
       <div className="mb-6">
         <h1
-          className="text-xl font-bold"
-          style={{ color: "var(--text)", letterSpacing: "-0.02em" }}
+          className="font-display text-2xl font-extrabold"
+          style={{ color: "var(--text)" }}
         >
           Welcome back{user.name ? `, ${user.name}` : ""}!
         </h1>
@@ -61,7 +62,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 stagger">
         <Link href="/today" className="card p-5 stat-card flex items-center gap-4">
           <div
             className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -85,17 +86,22 @@ export default async function DashboardPage() {
 
         <Link href="/analytics" className="card p-5 stat-card flex items-center gap-4">
           <div
-            className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: "var(--accent-bg)" }}
+            className="flex-shrink-0"
+            style={{
+              width: 52, height: 52, borderRadius: "50%",
+              background: `conic-gradient(var(--accent) ${(productivityScore ?? 0) * 3.6}deg, var(--accent-bg) 0)`,
+              display: "flex", alignItems: "center", justifyContent: "center", position: "relative",
+            }}
           >
-            <i className="fa-solid fa-bolt" style={{ color: "var(--accent)", fontSize: "16px" }}></i>
+            <div style={{ position: "absolute", width: 38, height: 38, borderRadius: "50%", background: "var(--surface)" }} />
+            <span className="tabular" style={{ position: "relative", fontSize: 11.5, fontWeight: 800, color: "var(--accent)" }}>
+              {productivityScore === null ? "—" : `${productivityScore}%`}
+            </span>
           </div>
           <div className="flex-1">
-            <div className="text-2xl font-bold" style={{ color: "var(--accent)", letterSpacing: "-0.03em" }}>
-              {productivityScore === null ? "—" : `${productivityScore}%`}
-            </div>
-            <div className="text-xs font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
-              Productivity Score
+            <div className="text-sm font-bold" style={{ color: "var(--text)" }}>Productivity Score</div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+              {blocksDone} of {blocksTotal} blocks done
             </div>
           </div>
           <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
@@ -115,8 +121,19 @@ export default async function DashboardPage() {
                 {streak === 1 ? "day" : "days"}
               </span>
             </div>
-            <div className="text-xs font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
-              Current Streak
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-xs font-medium" style={{ color: "var(--text-2)" }}>
+                Current Streak
+              </span>
+              {longestStreak > 0 && (
+                <span
+                  className="text-[11px] font-medium"
+                  style={{ color: "var(--text-3)" }}
+                  title="Your longest run of consecutive days"
+                >
+                  · Best {longestStreak}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -154,7 +171,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 stagger">
               {previewBlocks.map((block) => {
                 const tagClass = block.tag ? tagClassFor(block.tag.name) : "tag-personal";
                 const doneTodos = block.todos.filter((t) => t.status === "DONE").length;
@@ -203,10 +220,20 @@ export default async function DashboardPage() {
               {weekDays.map((day, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
                   <div
-                    className="w-full rounded"
+                    className="w-full rounded-md"
                     style={{
                       height: `${Math.max(day.pct * 0.6, 4)}px`,
-                      background: day.isToday ? "var(--accent)" : "var(--accent-bg)",
+                      background:
+                        day.pct === 0
+                          ? "var(--surface-2)"
+                          : day.pct >= 80
+                            ? "var(--success)"
+                            : day.pct >= 50
+                              ? "var(--warning)"
+                              : "var(--danger)",
+                      outline: day.isToday ? "2px solid var(--accent)" : "none",
+                      outlineOffset: "1px",
+                      transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
                     }}
                     title={`${day.label}: ${day.pct}%`}
                   />
@@ -235,18 +262,6 @@ export default async function DashboardPage() {
 }
 
 // ── Helpers ──
-
-function computeStreak(blockDates: { date: Date }[], today: Date): number {
-  if (blockDates.length === 0) return 0;
-  const dateSet = new Set(blockDates.map((d) => toISODate(d.date)));
-  let cursor = dateSet.has(toISODate(today)) ? today : addDays(today, -1);
-  let streak = 0;
-  while (dateSet.has(toISODate(cursor))) {
-    streak++;
-    cursor = addDays(cursor, -1);
-  }
-  return streak;
-}
 
 function buildWeekChart(weekBlocks: { date: Date; status: string }[], today: Date) {
   const days: { label: string; pct: number; isToday: boolean }[] = [];

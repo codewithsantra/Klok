@@ -1,72 +1,76 @@
-// Rendering: SSG (UI-only placeholder data for now).
-// This page is using DUMMY data — when you wire up the
-// RecurringRule schema, replace the mock list with a server
-// fetch + use Server Actions for create/edit/delete/toggle.
+// Rendering: SSR (per-user data behind auth).
 
-import RecurringClient from "./RecurringClient";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { todayInZone, addDays } from "@/lib/dates";
+import RecurringClient, { type RuleData } from "./RecurringClient";
 
-// ──────────────────────────────────────────────────────────────
-// DEMO DATA (remove after wiring up real RecurringRule model)
-// ──────────────────────────────────────────────────────────────
-const dummyRules = [
-  {
-    id: "rule-1",
-    name: "Morning Routine",
-    emoji: "🌅",
-    tagName: "Personal",
-    startTime: "07:00",
-    endTime: "08:00",
-    recurrence: "WEEKDAYS" as const,
-    daysOfWeek: [1, 2, 3, 4, 5],
-    active: true,
-    todosCount: 4,
-    nextRun: "Tomorrow, 7:00 AM",
-    createdAt: "2 weeks ago",
-  },
-  {
-    id: "rule-2",
-    name: "Deep Work Session",
-    emoji: "📚",
-    tagName: "Work",
-    startTime: "09:30",
-    endTime: "12:00",
-    recurrence: "DAILY" as const,
-    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
-    active: true,
-    todosCount: 3,
-    nextRun: "Today, 9:30 AM",
-    createdAt: "1 month ago",
-  },
-  {
-    id: "rule-3",
-    name: "Evening Workout",
-    emoji: "💪",
-    tagName: "Health",
-    startTime: "18:00",
-    endTime: "19:00",
-    recurrence: "CUSTOM" as const,
-    daysOfWeek: [1, 3, 5],
-    active: false,
-    todosCount: 2,
-    nextRun: "Paused",
-    createdAt: "3 days ago",
-  },
-  {
-    id: "rule-4",
-    name: "Sunday Reset",
-    emoji: "🌙",
-    tagName: "Personal",
-    startTime: "20:00",
-    endTime: "21:00",
-    recurrence: "WEEKLY" as const,
-    daysOfWeek: [0],
-    active: true,
-    todosCount: 5,
-    nextRun: "Sun, 8:00 PM",
-    createdAt: "1 week ago",
-  },
-];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function RecurringBlocksPage() {
-  return <RecurringClient initialRules={dummyRules} />;
+// Find the next date (within ~2 weeks) the rule fires and label it.
+function nextRunLabel(
+  active: boolean,
+  daysOfWeek: number[],
+  startTime: string,
+  today: Date,
+): string {
+  if (!active) return "Paused";
+  if (daysOfWeek.length === 0) return "—";
+  for (let i = 0; i < 14; i++) {
+    const d = addDays(today, i);
+    if (daysOfWeek.includes(d.getUTCDay())) {
+      const label = i === 0 ? "Today" : i === 1 ? "Tomorrow" : DAY_LABELS[d.getUTCDay()];
+      return `${label}, ${startTime}`;
+    }
+  }
+  return "—";
+}
+
+export default async function RecurringBlocksPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
+
+  const [rules, tags] = await Promise.all([
+    prisma.recurringRule.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.tag.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const tagMap = new Map(tags.map((t) => [t.id, t]));
+  const today = todayInZone(user.timeZone);
+
+  const initialRules: RuleData[] = rules.map((r) => {
+    const todos = Array.isArray(r.todosTemplate)
+      ? (r.todosTemplate as unknown[]).map((t) => String(t))
+      : [];
+    const tag = r.tagId ? tagMap.get(r.tagId) : undefined;
+    return {
+      id: r.id,
+      name: r.name,
+      emoji: r.emoji,
+      tagId: r.tagId,
+      tagName: tag?.name ?? "No tag",
+      startTime: r.startTime,
+      endTime: r.endTime,
+      recurrence: r.recurrence as RuleData["recurrence"],
+      daysOfWeek: r.daysOfWeek,
+      active: r.active,
+      todos,
+      todosCount: todos.length,
+      nextRun: nextRunLabel(r.active, r.daysOfWeek, r.startTime, today),
+    };
+  });
+
+  return (
+    <RecurringClient
+      initialRules={initialRules}
+      tags={tags.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji }))}
+    />
+  );
 }

@@ -16,7 +16,7 @@ type Tag = { id: string; name: string; emoji: string };
 type Todo = {
   id: string;
   text: string;
-  status: "PENDING" | "DONE" | "INCOMPLETE";
+  status: "PENDING" | "DONE" | "INCOMPLETE" | "SKIPPED";
 };
 type Block = {
   id: string;
@@ -28,7 +28,7 @@ type Block = {
   todos: Todo[];
 };
 
-export function PlanVsRealityView({ blocks }: { blocks: Block[] }) {
+export function PlanVsRealityView({ blocks, isPastDate }: { blocks: Block[]; isPastDate?: boolean }) {
   // Compute summary stats
   const plannedBlocks = blocks.length;
   const completedBlocks = blocks.filter((b) => b.status === "DONE").length;
@@ -115,7 +115,7 @@ export function PlanVsRealityView({ blocks }: { blocks: Block[] }) {
       {/* Per-block comparison */}
       <div className="space-y-3">
         {blocks.map((b) => (
-          <BlockCompare key={b.id} block={b} />
+          <BlockCompare key={b.id} block={b} isPastDate={isPastDate} />
         ))}
       </div>
     </div>
@@ -149,20 +149,23 @@ function StatCell({
   );
 }
 
-function BlockCompare({ block }: { block: Block }) {
+function BlockCompare({ block, isPastDate }: { block: Block; isPastDate?: boolean }) {
   const doneCount = block.todos.filter((t) => t.status === "DONE").length;
   const totalCount = block.todos.length;
   const incomplete = block.todos.filter((t) => t.status === "INCOMPLETE");
 
-  // Status colour
+  const isMissed = isPastDate && block.status === "PLANNED";
+
   const statusColor =
     block.status === "DONE"
       ? "var(--success)"
       : block.status === "PARTIAL"
         ? "var(--warning)"
-        : block.status === "SKIPPED"
+        : block.status === "SKIPPED" || isMissed
           ? "var(--danger)"
           : "var(--text-3)";
+
+  const statusLabel = isMissed ? "MISSED" : block.status;
 
   return (
     <div className="card p-5">
@@ -186,7 +189,7 @@ function BlockCompare({ block }: { block: Block }) {
             className="text-xs font-semibold uppercase tracking-wide"
             style={{ color: statusColor }}
           >
-            {block.status}
+            {statusLabel}
           </div>
         </div>
       </div>
@@ -236,32 +239,33 @@ function BlockCompare({ block }: { block: Block }) {
             <i className="fa-solid fa-clipboard-check mr-1.5"></i> Reality
           </div>
           {totalCount === 0 ? (
-            <div className="text-xs italic" style={{ color: "var(--text-3)" }}>
-              {block.status === "DONE" ? "Block marked done" : "Nothing logged"}
+            <div className="text-xs italic" style={{ color: isMissed ? "var(--danger)" : "var(--text-3)" }}>
+              {block.status === "DONE" ? "Block marked done" : isMissed ? "Not completed" : "Nothing logged"}
             </div>
           ) : (
             <div className="space-y-1.5">
               {block.todos.map((t) => {
                 const isDone = t.status === "DONE";
-                const isIncomplete = t.status === "INCOMPLETE";
+                const isSkipped =
+                  t.status === "INCOMPLETE" || t.status === "SKIPPED";
                 const bg = isDone
                   ? "rgba(52,211,153,0.06)"
-                  : isIncomplete
+                  : isSkipped
                     ? "rgba(251,191,36,0.06)"
                     : "rgba(248,113,113,0.06)";
                 const color = isDone
                   ? "var(--success)"
-                  : isIncomplete
+                  : isSkipped
                     ? "var(--warning)"
                     : "var(--danger)";
                 const icon = isDone
                   ? "fa-check"
-                  : isIncomplete
-                    ? "fa-arrow-rotate-left"
+                  : isSkipped
+                    ? "fa-ban"
                     : "fa-xmark";
                 const label = isDone
                   ? "Done"
-                  : isIncomplete
+                  : isSkipped
                     ? "Skipped"
                     : "Missed";
                 return (

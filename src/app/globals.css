@@ -4,61 +4,76 @@
   --font-sans: var(--font-inter);
 }
 
-/* ── LIGHT MODE TOKENS (Framer-style — teal accent) ──────── */
+/* ── LIGHT MODE TOKENS (purple lavender) ─────────────────── */
 :root {
-  --bg:           #FAFAFA;
+  --bg:           #ECECF8;
   --surface:      #FFFFFF;
-  --surface-2:    #F4F4F5;
-  --border:       #E4E4E7;
-  --border-2:     #D4D4D8;
-  --text:         #09090B;
-  --text-2:       #52525B;
-  --text-3:       #A1A1AA;
-  --accent:       #09090B;
-  --accent-h:     #18181B;
-  --accent-bg:    rgba(0,0,0,.05);
-  --accent-glow:  rgba(0,0,0,.08);
-  --success:      #10B981;
-  --success-bg:   rgba(16,185,129,.1);
+  --surface-2:    #F4F4FB;
+  --border:       #E7E7F2;
+  --border-2:     #D2D2EC;
+  --text:         #15152B;
+  --text-2:       #5B5B73;
+  --text-3:       #9494AE;
+  --accent:       #6C6FDF;
+  --accent-2:     #9B9EEF;
+  --accent-h:     #5558CC;
+  --accent-bg:    #EEEEFF;
+  --accent-glow:  rgba(108,111,223,.25);
+  /* Secondary brand accents (premium + vibrant) */
+  --accent-3:     #2DD4BF;  /* teal */
+  --accent-4:     #F472B6;  /* pink */
+  --accent-5:     #F59E0B;  /* amber */
+  --accent-6:     #8B6FE0;  /* violet */
+  --brand-gradient: #6C6FDF; /* solid brand fill — no gradients */
+  --success:      #22C55E;
+  --success-bg:   #DCFCE7;
+  --success-text: #15803D;
   --warning:      #F59E0B;
-  --warning-bg:   rgba(245,158,11,.1);
-  --danger:       #EF4444;
-  --danger-bg:    rgba(239,68,68,.1);
+  --warning-bg:   #FEF3C7;
+  --warning-text: #A16207;
+  --danger:       #DC2626;
+  --danger-bg:    #FEE2E2;
   --radius-sm:    6px;
   --radius:       10px;
   --radius-lg:    14px;
-  --shadow-sm:    0 1px 2px rgba(0,0,0,.04);
-  --shadow:      0 4px 24px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-glow:  0 0 60px rgba(0,0,0,.05);
-  --btn-primary-bg:   #09090B;
+  --radius-xl:    20px;
+  /* Premium layered shadows */
+  --shadow-sm:    0 1px 2px rgba(21,21,43,.04), 0 1px 3px rgba(108,111,223,.06);
+  --shadow:       0 2px 4px rgba(21,21,43,.03), 0 8px 24px rgba(108,111,223,.10);
+  --shadow-lg:    0 4px 8px rgba(21,21,43,.04), 0 24px 48px -12px rgba(108,111,223,.22);
+  --shadow-glow:  0 0 60px rgba(108,111,223,.15);
+  --btn-primary-bg:   #6C6FDF;
   --btn-primary-text: #FFFFFF;
 }
 
-/* ── DARK MODE TOKENS (Framer-style — rich, vibrant teal) ── */
+/* ── DARK MODE TOKENS (purple lavender, deepened) ────────── */
 .dark {
-  --bg:           #08080A;
-  --surface:      #0F0F11;
-  --surface-2:    #18181B;
-  --border:       #27272A;
-  --border-2:     #3F3F46;
-  --text:         #FAFAFA;
-  --text-2:       #A1A1AA;
-  --text-3:       #52525B;
-  --accent:       #FFFFFF;
-  --accent-h:     #FFFFFF;
-  --accent-bg:    rgba(255,255,255,.08);
-  --accent-glow:  rgba(255,255,255,.10);
-  --success:      #34D399;
-  --success-bg:   rgba(52,211,153,.12);
+  --bg:           #0F0F1A;
+  --surface:      #1A1A2E;
+  --surface-2:    #232340;
+  --border:       #2D2D4A;
+  --border-2:     #3D3D5F;
+  --text:         #EEEEFF;
+  --text-2:       #A0A0C0;
+  --text-3:       #6B6B8C;
+  --accent:       #9B9EEF;
+  --accent-2:     #B8BAF4;
+  --accent-h:     #B8BAF4;
+  --accent-bg:    rgba(155,158,239,.12);
+  --accent-glow:  rgba(155,158,239,.25);
+  --success:      #4ADE80;
+  --success-bg:   rgba(74,222,128,.12);
+  --success-text: #4ADE80;
   --warning:      #FBBF24;
   --warning-bg:   rgba(251,191,36,.12);
+  --warning-text: #FBBF24;
   --danger:       #F87171;
   --danger-bg:    rgba(248,113,113,.12);
-  --shadow-sm:    0 1px 2px rgba(0,0,0,.3);
-  --shadow:       0 4px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.04);
-  --shadow-glow:  0 0 80px rgba(255,255,255,.05);
-  --btn-primary-bg:   #FFFFFF;
-  --btn-primary-text: #09090B;
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.3);
+  --shadow:       0 4px 24px rgba(0,0,0,.4), 0 0 0 1px rgba(155,158,239,.05);
+  --shadow-glow:  0 0 80px rgba(155,158,239,.20);
+  --btn-primary-bg:   #6C6FDF;
+  --btn-primary-text: #FFFFFF;
 }
 
 /* ── SCROLLBAR ───────────────────────────────────────────── */
@@ -178,9 +193,9 @@ p, li, label {
 .todo-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   /* Optical alignment — slightly more padding on left where checkbox sits */
-  padding: 10px 10px 10px 12px;
+  padding: 6px 10px 6px 12px;
   border-radius: 8px;
   /* Specific properties only */
   transition-property: background-color;
@@ -982,13 +997,43 @@ input:checked + .slider::before { transform: translateX(16px); }
   background: rgba(0,0,0,.5);
   backdrop-filter: blur(4px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: 40px 16px;
+  padding: 24px 16px;
   overflow-y: auto;
 }
 .dark .modal-backdrop {
   background: rgba(0,0,0,.7);
+}
+
+/* Flex-column modal: fixed header, scrollable body, pinned footer.
+   Guarantees action buttons stay visible no matter the content height. */
+.modal-card {
+  display: flex;
+  flex-direction: column;
+  /* 100% of the padded backdrop — robust against dvh/innerHeight quirks. */
+  max-height: 100%;
+  min-height: 0;
+}
+.modal-card form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.modal-head {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.modal-body {
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.modal-foot {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
 }
 
 /* ── ACCENT TEXT (replaces deprecated grad-text) ─────────── */
@@ -1019,7 +1064,6 @@ input:checked + .slider::before { transform: translateX(16px); }
 }
 .animate-fade-in {
   animation: fadeIn 280ms cubic-bezier(0.2, 0, 0, 1);
-  will-change: transform, opacity;
 }
 
 /* Staggered enter for sequential children — apply via .stagger > * */
@@ -1138,4 +1182,145 @@ input:checked + .slider::before { transform: translateX(16px); }
   position: relative; z-index: 1;
   font-size: 13px; font-weight: 700;
   color: var(--accent);
+}
+
+/* ── SKELETON LOADERS ────────────────────────────────────── */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--surface) 60%, transparent) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  100% { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after { animation: none; }
+}
+
+/* ── DISPLAY TYPE ────────────────────────────────────────── */
+/* Headline treatment: Inter, heavy weight + tight tracking (minimal style). */
+.font-display {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  letter-spacing: -0.04em;
+}
+.gradient-text {
+  color: var(--accent);
+}
+
+/* ── MARKETING: FAQ accordion ────────────────────────────── */
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color .15s ease-out, box-shadow .15s ease-out;
+}
+.faq-item[open] {
+  border-color: var(--border-2);
+  box-shadow: var(--shadow-sm);
+}
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item .faq-chev {
+  transition: transform .2s ease-out;
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+.faq-item[open] .faq-chev { transform: rotate(180deg); color: var(--accent); }
+.faq-item .faq-body {
+  padding: 0 20px 18px;
+  color: var(--text-2);
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ── MARKETING: lift-on-hover card ───────────────────────── */
+.lift {
+  transition-property: transform, box-shadow, border-color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+  will-change: transform;
+}
+.lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── TOASTS ──────────────────────────────────────────────── */
+.toaster {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  z-index: 80;
+  display: flex; flex-direction: column; gap: 10px;
+  pointer-events: none;
+}
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 12px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text);
+  min-width: 220px; max-width: 360px;
+  animation: toastIn 240ms cubic-bezier(0.2,0,0,1);
+}
+.toast i { font-size: 14px; }
+.toast-success { border-left-color: var(--success); }
+.toast-success i { color: var(--success); }
+.toast-error { border-left-color: var(--danger); }
+.toast-error i { color: var(--danger); }
+.toast-info { border-left-color: var(--accent); }
+.toast-info i { color: var(--accent); }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (max-width: 640px) {
+  .toaster { left: 12px; right: 12px; bottom: 76px; }
+  .toast { min-width: 0; max-width: none; }
+}
+
+/* ── FOCUS RINGS (a11y) ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── APP CANVAS: subtle dot-grid texture (not a gradient fill) ── */
+.app-canvas {
+  background-color: var(--bg);
+  background-image: radial-gradient(var(--border-2) 0.8px, transparent 0.8px);
+  background-size: 20px 20px;
+  background-attachment: local;
+}
+.dark .app-canvas {
+  background-image: radial-gradient(rgba(255,255,255,0.045) 0.8px, transparent 0.8px);
 }

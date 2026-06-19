@@ -16,8 +16,8 @@ export default function SignUpPage() {
     <>
       <div className="text-center mb-6">
         <h1
-          className="text-2xl font-bold"
-          style={{ color: "var(--text)", letterSpacing: "-0.02em" }}
+          className="font-display text-3xl font-extrabold"
+          style={{ color: "var(--text)" }}
         >
           Create account
         </h1>

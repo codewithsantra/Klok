@@ -4,14 +4,14 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { addDays, todayUTC, toISODate } from "@/lib/dates";
+import { addDays, todayInZone, toISODate } from "@/lib/dates";
 import TemplatesClient from "./TemplatesClient";
 
 export default async function TemplatesPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  const today = todayUTC();
+  const today = todayInZone(user.timeZone);
 
   const [templates, todayBlockCount] = await Promise.all([
     prisma.template.findMany({

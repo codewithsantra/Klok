@@ -13,9 +13,46 @@ export function startOfUTCDay(date: Date): Date {
   return d;
 }
 
-/** Returns today's date at UTC midnight. */
+/** Returns today's date at UTC midnight (server clock, no timezone awareness). */
 export function todayUTC(): Date {
   return startOfUTCDay(new Date());
+}
+
+/**
+ * Returns the user's *logical day* — the calendar date it currently is in the
+ * given IANA timezone — as a UTC-midnight Date (matching our storage convention).
+ * Falls back to UTC if the timezone is missing or invalid.
+ */
+export function todayInZone(timeZone?: string | null): Date {
+  if (!timeZone) return todayUTC();
+  try {
+    // en-CA renders as YYYY-MM-DD, which we can reattach at UTC midnight.
+    const ymd = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    const parsed = parseISODate(ymd);
+    return parsed ?? todayUTC();
+  } catch {
+    return todayUTC();
+  }
+}
+
+/** Current wall-clock time as "HH:MM" in the given timezone (24h). */
+export function nowHHMMInZone(timeZone?: string | null): string {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone: timeZone || undefined,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(new Date());
+  } catch {
+    const now = new Date();
+    return `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")}`;
+  }
 }
 
 /** Parses an ISO date string (YYYY-MM-DD) to a UTC midnight Date. */

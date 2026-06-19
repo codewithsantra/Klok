@@ -25,7 +25,7 @@ export default function TemplatesClient({ templates, defaultApplyDate, todayBloc
   return (
     <div className="animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
-        <h1 className="text-xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
+        <h1 className="font-display text-2xl font-extrabold" style={{ color: "var(--text)" }}>
           Day Templates
         </h1>
       </div>

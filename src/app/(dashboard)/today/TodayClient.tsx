@@ -5,11 +5,16 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import BlockModal, { type BlockInitial } from "@/components/today/BlockModal";
 import { TodoItem, type TodoData } from "@/components/today/TodoItem";
-import { CarryForwardBanner } from "@/components/today/CarryForwardBanner";
+import { BlockTracker } from "@/components/today/BlockTracker";
+import {
+  CarryForwardBanner,
+  type CarriedTodo,
+} from "@/components/today/CarryForwardBanner";
 import { PlanVsRealityView } from "@/components/today/PlanVsRealityView";
 import { addTodoAction } from "@/actions/todos";
 import { applyTemplateAction } from "@/actions/templates";
 import { markAllTodosAction, setBlockStatusAction } from "@/actions/blocks";
+import { setBlockMetricAction, clearBlockMetricAction } from "@/actions/block-track";
 
 type TemplateView = { id: string; name: string; blockCount: number };
 type Tag = { id: string; name: string; emoji: string };
@@ -18,13 +23,19 @@ type Block = {
   id: string; title: string; startTime: string; endTime: string;
   status: "PLANNED" | "DONE" | "PARTIAL" | "SKIPPED";
   tagId: string | null; tag: Tag | null; todos: Todo[];
+  metricType: "TIME" | "DISTANCE" | "COUNT" | "CUSTOM" | null;
+  metricUnit: string | null;
+  metricTarget: number | null;
+  metricActual: number;
+  timerStartedAt: string | null;
+  timerAccumMs: number;
 };
 
 export default function TodayClient({
-  blocks, tags, templates, currentDateISO, currentDateLabel,
+  blocks, carried, tags, templates, currentDateISO, currentDateLabel,
   prevDateISO, nextDateISO, nowHHMM, isPastDate,
 }: {
-  blocks: Block[]; tags: Tag[]; templates: TemplateView[];
+  blocks: Block[]; carried: CarriedTodo[]; tags: Tag[]; templates: TemplateView[];
   currentDateISO: string; currentDateLabel: string;
   prevDateISO: string; nextDateISO: string;
   nowHHMM: string | null; isPastDate: boolean;
@@ -45,8 +56,8 @@ export default function TodayClient({
 
   const totalTodos = blocks.reduce((acc, b) => acc + b.todos.length, 0);
   const doneTodos = blocks.reduce((acc, b) => acc + b.todos.filter((t) => t.status === "DONE").length, 0);
-  const incompleteTodos = blocks.reduce((acc, b) => acc + b.todos.filter((t) => t.status === "INCOMPLETE").length, 0);
-  const pendingTodos = totalTodos - doneTodos - incompleteTodos;
+  const skippedTodos = blocks.reduce((acc, b) => acc + b.todos.filter((t) => t.status === "INCOMPLETE" || t.status === "SKIPPED").length, 0);
+  const pendingTodos = totalTodos - doneTodos - skippedTodos;
   const pct = (n: number) => (totalTodos ? Math.round((n / totalTodos) * 100) : 0);
   const completedBlocks = blocks.filter((b) => b.status === "DONE").length;
 
@@ -55,7 +66,7 @@ export default function TodayClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
         <div>
-          <h1 className="text-xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
+          <h1 className="font-display text-2xl font-extrabold" style={{ color: "var(--text)" }}>
             Today&apos;s Log
           </h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -103,7 +114,9 @@ export default function TodayClient({
 
       {/* Carry-Forward banner (renders only when there are carried todos) */}
       <CarryForwardBanner
+        todos={carried}
         todayBlocks={blocks.map((b) => ({ id: b.id, title: b.title }))}
+        currentDateISO={currentDateISO}
       />
 
       {/* View toggle: Timeline | Plan vs Reality */}
@@ -140,7 +153,7 @@ export default function TodayClient({
 
       {/* Plan vs Reality view */}
       {view === "compare" && (
-        <PlanVsRealityView blocks={blocks} />
+        <PlanVsRealityView blocks={blocks} isPastDate={isPastDate} />
       )}
 
       {/* Main grid (Timeline view) */}
@@ -161,7 +174,7 @@ export default function TodayClient({
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 stagger">
               {blocks.map((block) => (
                 <BlockCard key={block.id} block={block} onEdit={() => openEdit(block)} nowHHMM={nowHHMM} isPastDate={isPastDate} />
               ))}
@@ -192,7 +205,7 @@ export default function TodayClient({
             ) : (
               <div className="space-y-2.5">
                 <ProgressRow label="Completed" value={doneTodos} total={totalTodos} color="var(--success)" />
-                <ProgressRow label="Incomplete" value={incompleteTodos} total={totalTodos} color="var(--warning)" />
+                <ProgressRow label="Skipped" value={skippedTodos} total={totalTodos} color="var(--warning)" />
                 <ProgressRow label="Pending" value={pendingTodos} total={totalTodos} color="var(--text-3)" />
                 <p className="text-[10px] text-right pt-1" style={{ color: "var(--text-3)" }}>
                   {pct(doneTodos)}% complete
@@ -258,6 +271,8 @@ function BlockCard({ block, onEdit, nowHHMM, isPastDate }: {
 }) {
   const tagClass = block.tag ? tagClassFor(block.tag.name) : "tag-personal";
   const addInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+  const [addingText, setAddingText] = useState<string | null>(null);
   const pillClass = computeBadge(block.status, block.startTime, block.endTime, nowHHMM, isPastDate);
   const pillText = badgeText(pillClass);
 
@@ -330,20 +345,83 @@ function BlockCard({ block, onEdit, nowHHMM, isPastDate }: {
         </div>
       </div>
 
+      {/* Per-block progress bar */}
+      {block.todos.length > 0 && (() => {
+        const total = block.todos.length;
+        const done = block.todos.filter((t) => t.status === "DONE").length;
+        const pct = Math.round((done / total) * 100);
+        return (
+          <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
+              <div className="h-full rounded-full"
+                style={{ width: `${pct}%`, background: pct === 100 ? "var(--success)" : "var(--accent)", transition: "width .35s cubic-bezier(0.2,0,0,1)" }} />
+            </div>
+            <span className="text-[10px] font-semibold tabular" style={{ color: "var(--text-3)" }}>{done}/{total}</span>
+          </div>
+        );
+      })()}
+
       {/* Todos — new component handles simple + trackable rendering, menu, edit, notes */}
-      {block.todos.length > 0 && (
-        <div style={{ marginBottom: "10px" }}>
+      {(block.todos.length > 0 || addingText) && (
+        <div style={{ marginBottom: "8px" }}>
           {block.todos.map((todo) => (
             <TodoItem key={todo.id} todo={todo} />
           ))}
+          {/* Optimistic ghost row while the new todo saves */}
+          {addingText && (
+            <div className="todo-row" style={{ opacity: 0.55 }}>
+              <span className="cb" aria-hidden />
+              <span className="todo-text-display">{addingText}</span>
+              <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 11, color: "var(--text-3)" }}></i>
+            </div>
+          )}
         </div>
       )}
 
+      {/* Block-level tracker (timer / target) */}
+      {block.metricType ? (
+        <div className="relative">
+          <BlockTracker block={{ ...block, metricType: block.metricType }} />
+          <button
+            type="button"
+            title="Remove tracking"
+            onClick={async () => { await clearBlockMetricAction(block.id); router.refresh(); }}
+            className="absolute top-1 right-1 w-6 h-6 rounded flex items-center justify-center"
+            style={{ background: "transparent", color: "var(--text-3)" }}
+          >
+            <i className="fa-solid fa-xmark" style={{ fontSize: 10 }}></i>
+          </button>
+        </div>
+      ) : (
+        block.todos.length === 0 && !addingText && (
+          <button
+            type="button"
+            onClick={async () => {
+              await setBlockMetricAction(block.id, "TIME", durationHours(block.startTime, block.endTime), "hrs");
+              router.refresh();
+            }}
+            className="flex items-center gap-2 text-xs font-semibold px-2.5 py-2 rounded-lg mb-1 transition-colors"
+            style={{ color: "var(--accent)", background: "var(--accent-bg)" }}
+          >
+            <i className="fa-solid fa-stopwatch" style={{ fontSize: 11 }}></i>
+            Track this block with a timer
+          </button>
+        )
+      )}
+
       {/* Add todo */}
-      <form action={async (formData) => {
-        await addTodoAction(block.id, formData);
-        if (addInputRef.current) addInputRef.current.value = "";
-      }} className="mt-2.5 flex items-center gap-2">
+      <form
+        action={async (formData) => {
+          const text = String(formData.get("text") ?? "").trim();
+          if (!text) return;
+          setAddingText(text);
+          if (addInputRef.current) addInputRef.current.value = "";
+          await addTodoAction(block.id, formData);
+          router.refresh();
+          setAddingText(null);
+        }}
+        className="mt-2 flex items-center gap-2"
+      >
         <i className="fa-solid fa-plus" style={{ fontSize: "10px", color: "var(--accent)" }}></i>
         <input ref={addInputRef} name="text"
           className="flex-1 bg-transparent text-xs outline-none"
@@ -387,10 +465,17 @@ function computeBadge(status: string, startTime: string, endTime: string, nowHHM
   return "pill-upcoming";
 }
 
+function durationHours(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  const mins = eh * 60 + em - (sh * 60 + sm);
+  return mins > 0 ? Math.round((mins / 60) * 4) / 4 : 1; // round to 0.25h
+}
+
 function badgeText(pillClass: string): string {
   const map: Record<string, string> = {
     "pill-done": "✓ Done", "pill-skipped": "Skipped", "pill-partial": "Partial",
-    "pill-now": "Now", "pill-missed": "Missed", "pill-upcoming": "Upcoming",
+    "pill-now": "In progress", "pill-missed": "Missed", "pill-upcoming": "Upcoming",
   };
   return map[pillClass] ?? "—";
 }

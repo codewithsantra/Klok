@@ -1,7 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { toggleTodoAction, deleteTodoAction } from "@/actions/todos";
+import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  toggleTodoAction,
+  deleteTodoAction,
+  setTodoStatusAction,
+  updateTodoCommentAction,
+  updateTodoTextAction,
+  startTimerAction,
+  pauseTimerAction,
+  logProgressAction,
+} from "@/actions/todos";
 
 // ──────────────────────────────────────────────────────────────
 // Todo shape (UI-only).
@@ -13,7 +22,7 @@ import { toggleTodoAction, deleteTodoAction } from "@/actions/todos";
 export type TodoData = {
   id: string;
   text: string;
-  status: "PENDING" | "DONE" | "INCOMPLETE";
+  status: "PENDING" | "DONE" | "INCOMPLETE" | "SKIPPED";
   comment: string | null;
 
   /** Trackable goal — NULL on simple todos. */
@@ -41,8 +50,12 @@ function SimpleTodo({ todo }: { todo: TodoData }) {
   const [editText, setEditText] = useState(todo.text);
   const [showNote, setShowNote] = useState(!!todo.comment);
   const [noteText, setNoteText] = useState(todo.comment ?? "");
-  const [skipMode, setSkipMode] = useState(todo.status === "INCOMPLETE");
+  const [skipMode, setSkipMode] = useState(
+    todo.status === "INCOMPLETE" || todo.status === "SKIPPED",
+  );
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null);
+  const [, startTx] = useTransition();
 
   const menuWrapRef = useRef<HTMLDivElement>(null);
 
@@ -62,18 +75,26 @@ function SimpleTodo({ todo }: { todo: TodoData }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen, confirmDelete]);
 
-  const isDone = todo.status === "DONE";
+  const isDone = optimisticDone ?? (todo.status === "DONE");
+
+  function handleToggle() {
+    const newDone = !isDone;
+    setOptimisticDone(newDone);
+    startTx(async () => {
+      await toggleTodoAction(todo.id);
+      setOptimisticDone(null);
+    });
+  }
 
   function handleMarkSkipped() {
     setMenuOpen(false);
     setSkipMode(true);
     setShowNote(false);
-    /* TODO (user): wire to Server Action — e.g. setTodoStatusAction(todo.id, "INCOMPLETE") */
+    startTx(() => setTodoStatusAction(todo.id, "SKIPPED"));
   }
   function handleAddNote() {
     setMenuOpen(false);
     setShowNote(true);
-    /* TODO (user): wire to Server Action — updateTodoCommentAction(todo.id, noteText) */
   }
   function handleEditClick() {
     setMenuOpen(false);
@@ -82,14 +103,19 @@ function SimpleTodo({ todo }: { todo: TodoData }) {
   }
   function handleSaveEdit() {
     setEditing(false);
-    /* TODO (user): wire to Server Action — updateTodoTextAction(todo.id, editText) */
+    const trimmed = editText.trim();
+    if (trimmed && trimmed !== todo.text) {
+      startTx(() => updateTodoTextAction(todo.id, trimmed));
+    }
   }
   function handleDeleteClick() {
     setMenuOpen(false);
     setConfirmDelete(true);
   }
   function handleNoteSave() {
-    /* TODO (user): wire to Server Action — updateTodoCommentAction(todo.id, noteText) */
+    if (noteText !== (todo.comment ?? "")) {
+      startTx(() => updateTodoCommentAction(todo.id, noteText));
+    }
   }
 
   return (
@@ -97,21 +123,20 @@ function SimpleTodo({ todo }: { todo: TodoData }) {
       <div
         className={`todo-row ${isDone ? "is-done" : ""} ${skipMode ? "is-skip" : ""}`}
       >
-        {/* Checkbox (wired to existing toggleTodoAction) */}
-        <form action={toggleTodoAction.bind(null, todo.id)}>
-          <button
-            type="submit"
-            className={`cb ${isDone ? "cb-done" : ""}`}
-            title={isDone ? "Mark as pending" : "Mark as done"}
-          >
-            {isDone && (
-              <i
-                className="fa-solid fa-check text-white"
-                style={{ fontSize: "9px" }}
-              />
-            )}
-          </button>
-        </form>
+        {/* Checkbox */}
+        <button
+          type="button"
+          onClick={handleToggle}
+          className={`cb ${isDone ? "cb-done" : ""}`}
+          title={isDone ? "Mark as pending" : "Mark as done"}
+        >
+          {isDone && (
+            <i
+              className="fa-solid fa-check text-white"
+              style={{ fontSize: "9px" }}
+            />
+          )}
+        </button>
 
         {/* Todo text — click to edit */}
         {editing ? (
@@ -245,13 +270,15 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(todo.text);
-  const [skipMode, setSkipMode] = useState(todo.status === "INCOMPLETE");
+  const [skipMode, setSkipMode] = useState(
+    todo.status === "INCOMPLETE" || todo.status === "SKIPPED",
+  );
   const [showNote, setShowNote] = useState(!!todo.comment);
   const [noteText, setNoteText] = useState(todo.comment ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [, startTx] = useTransition();
 
-  // Local timer state. When the user later wires this up,
-  // `running` will derive from `todo.timerStartedAt !== null`.
+  // Timer state — seeded from server props, kept live by a local interval.
   const [running, setRunning] = useState(!!todo.timerStartedAt);
   const [accumMs, setAccumMs] = useState(todo.timerAccumMs ?? 0);
   const [startedAt, setStartedAt] = useState<number | null>(
@@ -263,8 +290,18 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
   const [logging, setLogging] = useState(false);
   const [logValue, setLogValue] = useState("");
 
-  // Local mirror of metricActual (the user will replace this with server state)
+  // Mirror of metricActual; re-synced from server after each revalidation.
   const [actual, setActual] = useState(todo.metricActual ?? 0);
+
+  // Re-sync local mirrors when the server sends fresh props (post-revalidate).
+  useEffect(() => {
+    setRunning(!!todo.timerStartedAt);
+    setStartedAt(
+      todo.timerStartedAt ? new Date(todo.timerStartedAt).getTime() : null,
+    );
+    setAccumMs(todo.timerAccumMs ?? 0);
+    setActual(todo.metricActual ?? 0);
+  }, [todo.timerStartedAt, todo.timerAccumMs, todo.metricActual]);
 
   const menuWrapRef = useRef<HTMLDivElement>(null);
 
@@ -291,7 +328,8 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen, confirmDelete]);
 
-  const isDone = todo.status === "DONE";
+  const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null);
+  const isDone = optimisticDone ?? (todo.status === "DONE");
   const target = todo.metricTarget ?? 0;
   const unit = todo.metricUnit ?? "";
   const elapsedMs =
@@ -317,7 +355,7 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
   function handleStart() {
     setStartedAt(Date.now());
     setRunning(true);
-    /* TODO (user): wire to Server Action — startTimerAction(todo.id) */
+    startTx(() => startTimerAction(todo.id));
   }
 
   function handlePause() {
@@ -331,7 +369,7 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
     }
     setStartedAt(null);
     setRunning(false);
-    /* TODO (user): wire to Server Action — pauseTimerAction(todo.id) */
+    startTx(() => pauseTimerAction(todo.id));
   }
 
   function handleLogSubmit(e?: React.FormEvent) {
@@ -339,7 +377,7 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
     const v = parseFloat(logValue);
     if (!isNaN(v) && v > 0) {
       setActual(actual + v);
-      /* TODO (user): wire to Server Action — logProgressAction(todo.id, v) */
+      startTx(() => logProgressAction(todo.id, v));
     }
     setLogValue("");
     setLogging(false);
@@ -355,20 +393,26 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
     >
       <div className="track-head">
         {/* Checkbox */}
-        <form action={toggleTodoAction.bind(null, todo.id)}>
-          <button
-            type="submit"
-            className={`cb ${isDone ? "cb-done" : ""}`}
-            title={isDone ? "Mark as pending" : "Mark as done"}
-          >
-            {isDone && (
-              <i
-                className="fa-solid fa-check text-white"
-                style={{ fontSize: "9px" }}
-              />
-            )}
-          </button>
-        </form>
+        <button
+          type="button"
+          onClick={() => {
+            const newDone = !isDone;
+            setOptimisticDone(newDone);
+            startTx(async () => {
+              await toggleTodoAction(todo.id);
+              setOptimisticDone(null);
+            });
+          }}
+          className={`cb ${isDone ? "cb-done" : ""}`}
+          title={isDone ? "Mark as pending" : "Mark as done"}
+        >
+          {isDone && (
+            <i
+              className="fa-solid fa-check text-white"
+              style={{ fontSize: "9px" }}
+            />
+          )}
+        </button>
 
         {/* Name (editable inline) */}
         {editing ? (
@@ -377,9 +421,14 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
             style={{ flex: 1, fontSize: "14.5px", fontWeight: 500 }}
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            onBlur={() => setEditing(false)}
+            onBlur={() => {
+              setEditing(false);
+              const t = editText.trim();
+              if (t && t !== todo.text)
+                startTx(() => updateTodoTextAction(todo.id, t));
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") setEditing(false);
+              if (e.key === "Enter") e.currentTarget.blur();
               if (e.key === "Escape") {
                 setEditText(todo.text);
                 setEditing(false);
@@ -388,7 +437,6 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
             // eslint-disable-next-line jsx-a11y/no-autofocus
             autoFocus
             maxLength={300}
-            /* TODO (user): persist via updateTodoTextAction(todo.id, editText) onBlur */
           />
         ) : (
           <span
@@ -425,7 +473,7 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
               onClick={() => {
                 setSkipMode(true);
                 setMenuOpen(false);
-                /* TODO (user): setTodoStatusAction(todo.id, "INCOMPLETE") */
+                startTx(() => setTodoStatusAction(todo.id, "SKIPPED"));
               }}
             >
               <i className="fa-solid fa-ban"></i> Mark skipped
@@ -568,9 +616,12 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
           <input
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
+            onBlur={() => {
+              if (noteText !== (todo.comment ?? ""))
+                startTx(() => updateTodoCommentAction(todo.id, noteText));
+            }}
             placeholder="When / why? (optional)"
             maxLength={500}
-            /* TODO (user): persist via updateTodoCommentAction */
           />
         </div>
       )}
@@ -580,9 +631,12 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
           <input
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
+            onBlur={() => {
+              if (noteText !== (todo.comment ?? ""))
+                startTx(() => updateTodoCommentAction(todo.id, noteText));
+            }}
             placeholder="Add a note..."
             maxLength={500}
-            /* TODO (user): persist via updateTodoCommentAction */
           />
         </div>
       )}

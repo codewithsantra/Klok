@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { signOutAction } from "@/actions/auth";
+import TimezoneSync from "./TimezoneSync";
+import Toaster from "./Toaster";
 
 const NAV_ITEMS = [
   { name: "Dashboard",   icon: "fa-house",        href: "/dashboard" },
@@ -24,6 +26,7 @@ export type UserSummary = {
   id: string;
   email: string;
   name: string | null;
+  timeZone: string;
 };
 
 export default function DashboardShell({
@@ -35,17 +38,17 @@ export default function DashboardShell({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
 
-  // Initialise theme from localStorage — default dark
+  // Initialise theme from localStorage — default light
   useEffect(() => {
     const stored = localStorage.getItem("klok-theme");
-    if (stored === "light") {
-      document.documentElement.classList.remove("dark");
-      setTheme("light");
-    } else {
+    if (stored === "dark") {
       document.documentElement.classList.add("dark");
       setTheme("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      setTheme("light");
     }
   }, []);
 
@@ -84,6 +87,10 @@ export default function DashboardShell({
       className="h-screen flex overflow-hidden"
       style={{ background: "var(--bg)" }}
     >
+      {/* Keep the user's timezone in sync with their browser */}
+      <TimezoneSync current={user.timeZone} />
+      <Toaster />
+
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -284,13 +291,21 @@ export default function DashboardShell({
               </span>
             </div>
           </div>
+
+          {/* Theme toggle (topbar, for discoverability) */}
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)", color: "var(--text-2)" }}
+          >
+            <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} style={{ fontSize: "13px" }}></i>
+          </button>
         </header>
 
         {/* Page content */}
-        <div
-          className="flex-1 overflow-y-auto p-5"
-          style={{ background: "var(--bg)" }}
-        >
+        <div className="app-canvas flex-1 overflow-y-auto p-5">
           {children}
         </div>
 

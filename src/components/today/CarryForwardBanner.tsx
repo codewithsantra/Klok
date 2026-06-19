@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { carryForwardTodoAction, carryForwardWithNewBlockAction } from "@/actions/carry-forward";
+import { toast } from "@/lib/toast";
 
 // ──────────────────────────────────────────────────────────────
 // CarryForwardBanner
@@ -21,32 +24,36 @@ export type CarriedTodo = {
 };
 
 export function CarryForwardBanner({
-  todos = dummyCarried, // DEMO default
-  todayBlocks = dummyBlocks, // DEMO default
+  todos = [],
+  todayBlocks = [],
+  currentDateISO,
 }: {
   todos?: CarriedTodo[];
   todayBlocks?: { id: string; title: string }[];
+  currentDateISO?: string;
 }) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [bannerHidden, setBannerHidden] = useState(false);
+  const [, startTx] = useTransition();
 
   const remaining = todos.filter((t) => !dismissed.has(t.id));
   if (bannerHidden || remaining.length === 0) return null;
 
+  // Dismiss is session-only (the source simply stays in yesterday's log).
   function dismissOne(id: string) {
     setDismissed((prev) => new Set(prev).add(id));
-    /* TODO (user): persist via dismissCarriedTodoAction(id) */
   }
 
   function dismissAll() {
     setBannerHidden(true);
-    /* TODO (user): persist via dismissAllCarriedAction() */
   }
 
   function addToBlock(todoId: string, blockId: string) {
     setDismissed((prev) => new Set(prev).add(todoId));
-    /* TODO (user): persist via carryForwardTodoAction(todoId, blockId) */
+    startTx(() => carryForwardTodoAction(todoId, blockId));
+    toast("Carried forward to today");
   }
 
   return (
@@ -119,6 +126,14 @@ export function CarryForwardBanner({
               todo={todo}
               todayBlocks={todayBlocks}
               onAdd={(blockId) => addToBlock(todo.id, blockId)}
+              onAddWithNewBlock={(todoId) => {
+                setDismissed((prev) => new Set(prev).add(todoId));
+                startTx(async () => {
+                  await carryForwardWithNewBlockAction(todoId, currentDateISO ?? new Date().toISOString().slice(0, 10));
+                  router.refresh();
+                });
+                toast("Carried forward to a new block");
+              }}
               onDismiss={() => dismissOne(todo.id)}
             />
           ))}
@@ -157,11 +172,13 @@ function CarriedTodoRow({
   todo,
   todayBlocks,
   onAdd,
+  onAddWithNewBlock,
   onDismiss,
 }: {
   todo: CarriedTodo;
   todayBlocks: { id: string; title: string }[];
   onAdd: (blockId: string) => void;
+  onAddWithNewBlock: (todoId: string) => void;
   onDismiss: () => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -211,12 +228,16 @@ function CarriedTodoRow({
             }}
           >
             {todayBlocks.length === 0 ? (
-              <div
+              <button
+                type="button"
                 className="menu-item"
-                style={{ color: "var(--text-3)", fontStyle: "italic" }}
+                onClick={() => {
+                  onAddWithNewBlock(todo.id);
+                  setPickerOpen(false);
+                }}
               >
-                No blocks today — create one first
-              </div>
+                <i className="fa-solid fa-plus"></i> Create block &amp; add
+              </button>
             ) : (
               todayBlocks.map((b) => (
                 <button
@@ -262,18 +283,3 @@ function CarriedTodoRow({
     </div>
   );
 }
-
-// ──────────────────────────────────────────────────────────────
-// DEMO DATA (remove after wiring up real server-fetched data)
-// ──────────────────────────────────────────────────────────────
-const dummyCarried: CarriedTodo[] = [
-  { id: "demo-1", text: "Workout — 30 min", blockTitle: "Morning Routine" },
-  { id: "demo-2", text: "Read chapter 5", blockTitle: "Deep Work" },
-  { id: "demo-3", text: "Reply to Slack DMs", blockTitle: "Admin" },
-];
-
-const dummyBlocks = [
-  { id: "blk-1", title: "Morning Routine" },
-  { id: "blk-2", title: "Deep Work" },
-  { id: "blk-3", title: "Evening" },
-];
