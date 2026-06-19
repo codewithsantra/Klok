@@ -1,0 +1,634 @@
+
+> daylog@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.7 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.3:3000
+- Environments: .env
+✓ Ready in 1380ms
+
+ GET / 200 in 1115ms (next.js: 196ms, proxy.ts: 295ms, application-code: 623ms)
+ GET /sign-in 200 in 666ms (next.js: 358ms, proxy.ts: 12ms, application-code: 297ms)
+ GET / 200 in 195ms (next.js: 9ms, proxy.ts: 9ms, application-code: 177ms)
+ GET /sign-in 200 in 116ms (next.js: 6ms, proxy.ts: 11ms, application-code: 100ms)
+ GET /dashboard 200 in 915ms (next.js: 158ms, proxy.ts: 29ms, application-code: 728ms)
+ POST /sign-in 303 in 3.3s (next.js: 12ms, proxy.ts: 20ms, application-code: 3.3s)
+  └─ ƒ signInAction(undefined, {}) in 2124ms src/actions/auth.ts
+ GET /today 200 in 2.3s (next.js: 150ms, proxy.ts: 41ms, application-code: 2.1s)
+ GET /today?date=2026-06-06 200 in 986ms (next.js: 14ms, proxy.ts: 31ms, application-code: 941ms)
+ GET /dashboard 200 in 833ms (next.js: 16ms, proxy.ts: 14ms, application-code: 804ms)
+ GET /dashboard 200 in 2.6s (next.js: 79ms, proxy.ts: 123ms, application-code: 2.4s)
+ GET /today 200 in 797ms (next.js: 30ms, proxy.ts: 45ms, application-code: 723ms)
+ POST /api/blocks 201 in 3.8s (next.js: 2.9s, application-code: 848ms)
+ GET /today 200 in 638ms (next.js: 10ms, proxy.ts: 14ms, application-code: 614ms)
+ GET / 200 in 193ms (next.js: 11ms, proxy.ts: 11ms, application-code: 171ms)
+ POST /today 303 in 332ms (next.js: 19ms, proxy.ts: 16ms, application-code: 297ms)
+  └─ ƒ signOutAction() in 11ms src/actions/auth.ts
+✓ Compiled in 711ms
+ GET / 200 in 305ms (next.js: 10ms, proxy.ts: 21ms, application-code: 274ms)
+✓ Compiled in 203ms
+ GET / 200 in 925ms (next.js: 328ms, proxy.ts: 323ms, application-code: 274ms)
+ GET / 200 in 124ms (next.js: 10ms, proxy.ts: 13ms, application-code: 101ms)
+ GET / 200 in 445ms (next.js: 6ms, proxy.ts: 12ms, application-code: 427ms)
+✓ Compiled in 294ms
+✓ Compiled in 140ms
+ GET / 200 in 1037ms (next.js: 270ms, proxy.ts: 175ms, application-code: 593ms)
+ GET / 200 in 272ms (next.js: 8ms, proxy.ts: 12ms, application-code: 252ms)
+ GET / 200 in 168ms (next.js: 15ms, proxy.ts: 16ms, application-code: 136ms)
+✓ Compiled in 763ms
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+ GET / 500 in 3.6s (next.js: 3.1s, proxy.ts: 174ms, application-code: 391ms)
+ GET / 500 in 75ms (next.js: 31ms, proxy.ts: 10ms, application-code: 34ms)
+ GET / 500 in 125ms (next.js: 44ms, proxy.ts: 41ms, application-code: 41ms)
+ GET / 500 in 235ms (next.js: 61ms, proxy.ts: 29ms, application-code: 145ms)
+ GET / 500 in 187ms (next.js: 50ms, proxy.ts: 89ms, application-code: 47ms)
+ GET / 500 in 182ms (next.js: 89ms, proxy.ts: 30ms, application-code: 64ms)
+ GET / 500 in 188ms (next.js: 75ms, proxy.ts: 67ms, application-code: 46ms)
+ GET / 500 in 228ms (next.js: 106ms, proxy.ts: 43ms, application-code: 80ms)
+[browser] Uncaught Error: ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/today/TodayClient.tsx:206:19)
+    at <unknown> (Error: (./src/app/(dashboard)/today/TodayClient.tsx:206:19)
+[browser] Uncaught Error: ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/today/TodayClient.tsx:206:19)
+    at <unknown> (Error: (./src/app/(dashboard)/today/TodayClient.tsx:206:19)
+[browser] Uncaught Error: ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/today/TodayClient.tsx:206:19)
+    at <unknown> (Error: (./src/app/(dashboard)/today/TodayClient.tsx:206:19)
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+[browser] ./src/app/(dashboard)/today/TodayClient.tsx:206:19
+Expected '</', got 'ident'
+  204 |       </div>
+  205 |
+> 206 |       <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} i...
+      |                   ^^^^
+  207 |
+  208 |       {applyOpen && (
+  209 |         <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClos...
+
+Parsing ecmascript source code failed
+
+Import trace:
+  Server Component:
+    ./src/app/(dashboard)/today/TodayClient.tsx
+    ./src/app/(dashboard)/today/page.tsx 
+✓ Compiled in 471ms
+ GET / 200 in 1633ms (next.js: 250ms, proxy.ts: 292ms, application-code: 1091ms)
+ GET / 200 in 665ms (next.js: 9ms, proxy.ts: 15ms, application-code: 642ms)
+ GET / 200 in 461ms (next.js: 47ms, proxy.ts: 30ms, application-code: 383ms)
+ GET /sign-in 200 in 246ms (next.js: 91ms, proxy.ts: 8ms, application-code: 146ms)
+ GET /sign-in 200 in 64ms (next.js: 6ms, proxy.ts: 6ms, application-code: 52ms)
+ GET /sign-up 200 in 154ms (next.js: 82ms, proxy.ts: 12ms, application-code: 59ms)
+ GET /sign-in 200 in 52ms (next.js: 7ms, proxy.ts: 7ms, application-code: 38ms)
+ GET /dashboard 200 in 794ms (next.js: 99ms, proxy.ts: 15ms, application-code: 679ms)
+ POST /sign-in 303 in 1623ms (next.js: 10ms, proxy.ts: 14ms, application-code: 1600ms)
+  └─ ƒ signInAction(undefined, {}) in 691ms src/actions/auth.ts
+ GET /today 200 in 780ms (next.js: 273ms, proxy.ts: 7ms, application-code: 500ms)
+ GET /templates 200 in 496ms (next.js: 63ms, proxy.ts: 8ms, application-code: 425ms)
+ GET /analytics 200 in 339ms (next.js: 53ms, proxy.ts: 7ms, application-code: 279ms)
+ GET /recurring-blocks 200 in 112ms (next.js: 59ms, proxy.ts: 5ms, application-code: 48ms)
+ GET /settings 200 in 277ms (next.js: 60ms, proxy.ts: 9ms, application-code: 208ms)
+ GET /dashboard 200 in 359ms (next.js: 16ms, proxy.ts: 6ms, application-code: 336ms)
+ GET /today 200 in 367ms (next.js: 5ms, proxy.ts: 5ms, application-code: 357ms)
+ GET /analytics 200 in 230ms (next.js: 6ms, proxy.ts: 7ms, application-code: 217ms)
+ POST /dashboard 200 in 70ms (next.js: 10ms, proxy.ts: 13ms, application-code: 47ms)
+ GET /templates 200 in 288ms (next.js: 4ms, proxy.ts: 6ms, application-code: 278ms)
+ GET /recurring-blocks 200 in 52ms (next.js: 13ms, proxy.ts: 6ms, application-code: 33ms)
+ GET /dashboard 200 in 348ms (next.js: 5ms, proxy.ts: 6ms, application-code: 338ms)
+ GET /today?date=2026-06-06 200 in 930ms (next.js: 12ms, proxy.ts: 11ms, application-code: 908ms)
+⨯ ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  [90m4 |[0m [90m// fetch + use Server Actions for create/edit/delete/toggle.[0m
+  [90m5 |[0m
+[31m[1m>[0m [90m6 |[0m [36mimport[0m [33mRecurringClient[0m [36mfrom[0m [32m"./RecurringClient"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m
+  [90m8 |[0m [90m// ──────────────────────────────────────────────────────────────[0m
+  [90m9 |[0m [90m// DEMO DATA (remove after wiring up real RecurringRule model)[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  [90m4 |[0m [90m// fetch + use Server Actions for create/edit/delete/toggle.[0m
+  [90m5 |[0m
+[31m[1m>[0m [90m6 |[0m [36mimport[0m [33mRecurringClient[0m [36mfrom[0m [32m"./RecurringClient"[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m
+  [90m8 |[0m [90m// ──────────────────────────────────────────────────────────────[0m
+  [90m9 |[0m [90m// DEMO DATA (remove after wiring up real RecurringRule model)[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+✓ Compiled in 1385ms
+ GET /today?date=2026-06-06 500 in 813ms (next.js: 100ms, proxy.ts: 517ms, application-code: 197ms)
+ GET / 500 in 777ms (next.js: 234ms, proxy.ts: 478ms, application-code: 65ms)
+ GET /dashboard 500 in 759ms (next.js: 264ms, proxy.ts: 462ms, application-code: 33ms)
+ GET /today?date=2026-06-06 500 in 345ms (next.js: 136ms, proxy.ts: 47ms, application-code: 163ms)
+ GET / 500 in 410ms (next.js: 238ms, proxy.ts: 43ms, application-code: 129ms)
+ GET /dashboard 500 in 421ms (next.js: 297ms, proxy.ts: 39ms, application-code: 85ms)
+ GET /today?date=2026-06-06 500 in 520ms (next.js: 134ms, proxy.ts: 303ms, application-code: 83ms)
+ GET / 500 in 515ms (next.js: 155ms, proxy.ts: 301ms, application-code: 59ms)
+ GET /dashboard 500 in 510ms (next.js: 171ms, proxy.ts: 301ms, application-code: 38ms)
+[browser] Uncaught Error: ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/(dashboard)/recurring-blocks/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/(dashboard)/recurring-blocks/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] Uncaught Error: ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/(dashboard)/recurring-blocks/page.tsx:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+[browser] ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+https://nextjs.org/docs/messages/module-not-found 
+[browser] ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+https://nextjs.org/docs/messages/module-not-found 
+[browser] ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+https://nextjs.org/docs/messages/module-not-found 
+[browser] ./src/app/(dashboard)/recurring-blocks/page.tsx:6:1
+Module not found: Can't resolve './RecurringClient'
+  4 | // fetch + use Server Actions for create/edit/delete/toggle.
+  5 |
+> 6 | import RecurringClient from "./RecurringClient";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  7 |
+  8 | // ──────────────────────────────────────────────────────────────
+  9 | // DEMO DATA (remove after wiring up real RecurringRule model)
+
+https://nextjs.org/docs/messages/module-not-found 
+✓ Compiled in 2.2s
+ GET / 200 in 3.6s (next.js: 890ms, proxy.ts: 88ms, application-code: 2.6s)
+ GET /dashboard 200 in 3.6s (next.js: 486ms, proxy.ts: 88ms, application-code: 3.0s)
+ GET /today?date=2026-06-06 200 in 3.6s (next.js: 1081ms, proxy.ts: 91ms, application-code: 2.4s)
+ GET /recurring-blocks 200 in 1220ms (next.js: 263ms, proxy.ts: 16ms, application-code: 941ms)
+✓ Compiled in 478ms
+ GET / 200 in 1087ms (next.js: 524ms, proxy.ts: 235ms, application-code: 327ms)
+ GET /recurring-blocks 200 in 1333ms (next.js: 291ms, proxy.ts: 240ms, application-code: 802ms)
+ GET /dashboard 200 in 1569ms (next.js: 690ms, proxy.ts: 236ms, application-code: 644ms)
+ GET /today 200 in 1233ms (next.js: 306ms, proxy.ts: 20ms, application-code: 907ms)
+✓ Compiled in 955ms
+✓ Compiled in 479ms
+✓ Compiled in 364ms
+✓ Compiled in 405ms
+✓ Compiled in 393ms
+✓ Compiled in 276ms
+✓ Compiled in 254ms
+✓ Compiled in 423ms
+✓ Compiled in 278ms
+✓ Compiled in 310ms
+✓ Compiled in 296ms
+✓ Compiled in 373ms
+✓ Compiled in 427ms
+✓ Compiled in 407ms
+ GET / 200 in 293ms (next.js: 12ms, proxy.ts: 12ms, application-code: 269ms)
+ POST /dashboard 303 in 710ms (next.js: 54ms, proxy.ts: 162ms, application-code: 494ms)
+  └─ ƒ signOutAction() in 16ms src/actions/auth.ts
+✓ Compiled in 359ms
+ GET /sign-up 200 in 265ms (next.js: 148ms, proxy.ts: 11ms, application-code: 106ms)
+ GET /sign-in 200 in 138ms (next.js: 66ms, proxy.ts: 7ms, application-code: 65ms)
+ GET /dashboard 200 in 1175ms (next.js: 6ms, proxy.ts: 18ms, application-code: 1150ms)
+ POST /sign-in 303 in 2.9s (next.js: 6ms, proxy.ts: 22ms, application-code: 2.9s)
+  └─ ƒ signInAction(undefined, {}) in 1669ms src/actions/auth.ts
+✓ Compiled in 277ms
+ GET /today 200 in 585ms (next.js: 14ms, proxy.ts: 8ms, application-code: 563ms)
+ GET /templates 200 in 334ms (next.js: 40ms, proxy.ts: 7ms, application-code: 287ms)
+✓ Compiled in 411ms
+ GET /recurring-blocks 200 in 58ms (next.js: 6ms, proxy.ts: 9ms, application-code: 43ms)
+ GET /settings 200 in 209ms (next.js: 37ms, proxy.ts: 6ms, application-code: 166ms)
+✓ Compiled in 254ms
+ GET /dashboard 200 in 505ms (next.js: 7ms, proxy.ts: 11ms, application-code: 486ms)
+✓ Compiled in 299ms
+ GET /today?date=2026-06-06 200 in 716ms (next.js: 11ms, proxy.ts: 12ms, application-code: 692ms)
+ GET /dashboard 200 in 600ms (next.js: 5ms, proxy.ts: 7ms, application-code: 588ms)
+ GET /today 200 in 252ms (next.js: 7ms, proxy.ts: 10ms, application-code: 235ms)
+ GET /today 200 in 452ms (next.js: 16ms, proxy.ts: 45ms, application-code: 390ms)
+ GET /today?date=2026-06-06 200 in 527ms (next.js: 8ms, proxy.ts: 17ms, application-code: 503ms)
+ GET / 200 in 123ms (next.js: 9ms, proxy.ts: 7ms, application-code: 107ms)
+ POST /today?date=2026-06-06 303 in 178ms (next.js: 4ms, proxy.ts: 6ms, application-code: 168ms)
+  └─ ƒ signOutAction() in 7ms src/actions/auth.ts
+ GET /sign-in 200 in 174ms (next.js: 9ms, proxy.ts: 7ms, application-code: 157ms)
+ GET /dashboard 200 in 666ms (next.js: 9ms, proxy.ts: 15ms, application-code: 642ms)
+ POST /sign-in 303 in 1207ms (next.js: 5ms, proxy.ts: 14ms, application-code: 1188ms)
+  └─ ƒ signInAction(undefined, {}) in 499ms src/actions/auth.ts
+ GET /dashboard 200 in 555ms (next.js: 10ms, proxy.ts: 19ms, application-code: 526ms)
+ GET /today 200 in 344ms (next.js: 21ms, proxy.ts: 19ms, application-code: 304ms)
+ GET /today?date=2026-06-06 200 in 443ms (next.js: 6ms, proxy.ts: 15ms, application-code: 421ms)
+ GET / 200 in 122ms (next.js: 5ms, proxy.ts: 6ms, application-code: 111ms)
+ POST /today?date=2026-06-06 303 in 163ms (next.js: 5ms, proxy.ts: 8ms, application-code: 150ms)
+  └─ ƒ signOutAction() in 2ms src/actions/auth.ts
+ GET /sign-in 200 in 136ms (next.js: 8ms, proxy.ts: 6ms, application-code: 122ms)
+ GET / 200 in 245ms (next.js: 7ms, proxy.ts: 6ms, application-code: 232ms)
+ GET /dashboard 200 in 759ms (next.js: 38ms, proxy.ts: 33ms, application-code: 689ms)
+ POST /sign-in 303 in 1214ms (next.js: 5ms, proxy.ts: 9ms, application-code: 1199ms)
+  └─ ƒ signInAction(undefined, {}) in 396ms src/actions/auth.ts
+ GET / 200 in 155ms (next.js: 10ms, proxy.ts: 8ms, application-code: 137ms)
+ POST /dashboard 303 in 212ms (next.js: 8ms, proxy.ts: 10ms, application-code: 194ms)
+  └─ ƒ signOutAction() in 14ms src/actions/auth.ts
+ GET / 200 in 292ms (next.js: 11ms, proxy.ts: 15ms, application-code: 266ms)
+ GET /sign-up 200 in 100ms (next.js: 12ms, proxy.ts: 13ms, application-code: 75ms)
+ GET /sign-in 200 in 77ms (next.js: 13ms, proxy.ts: 12ms, application-code: 53ms)
+ GET /dashboard 200 in 711ms (next.js: 11ms, proxy.ts: 10ms, application-code: 690ms)
+ POST /sign-in 303 in 1228ms (next.js: 9ms, proxy.ts: 18ms, application-code: 1201ms)
+  └─ ƒ signInAction(undefined, {}) in 458ms src/actions/auth.ts
+ GET /today 200 in 303ms (next.js: 16ms, proxy.ts: 11ms, application-code: 276ms)
+ GET / 200 in 317ms (next.js: 12ms, proxy.ts: 14ms, application-code: 291ms)
+ GET /about 200 in 1188ms (next.js: 319ms, proxy.ts: 46ms, application-code: 823ms)
+ GET /dashboard 200 in 459ms (next.js: 11ms, proxy.ts: 15ms, application-code: 433ms)
+ GET /today 200 in 297ms (next.js: 14ms, proxy.ts: 18ms, application-code: 266ms)
+ GET /analytics 200 in 323ms (next.js: 69ms, proxy.ts: 10ms, application-code: 244ms)
+ GET /templates 200 in 351ms (next.js: 22ms, proxy.ts: 11ms, application-code: 318ms)
+ GET /recurring-blocks 200 in 91ms (next.js: 34ms, proxy.ts: 10ms, application-code: 47ms)
+ GET /dashboard 200 in 400ms (next.js: 14ms, proxy.ts: 29ms, application-code: 357ms)
+ GET /today 200 in 610ms (next.js: 8ms, proxy.ts: 22ms, application-code: 579ms)
+ GET /recurring-blocks 200 in 89ms (next.js: 24ms, proxy.ts: 14ms, application-code: 51ms)
+ GET /templates 200 in 546ms (next.js: 10ms, proxy.ts: 11ms, application-code: 524ms)
+ GET /dashboard 200 in 703ms (next.js: 26ms, proxy.ts: 12ms, application-code: 665ms)
+✓ Compiled in 1404ms
+ GET / 200 in 4.6s (next.js: 786ms, proxy.ts: 691ms, application-code: 3.1s)
+ GET / 200 in 1324ms (next.js: 77ms, proxy.ts: 333ms, application-code: 915ms)
+ GET / 200 in 640ms (next.js: 13ms, proxy.ts: 28ms, application-code: 599ms)
+ GET / 200 in 640ms (next.js: 110ms, proxy.ts: 27ms, application-code: 503ms)
+ GET / 200 in 634ms (next.js: 11ms, proxy.ts: 25ms, application-code: 599ms)
+ GET / 200 in 515ms (next.js: 13ms, proxy.ts: 56ms, application-code: 445ms)
+ GET / 200 in 669ms (next.js: 14ms, proxy.ts: 31ms, application-code: 624ms)
+ GET / 200 in 667ms (next.js: 134ms, proxy.ts: 28ms, application-code: 505ms)
+ GET /dashboard 200 in 5.9s (next.js: 1849ms, proxy.ts: 649ms, application-code: 3.4s)
+ GET / 200 in 856ms (next.js: 60ms, proxy.ts: 15ms, application-code: 781ms)
+ GET / 200 in 808ms (next.js: 12ms, proxy.ts: 183ms, application-code: 612ms)
+ GET /dashboard 200 in 2.6s (next.js: 487ms, proxy.ts: 117ms, application-code: 1961ms)
+ GET /dashboard 200 in 975ms (next.js: 124ms, proxy.ts: 37ms, application-code: 814ms)
+ GET / 200 in 1052ms (next.js: 18ms, proxy.ts: 38ms, application-code: 996ms)
+ GET /dashboard 200 in 812ms (next.js: 12ms, proxy.ts: 15ms, application-code: 784ms)
+ GET /dashboard 200 in 975ms (next.js: 42ms, proxy.ts: 22ms, application-code: 911ms)
+ GET /dashboard 200 in 1146ms (next.js: 30ms, proxy.ts: 170ms, application-code: 946ms)
+ GET /dashboard 200 in 798ms (next.js: 79ms, proxy.ts: 49ms, application-code: 670ms)
+ GET /dashboard 200 in 881ms (next.js: 120ms, proxy.ts: 87ms, application-code: 674ms)
+ GET /dashboard 200 in 895ms (next.js: 99ms, proxy.ts: 217ms, application-code: 579ms)
+ GET /dashboard 200 in 1556ms (next.js: 142ms, proxy.ts: 174ms, application-code: 1240ms)
+ GET /dashboard 200 in 624ms (next.js: 11ms, proxy.ts: 185ms, application-code: 429ms)
+✓ Compiled in 262ms
+ GET / 200 in 931ms (next.js: 563ms, proxy.ts: 230ms, application-code: 138ms)
+ GET /dashboard 200 in 1139ms (next.js: 302ms, proxy.ts: 233ms, application-code: 605ms)
+ GET / 200 in 172ms (next.js: 8ms, proxy.ts: 12ms, application-code: 151ms)
+ POST /dashboard 303 in 271ms (next.js: 12ms, proxy.ts: 23ms, application-code: 236ms)
+  └─ ƒ signOutAction() in 7ms src/actions/auth.ts
+✓ Compiled in 1267ms
+ GET / 200 in 1760ms (next.js: 639ms, proxy.ts: 20ms, application-code: 1100ms)
+ GET / 200 in 1093ms (next.js: 13ms, proxy.ts: 242ms, application-code: 837ms)
+ GET / 200 in 752ms (next.js: 33ms, proxy.ts: 22ms, application-code: 697ms)
+ GET / 200 in 940ms (next.js: 133ms, proxy.ts: 31ms, application-code: 776ms)
+ GET / 200 in 930ms (next.js: 136ms, proxy.ts: 246ms, application-code: 548ms)
+ GET / 200 in 935ms (next.js: 25ms, proxy.ts: 244ms, application-code: 666ms)
+ GET / 200 in 900ms (next.js: 15ms, proxy.ts: 19ms, application-code: 866ms)
+ GET / 200 in 882ms (next.js: 18ms, proxy.ts: 18ms, application-code: 846ms)
+ GET / 200 in 698ms (next.js: 37ms, proxy.ts: 28ms, application-code: 634ms)
+ GET / 200 in 807ms (next.js: 144ms, proxy.ts: 35ms, application-code: 628ms)
+ GET / 200 in 790ms (next.js: 121ms, proxy.ts: 143ms, application-code: 526ms)
+ GET / 200 in 790ms (next.js: 207ms, proxy.ts: 144ms, application-code: 439ms)
+ GET / 200 in 330ms (next.js: 13ms, proxy.ts: 15ms, application-code: 302ms)
+ GET / 200 in 180ms (next.js: 15ms, proxy.ts: 15ms, application-code: 150ms)
+ GET / 200 in 938ms (next.js: 13ms, proxy.ts: 12ms, application-code: 913ms)
+[browser] Image with src "http://localhost:3000/illustrations/hero.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET / 200 in 298ms (next.js: 8ms, proxy.ts: 9ms, application-code: 281ms)
+[browser] Image with src "http://localhost:3000/illustrations/hero.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+ GET /?bust=1781018622005 200 in 466ms (next.js: 12ms, proxy.ts: 11ms, application-code: 443ms)
+[browser] Image with src "http://localhost:3000/illustrations/hero.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[?25h

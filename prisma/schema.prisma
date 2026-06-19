@@ -23,6 +23,14 @@ enum TodoStatus {
   PENDING
   DONE
   INCOMPLETE
+  SKIPPED
+}
+
+enum MetricType {
+  TIME
+  DISTANCE
+  COUNT
+  CUSTOM
 }
 
 enum Recurrence {
@@ -38,11 +46,26 @@ model User {
   email     String     @unique
   name      String?
   password  String
+  timeZone  String     @default("UTC")
   tags      Tag[]
   blocks    Block[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   templates Template[]
+  recurringRules RecurringRule[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 model Tag {
@@ -71,6 +94,14 @@ model Block {
   recurrence        Recurrence  @default(NONE)
   recurrenceEndDate DateTime?   @db.Date
   todos             Todo[]
+  // Block-level tracking (used when a block has no todos but you still
+  // want to time it or track a target — e.g. "Study" for 2h).
+  metricType        MetricType?
+  metricUnit        String?
+  metricTarget      Float?
+  metricActual      Float       @default(0)
+  timerStartedAt    DateTime?
+  timerAccumMs      Int         @default(0)
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 }
@@ -83,6 +114,20 @@ model Todo {
   status           TodoStatus @default(PENDING)
   comment          String?
   completedLaterAt String?
+
+  // ── Trackable goal (NULL on simple todos) ──
+  metricType   MetricType?
+  metricUnit   String?
+  metricTarget Float?
+  metricActual Float       @default(0)
+
+  // ── Timer (only meaningful when metricType == TIME) ──
+  timerStartedAt DateTime?
+  timerAccumMs   Int        @default(0)
+
+  // ── Carry-forward lineage ──
+  carriedFromId String?
+
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 }
@@ -118,4 +163,25 @@ model TemplateTodo {
   templateBlock   TemplateBlock @relation(fields: [templateBlockId], references: [id], onDelete: Cascade)
   text            String
   createdAt       DateTime      @default(now())
+}
+
+// A recurring block template that materializes into real Blocks on /today load.
+model RecurringRule {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  emoji        String     @default("🔁")
+  tagId        String?
+  startTime    String
+  endTime      String
+  recurrence   Recurrence @default(DAILY)
+  daysOfWeek   Int[]      @default([])
+  startDate    DateTime   @db.Date
+  endDate      DateTime?  @db.Date
+  active       Boolean    @default(true)
+  todosTemplate Json      @default("[]")
+  lastRunDate  DateTime?  @db.Date
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }

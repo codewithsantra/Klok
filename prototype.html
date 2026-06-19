@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Klok — Prototype A (Linear / Notion direction)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --bg: #fafafa;
+        --surface: #ffffff;
+        --border: #e8e8e6;
+        --border-strong: #d4d4d2;
+        --text: #0a0a0a;
+        --text-secondary: #595959;
+        --text-muted: #8a8a87;
+        --accent: #5d5fef;
+        --accent-hover: #4a4cd6;
+        --accent-soft: #eef0ff;
+        --success: #16a34a;
+        --warning: #d97706;
+        --danger: #dc2626;
+      }
+      .dark {
+        --bg: #0a0a0a;
+        --surface: #111111;
+        --border: #1f1f1f;
+        --border-strong: #2a2a2a;
+        --text: #fafafa;
+        --text-secondary: #a3a3a3;
+        --text-muted: #6b6b6b;
+        --accent: #7375f5;
+        --accent-hover: #8b8df7;
+        --accent-soft: #1a1b2e;
+      }
+      body {
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        -webkit-font-smoothing: antialiased;
+      }
+      .mono {
+        font-family: "JetBrains Mono", ui-monospace, monospace;
+      }
+      .surface {
+        background: var(--surface);
+      }
+      .border-app {
+        border-color: var(--border);
+      }
+      .text-sec {
+        color: var(--text-secondary);
+      }
+      .text-mut {
+        color: var(--text-muted);
+      }
+      .btn-primary {
+        background: var(--accent);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 120ms ease;
+      }
+      .btn-primary:hover {
+        background: var(--accent-hover);
+      }
+      .btn-ghost {
+        background: transparent;
+        color: var(--text-secondary);
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background 120ms ease;
+      }
+      .btn-ghost:hover {
+        background: var(--border);
+        color: var(--text);
+      }
+      .btn-outline {
+        background: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border);
+        padding: 5px 11px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 120ms ease;
+      }
+      .btn-outline:hover {
+        border-color: var(--border-strong);
+        background: var(--bg);
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 13.5px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: background 100ms ease;
+        margin-bottom: 1px;
+      }
+      .nav-item:hover {
+        background: var(--border);
+        color: var(--text);
+      }
+      .nav-item-active {
+        background: var(--border);
+        color: var(--text);
+        font-weight: 600;
+      }
+      .kbd {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        background: var(--border);
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: var(--text-muted);
+      }
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .stat-num {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+      }
+      .label-up {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .block-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        transition: background 100ms ease;
+      }
+      .block-row:hover {
+        background: var(--bg);
+      }
+      .block-row:last-child {
+        border-bottom: none;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .pill {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .pill-done {
+        background: rgba(22, 163, 74, 0.1);
+        color: var(--success);
+      }
+      .pill-now {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .pill-missed {
+        background: rgba(220, 38, 38, 0.1);
+        color: var(--danger);
+      }
+      .pill-upcoming {
+        background: var(--border);
+        color: var(--text-muted);
+      }
+      .bar {
+        background: var(--accent-soft);
+        border-radius: 3px;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+      .bar-fill {
+        background: var(--accent);
+        height: 100%;
+        border-radius: 3px;
+      }
+      svg.lucide {
+        width: 16px;
+        height: 16px;
+        stroke-width: 2;
+        stroke: currentColor;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .topbar-border {
+        border-bottom: 1px solid var(--border);
+      }
+      .sidebar-border {
+        border-right: 1px solid var(--border);
+      }
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Mode toggle (fixed, prototype only) -->
+    <div class="fixed top-4 right-4 z-50 flex items-center gap-2">
+      <span class="text-xs text-mut">Theme:</span>
+      <button onclick="document.documentElement.classList.remove('dark')" class="btn-outline text-xs">Light</button>
+      <button onclick="document.documentElement.classList.add('dark')" class="btn-outline text-xs">Dark</button>
+    </div>
+
+    <div class="min-h-screen flex">
+      <!-- ── SIDEBAR ─────────────────────────────────────── -->
+      <aside class="w-[220px] flex-shrink-0 sidebar-border surface flex flex-col h-screen sticky top-0">
+        <!-- Logo + workspace switcher -->
+        <div class="px-3 py-3 border-b border-app">
+          <div class="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-[var(--border)] cursor-pointer transition">
+            <div class="flex items-center gap-2">
+              <div class="w-5 h-5 rounded bg-[var(--accent)] flex items-center justify-center">
+                <svg viewBox="0 0 24 24" class="lucide" style="width:12px;height:12px;color:white">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+              </div>
+              <span class="text-sm font-semibold">Klok</span>
+            </div>
+            <svg viewBox="0 0 24 24" class="lucide text-mut"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="px-3 pt-2 pb-1">
+          <button class="w-full flex items-center justify-between text-left px-2.5 py-1.5 rounded-md text-sec hover:bg-[var(--border)] transition text-[13px]">
+            <span class="flex items-center gap-2">
+              <svg viewBox="0 0 24 24" class="lucide"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              Search
+            </span>
+            <span class="kbd">⌘K</span>
+          </button>
+        </div>
+
+        <!-- Nav -->
+        <nav class="px-3 pt-2 flex-1">
+          <div class="label-up px-2 mb-1">Workspace</div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" class="lucide"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Dashboard
+          </div>
+          <div class="nav-item nav-item-active">
+            <svg viewBox="0 0 24 24" class="lucide"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Today
+            <span class="ml-auto text-xs text-mut mono">4</span>
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" class="lucide"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            Analytics
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" class="lucide"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+            Templates
+          </div>
+          <div class="nav-item">
+            <svg viewBox="0 0 24 24" class="lucide"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Recurring
+          </div>
+
+          <div class="label-up px-2 mb-1 mt-5">Tags</div>
+          <div class="px-2 space-y-1">
+            <div class="flex items-center justify-between text-[13px] text-sec hover:text-[var(--text)] cursor-pointer">
+              <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-[var(--accent)]"></span>Study</span>
+              <span class="text-mut mono text-xs">12</span>
+            </div>
+            <div class="flex items-center justify-between text-[13px] text-sec hover:text-[var(--text)] cursor-pointer">
+              <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span>Health</span>
+              <span class="text-mut mono text-xs">8</span>
+            </div>
+            <div class="flex items-center justify-between text-[13px] text-sec hover:text-[var(--text)] cursor-pointer">
+              <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-amber-500"></span>Work</span>
+              <span class="text-mut mono text-xs">5</span>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Bottom: user -->
+        <div class="px-3 py-3 border-t border-app">
+          <div class="flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-[var(--border)] cursor-pointer transition">
+            <div class="w-6 h-6 rounded-full bg-gradient-to-br from-[var(--accent)] to-purple-500 flex items-center justify-center text-white text-xs font-bold">S</div>
+            <div class="flex-1 min-w-0">
+              <div class="text-[13px] font-semibold truncate">Santra</div>
+              <div class="text-[11px] text-mut truncate">santra@klok.app</div>
+            </div>
+            <svg viewBox="0 0 24 24" class="lucide text-mut" style="width:14px;height:14px"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ── MAIN ────────────────────────────────────────── -->
+      <main class="flex-1 min-w-0">
+        <!-- Topbar -->
+        <header class="topbar-border surface sticky top-0 z-10">
+          <div class="px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-sm">
+              <span class="text-mut">Today</span>
+              <svg viewBox="0 0 24 24" class="lucide text-mut" style="width:12px;height:12px"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              <span class="font-semibold">Saturday, June 6</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button class="btn-outline"><svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+              <button class="btn-outline text-xs">Today</button>
+              <button class="btn-outline"><svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+              <div class="w-px h-5 bg-[var(--border)] mx-1"></div>
+              <button class="btn-primary">
+                <svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px;stroke:white"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                New block
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Content -->
+        <div class="px-6 py-6 max-w-[1100px]">
+          <!-- Stats strip -->
+          <div class="grid grid-cols-4 gap-3 mb-6">
+            <div class="card p-4">
+              <div class="label-up mb-2">Completed</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="stat-num">3</span>
+                <span class="text-sm text-mut mono">/ 4</span>
+              </div>
+              <div class="mt-3 h-1 bg-[var(--border)] rounded-full overflow-hidden">
+                <div class="h-full bg-[var(--accent)] rounded-full" style="width:75%"></div>
+              </div>
+            </div>
+            <div class="card p-4">
+              <div class="label-up mb-2">Productivity</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="stat-num">74</span>
+                <span class="text-sm text-mut">%</span>
+              </div>
+              <div class="text-xs text-sec mt-2 flex items-center gap-1">
+                <svg viewBox="0 0 24 24" class="lucide" style="width:12px;height:12px;color:var(--success)"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                +12% vs last week
+              </div>
+            </div>
+            <div class="card p-4">
+              <div class="label-up mb-2">Streak</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="stat-num">12</span>
+                <span class="text-sm text-mut">days</span>
+              </div>
+              <div class="text-xs text-sec mt-2">Best: 21 days</div>
+            </div>
+            <div class="card p-4">
+              <div class="label-up mb-2">Focus time</div>
+              <div class="flex items-baseline gap-1.5">
+                <span class="stat-num">5.5</span>
+                <span class="text-sm text-mut">hrs</span>
+              </div>
+              <div class="text-xs text-sec mt-2">across 4 blocks</div>
+            </div>
+          </div>
+
+          <!-- Blocks list + side panel -->
+          <div class="grid grid-cols-[1fr_280px] gap-5">
+            <!-- Blocks -->
+            <section class="card overflow-hidden">
+              <div class="px-4 py-3 border-b border-app flex items-center justify-between">
+                <div>
+                  <div class="text-sm font-semibold">Today's blocks</div>
+                  <div class="text-xs text-mut mt-0.5">4 blocks · 5h 30m planned</div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button class="btn-ghost text-xs">Filter</button>
+                  <button class="btn-ghost text-xs">Sort</button>
+                </div>
+              </div>
+
+              <!-- Block row 1 -->
+              <div class="block-row">
+                <span class="status-dot bg-green-500"></span>
+                <span class="mono text-xs text-mut w-[78px]">07:00 – 08:00</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium">Morning routine</div>
+                  <div class="text-xs text-mut mt-0.5">3 of 3 todos done</div>
+                </div>
+                <span class="pill pill-done">Done</span>
+                <button class="btn-ghost p-1.5"><svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+              </div>
+
+              <!-- Block row 2 (NOW) -->
+              <div class="block-row">
+                <span class="status-dot bg-[var(--accent)] animate-pulse"></span>
+                <span class="mono text-xs text-mut w-[78px]">09:00 – 11:00</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium flex items-center gap-2">Deep work — design system
+                    <span class="pill pill-now">
+                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--accent)] animate-pulse"></span>
+                      Now
+                    </span>
+                  </div>
+                  <div class="text-xs text-mut mt-0.5">2 of 4 todos done</div>
+                </div>
+                <span class="text-xs text-sec mono">50%</span>
+                <button class="btn-ghost p-1.5"><svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+              </div>
+
+              <!-- Block row 3 (missed) -->
+              <div class="block-row">
+                <span class="status-dot bg-red-500"></span>
+                <span class="mono text-xs text-mut w-[78px]">11:30 – 12:30</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium">Workout</div>
+                  <div class="text-xs text-mut mt-0.5">No todos</div>
+                </div>
+                <span class="pill pill-missed">Missed</span>
+                <button class="btn-ghost p-1.5"><svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+              </div>
+
+              <!-- Block row 4 -->
+              <div class="block-row">
+                <span class="status-dot bg-[var(--border-strong)]"></span>
+                <span class="mono text-xs text-mut w-[78px]">14:00 – 16:00</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium">Project review</div>
+                  <div class="text-xs text-mut mt-0.5">0 of 2 todos</div>
+                </div>
+                <span class="pill pill-upcoming">Upcoming</span>
+                <button class="btn-ghost p-1.5"><svg viewBox="0 0 24 24" class="lucide" style="width:14px;height:14px"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+              </div>
+
+              <!-- Add row -->
+              <div class="px-4 py-2.5 border-t border-app">
+                <button class="text-xs text-mut hover:text-[var(--text)] flex items-center gap-1.5 transition">
+                  <svg viewBox="0 0 24 24" class="lucide" style="width:13px;height:13px"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  Add block
+                </button>
+              </div>
+            </section>
+
+            <!-- Side panel -->
+            <aside class="space-y-4">
+              <!-- Week chart -->
+              <div class="card p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="text-sm font-semibold">This week</div>
+                  <span class="text-xs text-mut">→</span>
+                </div>
+                <div class="flex items-end justify-between gap-1.5 h-20 mb-2">
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill" style="height:60%"></div></div>
+                    <span class="text-[10px] text-mut mono">M</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill" style="height:85%"></div></div>
+                    <span class="text-[10px] text-mut mono">T</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill" style="height:45%"></div></div>
+                    <span class="text-[10px] text-mut mono">W</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill" style="height:90%"></div></div>
+                    <span class="text-[10px] text-mut mono">T</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill" style="height:70%"></div></div>
+                    <span class="text-[10px] text-mut mono">F</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill bg-[var(--text)]" style="height:74%"></div></div>
+                    <span class="text-[10px] font-semibold mono">S</span>
+                  </div>
+                  <div class="flex flex-col items-center gap-1 flex-1">
+                    <div class="bar h-full"><div class="bar-fill" style="height:0%"></div></div>
+                    <span class="text-[10px] text-mut mono">S</span>
+                  </div>
+                </div>
+                <div class="text-xs text-sec pt-3 border-t border-app">Avg <span class="font-semibold text-[var(--text)] mono">71%</span> · Best <span class="font-semibold text-[var(--text)]">Thursday</span></div>
+              </div>
+
+              <!-- Templates quick apply -->
+              <div class="card p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="text-sm font-semibold">Templates</div>
+                  <button class="text-xs text-mut hover:text-[var(--text)]">All →</button>
+                </div>
+                <div class="space-y-1">
+                  <button class="w-full flex items-center justify-between px-2 py-1.5 rounded hover:bg-[var(--border)] transition group">
+                    <span class="text-[13px]">My typical Monday</span>
+                    <span class="text-[11px] text-mut group-hover:text-[var(--accent)]">Apply</span>
+                  </button>
+                  <button class="w-full flex items-center justify-between px-2 py-1.5 rounded hover:bg-[var(--border)] transition group">
+                    <span class="text-[13px]">Study sprint day</span>
+                    <span class="text-[11px] text-mut group-hover:text-[var(--accent)]">Apply</span>
+                  </button>
+                  <button class="w-full flex items-center justify-between px-2 py-1.5 rounded hover:bg-[var(--border)] transition group">
+                    <span class="text-[13px]">Lazy Sunday</span>
+                    <span class="text-[11px] text-mut group-hover:text-[var(--accent)]">Apply</span>
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -15,42 +15,33 @@ export default function SignUpPage() {
   return (
     <>
       <div className="text-center mb-6">
-        <h1 className="text-3xl font-extrabold text-[#1A1A2E]">
+        <h1
+          className="font-display text-3xl font-extrabold"
+          style={{ color: "var(--text)" }}
+        >
           Create account
         </h1>
-        <p className="text-[#6B7280] mt-2 text-sm">
+        <p className="mt-2 text-sm" style={{ color: "var(--text-2)" }}>
           Start planning. Start winning.
         </p>
       </div>
 
-      <div className="card p-8">
+      <div className="card p-7">
         <form action={formAction} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-[#1A1A2E] mb-1.5">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>
               Full Name
             </label>
-            <input
-              name="name"
-              className="inp"
-              type="text"
-              placeholder="Your name"
-              required
-            />
+            <input name="name" className="inp" type="text" placeholder="Your name" required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-[#1A1A2E] mb-1.5">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>
               Email
             </label>
-            <input
-              name="email"
-              className="inp"
-              type="email"
-              placeholder="you@example.com"
-              required
-            />
+            <input name="email" className="inp" type="email" placeholder="you@example.com" required />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-[#1A1A2E] mb-1.5">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>
               Password
             </label>
             <div className="relative">
@@ -64,16 +55,15 @@ export default function SignUpPage() {
               <button
                 type="button"
                 onClick={() => setShowPwd(!showPwd)}
-                className="absolute right-3 top-3 text-[#9CA3AF] hover:text-[#6C6FDF]"
+                className="absolute right-3 top-2.5"
+                style={{ color: "var(--text-3)" }}
               >
-                <i
-                  className={`fa-solid ${showPwd ? "fa-eye-slash" : "fa-eye"} text-sm`}
-                ></i>
+                <i className={`fa-solid ${showPwd ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-[#1A1A2E] mb-1.5">
+            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>
               Confirm Password
             </label>
             <div className="relative">
@@ -87,39 +77,37 @@ export default function SignUpPage() {
               <button
                 type="button"
                 onClick={() => setShowPwd2(!showPwd2)}
-                className="absolute right-3 top-3 text-[#9CA3AF] hover:text-[#6C6FDF]"
+                className="absolute right-3 top-2.5"
+                style={{ color: "var(--text-3)" }}
               >
-                <i
-                  className={`fa-solid ${showPwd2 ? "fa-eye-slash" : "fa-eye"} text-sm`}
-                ></i>
+                <i className={`fa-solid ${showPwd2 ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
               </button>
             </div>
           </div>
 
           {state?.error && (
-            <div className="flex items-center gap-2 p-3 bg-[#FFF5F5] rounded-xl border border-[#FEE2E2]">
-              <i className="fa-solid fa-circle-exclamation text-[#DC2626] text-sm"></i>
-              <span className="text-xs text-[#DC2626] font-medium">
-                {state.error}
-              </span>
+            <div
+              className="flex items-center gap-2 p-3 rounded-lg"
+              style={{ background: "var(--danger-bg)", border: "1px solid rgba(220,38,38,.2)" }}
+            >
+              <i className="fa-solid fa-circle-exclamation text-sm" style={{ color: "var(--danger)" }}></i>
+              <span className="text-xs font-medium" style={{ color: "var(--danger)" }}>{state.error}</span>
             </div>
           )}
 
           <button
             type="submit"
             disabled={pending}
-            className="btn btn-primary w-full justify-center py-3 rounded-xl text-sm disabled:opacity-50"
+            className="btn btn-primary w-full justify-center disabled:opacity-50"
+            style={{ padding: "10px", fontSize: "13.5px" }}
           >
             {pending ? "Creating..." : "Create Account"}
           </button>
         </form>
 
-        <p className="text-center text-sm text-[#6B7280] mt-6">
-          Already have an account?
-          <Link
-            href="/sign-in"
-            className="text-[#6C6FDF] font-semibold hover:underline ml-1"
-          >
+        <p className="text-center text-sm mt-5" style={{ color: "var(--text-2)" }}>
+          Already have an account?{" "}
+          <Link href="/sign-in" className="font-semibold hover:underline" style={{ color: "var(--accent)" }}>
             Sign In
           </Link>
         </p>

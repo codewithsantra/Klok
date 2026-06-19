@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Klok — Linear UI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:'Inter',sans-serif;
+      -webkit-font-smoothing:antialiased;
+      font-size:13px;
+      background:#F0F0F0;
+    }
+
+    /* ── SHELL ───────────────────────── */
+    .shell{
+      display:flex;
+      height:100vh;
+      overflow:hidden;
+      background:#FFFFFF;
+    }
+
+    /* ── SIDEBAR (always dark) ────────── */
+    .sidebar{
+      width:220px;
+      flex-shrink:0;
+      background:#1A1A1F;
+      display:flex;
+      flex-direction:column;
+      height:100vh;
+      overflow-y:auto;
+      overflow-x:hidden;
+    }
+
+    /* workspace row */
+    .ws-row{
+      display:flex;align-items:center;gap:8px;
+      padding:11px 14px 9px;
+      cursor:pointer;
+    }
+    .ws-row:hover .ws-name{color:#fff;}
+    .ws-ic{
+      width:20px;height:20px;border-radius:5px;
+      background:#5E6AD2;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;
+    }
+    .ws-ic svg{width:11px;height:11px;stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .ws-name{font-size:13px;font-weight:600;color:#EBEBEF;flex:1;letter-spacing:-.01em;}
+    .ws-chev svg{width:13px;height:13px;stroke:#666;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+    /* search */
+    .sb-search{
+      margin:2px 8px 6px;
+      display:flex;align-items:center;gap:7px;
+      padding:5px 9px;
+      border-radius:5px;
+      color:#888;font-size:12px;cursor:text;
+      transition:background .12s;
+    }
+    .sb-search:hover{background:#26262D;}
+    .sb-search svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+    .sb-search kbd{margin-left:auto;font-size:10.5px;color:#555;background:#26262D;padding:1px 5px;border-radius:3px;font-family:inherit;}
+
+    /* nav */
+    .sb-nav{padding:2px 8px;flex:1;}
+    .sb-section{
+      font-size:10.5px;font-weight:500;color:#4A4A55;
+      padding:2px 8px;margin:10px 0 2px;letter-spacing:.04em;text-transform:uppercase;
+    }
+    .sb-item{
+      display:flex;align-items:center;gap:8px;
+      padding:5px 8px;border-radius:4px;
+      font-size:12.5px;font-weight:400;color:#888;
+      cursor:pointer;transition:background .1s,color .1s;
+      margin-bottom:1px;text-decoration:none;
+    }
+    .sb-item:hover{background:#26262D;color:#CCCCD8;}
+    .sb-item.on{background:#26262D;color:#EBEBEF;font-weight:500;}
+    .sb-item svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;opacity:.6;}
+    .sb-item.on svg{opacity:.9;}
+    .sb-item .ct{margin-left:auto;font-size:11px;color:#555;font-variant-numeric:tabular-nums;}
+    .sb-item.on .ct{color:#666;}
+    .sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+    /* user bottom */
+    .sb-foot{
+      padding:8px;
+      border-top:1px solid #252528;
+      margin-top:auto;
+    }
+    .sb-user{
+      display:flex;align-items:center;gap:8px;
+      padding:6px 8px;border-radius:4px;cursor:pointer;transition:background .12s;
+    }
+    .sb-user:hover{background:#26262D;}
+    .s-avatar{
+      width:22px;height:22px;border-radius:5px;
+      background:linear-gradient(135deg,#5E6AD2,#9B5DE5);
+      display:flex;align-items:center;justify-content:center;
+      font-size:10px;font-weight:700;color:white;flex-shrink:0;
+    }
+    .s-uname{font-size:12.5px;font-weight:500;color:#CCCCD8;flex:1;}
+    .s-udots svg{width:13px;height:13px;stroke:#555;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+    /* ── MAIN (light) ────────────────── */
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;background:#FFFFFF;}
+
+    /* topbar */
+    .topbar{
+      height:42px;
+      border-bottom:1px solid #EBEBEB;
+      display:flex;align-items:center;
+      padding:0 20px;gap:8px;
+      flex-shrink:0;
+      background:#FFFFFF;
+    }
+    .t-bc{flex:1;display:flex;align-items:center;gap:5px;}
+    .t-bc span{font-size:12.5px;color:#AAA;}
+    .t-bc b{font-size:12.5px;font-weight:500;color:#111;}
+    .t-bc .sep{color:#DDD;font-size:11px;}
+    .t-right{display:flex;align-items:center;gap:5px;}
+    .div-v{width:1px;height:16px;background:#EBEBEB;margin:0 2px;}
+
+    /* buttons */
+    .btn{
+      display:inline-flex;align-items:center;gap:4px;
+      font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
+      cursor:pointer;border:none;
+      padding:4px 9px;border-radius:4px;
+      transition:all .12s;line-height:1.4;
+    }
+    .btn svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .btn-p{background:#5E6AD2;color:#fff;}
+    .btn-p:hover{background:#4B56C0;}
+    .btn-s{background:#F5F5F5;color:#444;border:1px solid #E8E8E8;}
+    .btn-s:hover{border-color:#CCC;background:#EFEFEF;}
+    .btn-ic{padding:4px;background:transparent;color:#AAA;border:none;}
+    .btn-ic:hover{background:#F5F5F5;color:#555;}
+    .btn-ic svg{width:14px;height:14px;}
+
+    /* content */
+    .content{flex:1;overflow-y:auto;padding:24px 28px;}
+
+    /* page header */
+    .ph{margin-bottom:20px;}
+    .ph h1{font-size:17px;font-weight:600;letter-spacing:-.02em;color:#111;}
+    .ph p{font-size:12.5px;color:#AAA;margin-top:2px;}
+
+    /* stats */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+    .stat{border:1px solid #EBEBEB;border-radius:8px;padding:14px 16px;background:#FAFAFA;}
+    .stat-l{font-size:11px;font-weight:500;color:#AAA;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+    .stat-v{font-size:24px;font-weight:700;letter-spacing:-.03em;color:#111;font-variant-numeric:tabular-nums;line-height:1;}
+    .stat-v em{font-size:13px;font-weight:400;color:#BBB;font-style:normal;}
+    .stat-h{font-size:11.5px;color:#AAA;margin-top:5px;}
+    .stat-h.g{color:#16A34A;}
+    .prog{height:2px;background:#EBEBEB;border-radius:99px;margin-top:10px;overflow:hidden;}
+    .pf{height:100%;background:#5E6AD2;border-radius:99px;}
+
+    /* layout */
+    .cols{display:grid;grid-template-columns:1fr 256px;gap:14px;}
+    .side{display:flex;flex-direction:column;gap:12px;}
+
+    /* card */
+    .card{border:1px solid #EBEBEB;border-radius:8px;background:#FFFFFF;overflow:hidden;}
+    .c-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #EBEBEB;}
+    .c-head-l{}
+    .c-title{font-size:12.5px;font-weight:600;color:#111;}
+    .c-sub{font-size:11.5px;color:#BBB;margin-top:1px;}
+    .c-head-r{display:flex;align-items:center;gap:5px;}
+
+    /* block rows */
+    .brow{
+      display:grid;
+      grid-template-columns:82px 1fr auto;
+      align-items:center;gap:12px;
+      padding:11px 16px;
+      border-bottom:1px solid #F0F0F0;
+      cursor:pointer;transition:background .1s;
+    }
+    .brow:last-of-type{border-bottom:none;}
+    .brow:hover{background:#FAFAFA;}
+    .brow.now{background:#F3F4FD;}
+    .brow.now:hover{background:#EDEEFF;}
+    .bt{font-size:11.5px;color:#BBB;font-variant-numeric:tabular-nums;white-space:nowrap;}
+    .bt.now{color:#5E6AD2;}
+    .bb{}
+    .bn{font-size:13px;font-weight:500;color:#111;display:flex;align-items:center;gap:6px;}
+    .bm{font-size:11.5px;color:#BBB;margin-top:1.5px;}
+    .br{display:flex;align-items:center;gap:7px;}
+
+    /* tag */
+    .tag{font-size:10.5px;font-weight:500;padding:2px 7px;border-radius:3px;}
+    .ts{background:rgba(94,106,210,.1);color:#5E6AD2;}
+    .th{background:rgba(22,163,74,.1);color:#15803D;}
+    .tw{background:rgba(217,119,6,.1);color:#B45309;}
+
+    /* pill */
+    .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:2px 7px;border-radius:3px;}
+    .p-done{background:rgba(22,163,74,.08);color:#15803D;}
+    .p-now{background:rgba(94,106,210,.1);color:#5E6AD2;}
+    .p-miss{background:rgba(220,38,38,.08);color:#DC2626;}
+    .p-plan{background:#F5F5F5;color:#AAA;border:1px solid #E8E8E8;}
+
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+    .pu{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;animation:pulse 2s infinite;}
+
+    /* add row */
+    .add-r{
+      padding:9px 16px;border-top:1px solid #F0F0F0;
+      display:flex;align-items:center;gap:6px;
+      color:#CCC;font-size:12.5px;cursor:pointer;transition:color .12s;
+    }
+    .add-r:hover{color:#5E6AD2;}
+    .add-r svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+    /* chart */
+    .chart{display:flex;align-items:flex-end;gap:5px;height:52px;margin:14px 16px 10px;}
+    .cc{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;}
+    .ct{flex:1;width:100%;background:#F0F0F0;border-radius:2px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;}
+    .cf{background:#5E6AD2;border-radius:2px;}
+    .cf.t{background:#111;}
+    .cl{font-size:10px;color:#CCC;font-variant-numeric:tabular-nums;}
+    .cl.t{color:#111;font-weight:600;}
+    .chart-foot{padding:0 16px 14px;font-size:11.5px;color:#AAA;border-top:1px solid #F0F0F0;padding-top:8px;margin-top:4px;display:flex;justify-content:space-between;}
+    .chart-foot strong{color:#333;font-weight:500;}
+
+    /* templates */
+    .tpl{
+      display:flex;align-items:center;gap:10px;
+      padding:9px 14px;
+      cursor:pointer;transition:background .1s;
+      border-bottom:1px solid #F0F0F0;
+    }
+    .tpl:last-child{border-bottom:none;}
+    .tpl:hover{background:#FAFAFA;}
+    .tpl-em{font-size:16px;line-height:1;flex-shrink:0;}
+    .tpl-n{font-size:12.5px;font-weight:500;color:#222;flex:1;}
+    .tpl-c{font-size:11px;color:#BBB;}
+    .tpl-a{
+      font-size:11px;font-weight:500;color:#AAA;
+      background:#F5F5F5;border:1px solid #E8E8E8;
+      padding:2px 8px;border-radius:3px;transition:all .12s;flex-shrink:0;
+    }
+    .tpl:hover .tpl-a{background:#5E6AD2;color:white;border-color:#5E6AD2;}
+
+    /* more btn */
+    .more{
+      opacity:0;padding:3px;border-radius:3px;background:transparent;
+      border:none;cursor:pointer;color:#BBB;transition:all .1s;
+    }
+    .brow:hover .more{opacity:1;}
+    .more:hover{background:#EBEBEB;color:#555;}
+    .more svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;}
+
+    /* theme toggle */
+    .thbar{
+      position:fixed;top:10px;right:10px;z-index:999;
+      display:flex;gap:3px;
+      background:#1A1A1F;border:1px solid #333;
+      padding:3px;border-radius:5px;
+    }
+    .tb{
+      padding:3px 9px;border-radius:3px;font-size:11.5px;font-weight:500;
+      cursor:pointer;border:none;font-family:'Inter',sans-serif;
+      background:transparent;color:#666;transition:all .1s;
+    }
+    .tb.on{background:#5E6AD2;color:white;}
+    .tb:not(.on):hover{background:#26262D;color:#AAA;}
+  </style>
+</head>
+<body>
+
+<div class="thbar">
+  <button class="tb on" id="tl" onclick="setLight()">Light</button>
+  <button class="tb" id="td" onclick="setDark()">Dark</button>
+</div>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="ws-row">
+      <div class="ws-ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <span class="ws-name">Klok</span>
+      <span class="ws-chev"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></span>
+    </div>
+
+    <div class="sb-search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search
+      <kbd>⌘K</kbd>
+    </div>
+
+    <div class="sb-nav">
+      <a class="sb-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Dashboard
+      </a>
+      <a class="sb-item on" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Today's Log
+        <span class="ct">4</span>
+      </a>
+      <a class="sb-item" href="#">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Analytics
+      </a>
+      <a class="sb-item" href="#">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+        Templates
+      </a>
+      <a class="sb-item" href="#">
+        <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Recurring
+      </a>
+
+      <div class="sb-section">Tags</div>
+      <a class="sb-item" href="#">
+        <span class="sb-dot" style="background:#5E6AD2"></span>Study<span class="ct">12</span>
+      </a>
+      <a class="sb-item" href="#">
+        <span class="sb-dot" style="background:#16A34A"></span>Health<span class="ct">8</span>
+      </a>
+      <a class="sb-item" href="#">
+        <span class="sb-dot" style="background:#D97706"></span>Work<span class="ct">5</span>
+      </a>
+      <a class="sb-item" href="#" style="margin-top:2px;">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add tag
+      </a>
+
+      <div class="sb-section">Account</div>
+      <a class="sb-item" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Settings
+      </a>
+      <a class="sb-item" href="#">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </a>
+    </div>
+
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="s-avatar">S</div>
+        <span class="s-uname">Santra</span>
+        <span class="s-udots"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div class="t-bc">
+        <span>Klok</span>
+        <span class="sep">/</span>
+        <b>Today's Log</b>
+      </div>
+      <div class="t-right">
+        <button class="btn btn-ic">
+          <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button class="btn btn-s" style="font-size:11.5px;padding:3px 9px;">Today</button>
+        <button class="btn btn-ic">
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="div-v"></div>
+        <button class="btn btn-s" style="font-size:11.5px;padding:3px 9px;">Apply template</button>
+        <button class="btn btn-p">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New block
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="ph">
+        <h1>Saturday, 6 June</h1>
+        <p>4 blocks · 5h 30m planned</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat-l">Completed</div>
+          <div class="stat-v">3 <em>/ 4</em></div>
+          <div class="prog"><div class="pf" style="width:75%"></div></div>
+          <div class="stat-h">75% done</div>
+        </div>
+        <div class="stat">
+          <div class="stat-l">Productivity</div>
+          <div class="stat-v">74<em>%</em></div>
+          <div class="prog"><div class="pf" style="width:74%"></div></div>
+          <div class="stat-h g">↑ +12% vs last week</div>
+        </div>
+        <div class="stat">
+          <div class="stat-l">Streak</div>
+          <div class="stat-v">12 <em>days</em></div>
+          <div class="prog"><div class="pf" style="width:57%"></div></div>
+          <div class="stat-h">Best: 21 days</div>
+        </div>
+        <div class="stat">
+          <div class="stat-l">Focus time</div>
+          <div class="stat-v">5.5 <em>hrs</em></div>
+          <div class="prog"><div class="pf" style="width:69%"></div></div>
+          <div class="stat-h">Across 4 blocks</div>
+        </div>
+      </div>
+
+      <div class="cols">
+        <!-- Blocks -->
+        <div class="card">
+          <div class="c-head">
+            <div class="c-head-l">
+              <div class="c-title">Blocks</div>
+              <div class="c-sub">4 blocks · 5h 30m</div>
+            </div>
+            <div class="c-head-r">
+              <button class="btn btn-s" style="font-size:11.5px;padding:3px 8px;">Filter</button>
+            </div>
+          </div>
+
+          <div class="brow">
+            <span class="bt">07:00 – 08:00</span>
+            <div class="bb">
+              <div class="bn">Morning Routine <span class="tag th">Health</span></div>
+              <div class="bm">3 of 3 todos done</div>
+            </div>
+            <div class="br">
+              <span class="pill p-done">
+                <svg viewBox="0 0 24 24" style="width:9px;height:9px;" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Done
+              </span>
+              <button class="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+            </div>
+          </div>
+
+          <div class="brow now">
+            <span class="bt now">09:00 – 11:00</span>
+            <div class="bb">
+              <div class="bn">Deep Work — Design System <span class="tag ts">Study</span></div>
+              <div class="bm">2 of 4 todos · 50%</div>
+            </div>
+            <div class="br">
+              <span class="pill p-now"><span class="pu"></span>Now</span>
+              <button class="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+            </div>
+          </div>
+
+          <div class="brow">
+            <span class="bt">11:30 – 12:30</span>
+            <div class="bb">
+              <div class="bn">Workout <span class="tag th">Health</span></div>
+              <div class="bm">No todos</div>
+            </div>
+            <div class="br">
+              <span class="pill p-miss">Missed</span>
+              <button class="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+            </div>
+          </div>
+
+          <div class="brow">
+            <span class="bt">14:00 – 16:00</span>
+            <div class="bb">
+              <div class="bn">Project Review <span class="tag tw">Work</span></div>
+              <div class="bm">0 of 2 todos</div>
+            </div>
+            <div class="br">
+              <span class="pill p-plan">Upcoming</span>
+              <button class="more"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>
+            </div>
+          </div>
+
+          <div class="add-r">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add a block
+          </div>
+        </div>
+
+        <!-- Side -->
+        <div class="side">
+          <!-- Chart -->
+          <div class="card">
+            <div class="c-head">
+              <div class="c-head-l">
+                <div class="c-title">This week</div>
+                <div class="c-sub">Avg 71%</div>
+              </div>
+              <a href="#" style="font-size:11.5px;color:#AAA;text-decoration:none;">View all →</a>
+            </div>
+            <div class="chart">
+              <div class="cc"><div class="ct"><div class="cf" style="height:60%"></div></div><span class="cl">M</span></div>
+              <div class="cc"><div class="ct"><div class="cf" style="height:85%"></div></div><span class="cl">T</span></div>
+              <div class="cc"><div class="ct"><div class="cf" style="height:45%"></div></div><span class="cl">W</span></div>
+              <div class="cc"><div class="ct"><div class="cf" style="height:92%"></div></div><span class="cl">T</span></div>
+              <div class="cc"><div class="ct"><div class="cf" style="height:68%"></div></div><span class="cl">F</span></div>
+              <div class="cc"><div class="ct"><div class="cf t" style="height:74%"></div></div><span class="cl t">S</span></div>
+              <div class="cc"><div class="ct"><div class="cf" style="height:0%"></div></div><span class="cl">S</span></div>
+            </div>
+            <div class="chart-foot">
+              <span>Best <strong>Thursday</strong></span>
+              <span>Worst <strong>Wednesday</strong></span>
+            </div>
+          </div>
+
+          <!-- Templates -->
+          <div class="card">
+            <div class="c-head">
+              <div class="c-title">Quick Apply</div>
+              <a href="#" style="font-size:11.5px;color:#AAA;text-decoration:none;">All →</a>
+            </div>
+            <div class="tpl">
+              <span class="tpl-em">🌅</span>
+              <div><div class="tpl-n">My Typical Monday</div><div class="tpl-c">5 blocks</div></div>
+              <span class="tpl-a">Apply</span>
+            </div>
+            <div class="tpl">
+              <span class="tpl-em">📚</span>
+              <div><div class="tpl-n">Study Sprint</div><div class="tpl-c">3 blocks</div></div>
+              <span class="tpl-a">Apply</span>
+            </div>
+            <div class="tpl">
+              <span class="tpl-em">😴</span>
+              <div><div class="tpl-n">Lazy Sunday</div><div class="tpl-c">2 blocks</div></div>
+              <span class="tpl-a">Apply</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+  function setLight(){
+    document.documentElement.style.setProperty('--mode','light');
+    document.getElementById('tl').classList.add('on');
+    document.getElementById('td').classList.remove('on');
+    document.querySelector('.main').style.background='#FFFFFF';
+    document.querySelector('.topbar').style.background='#FFFFFF';
+    document.querySelector('.topbar').style.borderBottomColor='#EBEBEB';
+    document.querySelectorAll('.stat').forEach(el=>{el.style.background='#FAFAFA';el.style.borderColor='#EBEBEB';});
+    document.querySelectorAll('.card').forEach(el=>{el.style.background='#FFFFFF';el.style.borderColor='#EBEBEB';});
+    document.querySelectorAll('.brow').forEach(el=>{el.style.borderBottomColor='#F0F0F0';});
+    document.querySelector('.brow.now').style.background='#F3F4FD';
+    document.querySelector('.content').style.background='#FFFFFF';
+  }
+  function setDark(){
+    document.getElementById('td').classList.add('on');
+    document.getElementById('tl').classList.remove('on');
+    document.querySelector('.main').style.background='#0F0F0F';
+    document.querySelector('.topbar').style.background='#141414';
+    document.querySelector('.topbar').style.borderBottomColor='#222';
+    document.querySelectorAll('.stat').forEach(el=>{el.style.background='#141414';el.style.borderColor='#222';});
+    document.querySelectorAll('.card').forEach(el=>{el.style.background='#141414';el.style.borderColor='#222';});
+    document.querySelector('.content').style.background='#0F0F0F';
+    document.querySelector('.brow.now').style.background='#1A1B30';
+    // text
+    document.querySelectorAll('.ph h1,.bn,.stat-v,.c-title,.c-head-l').forEach(el=>{el.style.color='#EDEDED';});
+    document.querySelectorAll('.ph p,.stat-h,.bm,.c-sub').forEach(el=>{el.style.color='#666';});
+    document.querySelectorAll('.bt,.stat-l').forEach(el=>{el.style.color='#555';});
+    document.querySelectorAll('.add-r').forEach(el=>{el.style.borderTopColor='#1E1E1E';});
+    document.querySelectorAll('.brow').forEach(el=>{el.style.borderBottomColor='#1A1A1A';});
+    document.querySelectorAll('.prog').forEach(el=>{el.style.background='#252525';});
+    document.querySelectorAll('.c-head').forEach(el=>{el.style.borderBottomColor='#1E1E1E';});
+    document.querySelectorAll('.tpl-n').forEach(el=>{el.style.color='#DDD';});
+    document.querySelectorAll('.tpl').forEach(el=>{el.style.borderBottomColor='#1A1A1A';});
+    document.querySelectorAll('.btn-s').forEach(el=>{el.style.background='#1E1E1E';el.style.borderColor='#2A2A2A';el.style.color='#888';});
+    document.querySelectorAll('.t-bc span').forEach(el=>{el.style.color='#555';});
+    document.querySelectorAll('.t-bc b').forEach(el=>{el.style.color='#DDD';});
+    document.querySelectorAll('.div-v').forEach(el=>{el.style.background='#222';});
+    document.querySelectorAll('.ct').forEach(el=>{el.style.background='#1E1E1E';});
+    document.querySelectorAll('.cf.t').forEach(el=>{el.style.background='#888';});
+    document.querySelectorAll('.chart-foot').forEach(el=>{el.style.borderTopColor='#1E1E1E';el.style.color='#555';});
+    document.querySelectorAll('.chart-foot strong').forEach(el=>{el.style.color='#888';});
+    document.querySelectorAll('.p-plan').forEach(el=>{el.style.background='#1E1E1E';el.style.borderColor='#2A2A2A';el.style.color='#666';});
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,683 @@
+<!doctype html>
+<html lang="en" class="">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Klok — Prototype 2</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      /* ── TOKENS ──────────────────────────────────────────── */
+      :root {
+        --bg:           #F7F7FB;
+        --surface:      #FFFFFF;
+        --surface-2:    #F2F2F8;
+        --border:       rgba(108,111,223,0.12);
+        --border-strong:rgba(108,111,223,0.22);
+        --text:         #111128;
+        --text-2:       #5A5A78;
+        --text-3:       #9898B0;
+        --accent:       #5D60EF;
+        --accent-2:     #8587F5;
+        --accent-soft:  rgba(93,96,239,0.08);
+        --accent-glow:  rgba(93,96,239,0.18);
+        --success:      #14B87A;
+        --warning:      #F59E0B;
+        --danger:       #F25C5C;
+        --radius-sm:    8px;
+        --radius:       14px;
+        --radius-lg:    20px;
+        --shadow-sm:    0 1px 3px rgba(93,96,239,0.06), 0 1px 2px rgba(0,0,0,0.04);
+        --shadow:       0 4px 20px rgba(93,96,239,0.10), 0 1px 4px rgba(0,0,0,0.04);
+        --shadow-lg:    0 12px 40px rgba(93,96,239,0.16), 0 2px 8px rgba(0,0,0,0.06);
+      }
+      .dark {
+        --bg:           #0D0D12;
+        --surface:      #13131C;
+        --surface-2:    #1A1A28;
+        --border:       rgba(133,135,245,0.10);
+        --border-strong:rgba(133,135,245,0.20);
+        --text:         #EEEEFF;
+        --text-2:       #8888AA;
+        --text-3:       #4A4A68;
+        --accent:       #7375F5;
+        --accent-2:     #9B9EEF;
+        --accent-soft:  rgba(115,117,245,0.10);
+        --accent-glow:  rgba(115,117,245,0.20);
+        --shadow-sm:    0 1px 3px rgba(0,0,0,0.3);
+        --shadow:       0 4px 24px rgba(0,0,0,0.35);
+        --shadow-lg:    0 12px 48px rgba(0,0,0,0.5);
+      }
+
+      body {
+        font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+        min-height: 100vh;
+      }
+
+      /* ── LAYOUT ─────────────────────────────────────────── */
+      .shell { display: flex; height: 100vh; overflow: hidden; }
+
+      /* ── SIDEBAR ────────────────────────────────────────── */
+      .sidebar {
+        width: 240px;
+        flex-shrink: 0;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow-y: auto;
+      }
+      .sidebar-logo {
+        padding: 20px 18px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+      .logo-icon {
+        width: 34px; height: 34px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 4px 12px var(--accent-glow);
+        flex-shrink: 0;
+      }
+      .logo-icon svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+      .logo-name { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+
+      nav { padding: 12px 10px; flex: 1; }
+      .nav-section { font-size: 10.5px; font-weight: 700; color: var(--text-3); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 10px; margin: 16px 0 6px; }
+      .nav-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 12px; border-radius: var(--radius-sm);
+        font-size: 13.5px; font-weight: 500; color: var(--text-2);
+        cursor: pointer; transition: all 0.15s; margin-bottom: 2px;
+        text-decoration: none;
+      }
+      .nav-item:hover { background: var(--accent-soft); color: var(--text); }
+      .nav-item.active {
+        background: linear-gradient(90deg, var(--accent-soft) 0%, transparent 100%);
+        color: var(--accent);
+        font-weight: 700;
+        border-left: 2.5px solid var(--accent);
+        padding-left: calc(12px - 2.5px);
+      }
+      .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+      .nav-badge {
+        margin-left: auto; font-size: 11px; font-weight: 700;
+        background: var(--accent-soft); color: var(--accent);
+        padding: 1px 7px; border-radius: 99px;
+      }
+      .sidebar-footer {
+        padding: 12px 10px;
+        border-top: 1px solid var(--border);
+      }
+      .user-card {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: var(--radius-sm);
+        cursor: pointer; transition: background 0.15s;
+      }
+      .user-card:hover { background: var(--accent-soft); }
+      .avatar {
+        width: 30px; height: 30px; border-radius: 8px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 12px; font-weight: 800; color: white;
+        flex-shrink: 0;
+      }
+
+      /* ── MAIN ───────────────────────────────────────────── */
+      .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+      .topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 28px;
+        height: 56px;
+        display: flex; align-items: center; justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .topbar-left { display: flex; align-items: center; gap: 12px; }
+      .page-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+      .page-date { font-size: 13px; color: var(--text-3); font-weight: 500; }
+
+      .content { flex: 1; overflow-y: auto; padding: 28px; }
+
+      /* ── COMPONENTS ─────────────────────────────────────── */
+      .btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 16px; border-radius: var(--radius-sm);
+        font-size: 13px; font-weight: 600; cursor: pointer;
+        border: none; transition: all 0.15s; font-family: inherit;
+      }
+      .btn svg { width: 14px; height: 14px; }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+        color: white;
+        box-shadow: 0 4px 14px var(--accent-glow);
+      }
+      .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+      .btn-secondary {
+        background: var(--surface-2); color: var(--text-2);
+        border: 1px solid var(--border-strong);
+      }
+      .btn-secondary:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+      .btn-icon {
+        padding: 7px; background: var(--surface-2);
+        border: 1px solid var(--border); border-radius: 8px;
+        color: var(--text-2); cursor: pointer; transition: all 0.15s;
+        display: inline-flex; align-items: center; justify-content: center;
+      }
+      .btn-icon:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+      .btn-icon svg { width: 15px; height: 15px; }
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+      }
+      .card-header {
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .card-title { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; }
+      .card-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; font-weight: 500; }
+
+      /* Stat cards */
+      .stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px 22px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s;
+        cursor: default;
+        position: relative;
+        overflow: hidden;
+      }
+      .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent-2));
+        border-radius: var(--radius) var(--radius) 0 0;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+      .stat-card:hover::before { opacity: 1; }
+      .stat-label { font-size: 11px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 12px; }
+      .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+      .stat-value span { font-size: 16px; font-weight: 600; color: var(--text-3); }
+      .stat-foot { font-size: 12px; color: var(--text-3); margin-top: 10px; font-weight: 500; }
+      .stat-foot.up { color: var(--success); }
+
+      /* Progress bar */
+      .progress-track { height: 3px; background: var(--border); border-radius: 99px; margin-top: 14px; overflow: hidden; }
+      .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-radius: 99px; }
+
+      /* Block list */
+      .block-list { list-style: none; }
+      .block-item {
+        display: grid;
+        grid-template-columns: 80px 1fr auto auto;
+        align-items: center;
+        gap: 16px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.12s;
+        cursor: pointer;
+      }
+      .block-item:last-child { border-bottom: none; }
+      .block-item:hover { background: var(--accent-soft); }
+      .block-time { font-size: 11.5px; font-weight: 600; color: var(--text-3); font-variant-numeric: tabular-nums; }
+      .block-info {}
+      .block-name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+      .block-meta { font-size: 12px; color: var(--text-3); margin-top: 2px; font-weight: 500; }
+      .block-tag { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; }
+
+      /* Status pills */
+      .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+      .pill-done   { background: rgba(20,184,122,0.1);  color: var(--success); }
+      .pill-now    { background: var(--accent-soft);    color: var(--accent); }
+      .pill-missed { background: rgba(242,92,92,0.1);   color: var(--danger); }
+      .pill-plan   { background: var(--surface-2);      color: var(--text-3); border: 1px solid var(--border); }
+
+      .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+      .dot-done   { background: var(--success); }
+      .dot-now    { background: var(--accent); }
+      .dot-missed { background: var(--danger); }
+      .dot-plan   { background: var(--text-3); }
+
+      /* Chart bars */
+      .chart-wrap { display: flex; align-items: flex-end; gap: 8px; height: 64px; }
+      .chart-col { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; height: 100%; }
+      .chart-bar-track { flex: 1; width: 100%; background: var(--surface-2); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+      .chart-bar-fill { background: linear-gradient(180deg, var(--accent-2), var(--accent)); border-radius: 4px; transition: height 0.3s ease; }
+      .chart-bar-fill.today { background: linear-gradient(180deg, var(--accent), #4042cc); }
+      .chart-label { font-size: 10px; font-weight: 600; color: var(--text-3); }
+      .chart-label.today { color: var(--accent); }
+
+      /* Two-col layout */
+      .two-col { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+      .side-stack { display: flex; flex-direction: column; gap: 16px; }
+
+      /* Tag pill colors */
+      .tag-study  { background: rgba(93,96,239,0.1);  color: var(--accent); }
+      .tag-health { background: rgba(20,184,122,0.1); color: var(--success); }
+      .tag-work   { background: rgba(245,158,11,0.1); color: var(--warning); }
+
+      /* Pulse animation */
+      @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      .pulse { animation: pulse 2s infinite; }
+
+      /* Gradient hero band (dashboard only) */
+      .hero-band {
+        background: linear-gradient(135deg, var(--accent) 0%, #8B5CF6 50%, var(--accent-2) 100%);
+        border-radius: var(--radius-lg);
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+        color: white;
+      }
+      .hero-band::after {
+        content: '';
+        position: absolute;
+        top: -40px; right: -40px;
+        width: 200px; height: 200px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.07);
+      }
+      .hero-band::before {
+        content: '';
+        position: absolute;
+        bottom: -30px; right: 80px;
+        width: 120px; height: 120px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.05);
+      }
+
+      /* Template quick tiles */
+      .tpl-item {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px; border-radius: var(--radius-sm);
+        cursor: pointer; transition: all 0.15s;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        margin-bottom: 8px;
+      }
+      .tpl-item:hover { border-color: var(--accent); background: var(--accent-soft); }
+      .tpl-icon {
+        width: 34px; height: 34px; border-radius: 8px;
+        background: var(--accent-soft); display: flex; align-items: center; justify-content: center;
+        font-size: 16px; flex-shrink: 0;
+      }
+      .tpl-apply {
+        margin-left: auto; font-size: 11.5px; font-weight: 600;
+        color: var(--text-3); background: var(--surface-2);
+        padding: 4px 10px; border-radius: 6px;
+        border: 1px solid var(--border);
+        transition: all 0.15s;
+      }
+      .tpl-item:hover .tpl-apply { background: var(--accent); color: white; border-color: var(--accent); }
+
+      /* Dark mode toggle (prototype) */
+      .mode-btns {
+        position: fixed; top: 16px; right: 16px; z-index: 100;
+        display: flex; gap: 6px; align-items: center;
+        background: var(--surface); border: 1px solid var(--border);
+        padding: 6px 10px; border-radius: 10px;
+        box-shadow: var(--shadow);
+      }
+      .mode-btns span { font-size: 11px; color: var(--text-3); font-weight: 600; }
+      .mode-btn {
+        padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+        cursor: pointer; border: none; font-family: inherit; transition: all 0.15s;
+        color: var(--text-2); background: transparent;
+      }
+      .mode-btn:hover { background: var(--accent-soft); color: var(--accent); }
+      .mode-btn.on { background: var(--accent); color: white; }
+    </style>
+  </head>
+  <body>
+    <!-- Theme toggle -->
+    <div class="mode-btns" id="modeBar">
+      <span>Theme</span>
+      <button class="mode-btn on" id="btnLight" onclick="setLight()">Light</button>
+      <button class="mode-btn" id="btnDark" onclick="setDark()">Dark</button>
+    </div>
+
+    <div class="shell">
+      <!-- SIDEBAR -->
+      <aside class="sidebar">
+        <div class="sidebar-logo">
+          <div class="logo-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <span class="logo-name">Klok</span>
+        </div>
+
+        <nav>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            Dashboard
+          </a>
+          <a class="nav-item active" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Today's Log
+            <span class="nav-badge">4</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Analytics
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+            Templates
+          </a>
+          <a class="nav-item" href="#">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Recurring
+          </a>
+
+          <div class="nav-section">Tags</div>
+          <a class="nav-item" href="#">
+            <span class="dot" style="background:var(--accent)"></span>
+            Study
+            <span style="margin-left:auto;font-size:11px;color:var(--text-3);font-weight:600;">12</span>
+          </a>
+          <a class="nav-item" href="#">
+            <span class="dot" style="background:var(--success)"></span>
+            Health
+            <span style="margin-left:auto;font-size:11px;color:var(--text-3);font-weight:600;">8</span>
+          </a>
+          <a class="nav-item" href="#">
+            <span class="dot" style="background:var(--warning)"></span>
+            Work
+            <span style="margin-left:auto;font-size:11px;color:var(--text-3);font-weight:600;">5</span>
+          </a>
+
+          <a class="nav-item" href="#" style="margin-top:4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add tag
+          </a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <a class="nav-item" href="#" style="margin-bottom:4px;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 1 22 12a10 10 0 0 1-2.93 7.07"/><path d="M4.93 4.93A10 10 0 0 0 2 12a10 10 0 0 0 2.93 7.07"/></svg>
+            Settings
+          </a>
+          <div class="user-card">
+            <div class="avatar">S</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;letter-spacing:-0.01em;">Santra</div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">santra@klok.app</div>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;color:var(--text-3);flex-shrink:0;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main">
+        <!-- Topbar -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <div>
+              <div class="page-title">Today's Log</div>
+              <div class="page-date">Saturday, 6 June 2026</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="btn-secondary btn" style="padding:7px 14px;font-size:12px;">Today</button>
+            <button class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div style="width:1px;height:20px;background:var(--border);margin:0 4px;"></div>
+            <button class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Block
+            </button>
+          </div>
+        </header>
+
+        <!-- Page content -->
+        <div class="content">
+
+          <!-- Stats -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-label">Completed</div>
+              <div class="stat-value">3 <span>/ 4</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width:75%"></div></div>
+              <div class="stat-foot">75% of today's blocks</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Productivity</div>
+              <div class="stat-value">74<span>%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width:74%"></div></div>
+              <div class="stat-foot up">↑ +12% vs last week</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Streak</div>
+              <div class="stat-value">12 <span>days</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width:57%"></div></div>
+              <div class="stat-foot">Best: 21 days</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-label">Focus time</div>
+              <div class="stat-value">5.5 <span>hrs</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width:69%"></div></div>
+              <div class="stat-foot">Across 4 blocks</div>
+            </div>
+          </div>
+
+          <!-- Two-col -->
+          <div class="two-col">
+            <!-- Blocks card -->
+            <div class="card" style="overflow:hidden;">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Today's Blocks</div>
+                  <div class="card-sub">4 blocks · 5h 30m planned</div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Filter</button>
+                  <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;">Apply template</button>
+                </div>
+              </div>
+
+              <ul class="block-list">
+                <!-- Done -->
+                <li class="block-item">
+                  <div class="block-time">07:00 – 08:00</div>
+                  <div class="block-info">
+                    <div class="block-name" style="display:flex;align-items:center;gap:8px;">
+                      Morning Routine
+                      <span class="block-tag tag-health">Health</span>
+                    </div>
+                    <div class="block-meta">3 of 3 todos done</div>
+                  </div>
+                  <span class="pill pill-done">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;"><polyline points="20 6 9 17 4 12"/></svg>
+                    Done
+                  </span>
+                  <button class="btn-icon" style="width:30px;height:30px;padding:0;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                </li>
+
+                <!-- Now -->
+                <li class="block-item" style="background:var(--accent-soft);">
+                  <div class="block-time">09:00 – 11:00</div>
+                  <div class="block-info">
+                    <div class="block-name" style="display:flex;align-items:center;gap:8px;">
+                      Deep Work — Design System
+                      <span class="block-tag tag-study">Study</span>
+                    </div>
+                    <div class="block-meta">2 of 4 todos done · 50%</div>
+                  </div>
+                  <span class="pill pill-now">
+                    <span class="dot dot-now pulse"></span>
+                    Now
+                  </span>
+                  <button class="btn-icon" style="width:30px;height:30px;padding:0;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                </li>
+
+                <!-- Missed -->
+                <li class="block-item">
+                  <div class="block-time">11:30 – 12:30</div>
+                  <div class="block-info">
+                    <div class="block-name" style="display:flex;align-items:center;gap:8px;">
+                      Workout
+                      <span class="block-tag tag-health">Health</span>
+                    </div>
+                    <div class="block-meta">No todos · Mark done?</div>
+                  </div>
+                  <span class="pill pill-missed">Missed</span>
+                  <button class="btn-icon" style="width:30px;height:30px;padding:0;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                </li>
+
+                <!-- Upcoming -->
+                <li class="block-item">
+                  <div class="block-time">14:00 – 16:00</div>
+                  <div class="block-info">
+                    <div class="block-name" style="display:flex;align-items:center;gap:8px;">
+                      Project Review
+                      <span class="block-tag tag-work">Work</span>
+                    </div>
+                    <div class="block-meta">0 of 2 todos</div>
+                  </div>
+                  <span class="pill pill-plan">Upcoming</span>
+                  <button class="btn-icon" style="width:30px;height:30px;padding:0;justify-content:center;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                </li>
+              </ul>
+
+              <!-- Add block -->
+              <div style="padding:14px 20px;border-top:1px solid var(--border);">
+                <button style="display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--text-3);background:none;border:none;cursor:pointer;font-family:inherit;transition:color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-3)'">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add a block
+                </button>
+              </div>
+            </div>
+
+            <!-- Side panel -->
+            <div class="side-stack">
+              <!-- Week chart -->
+              <div class="card" style="padding:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                  <div>
+                    <div class="card-title">This week</div>
+                    <div class="card-sub">Avg 71% completion</div>
+                  </div>
+                  <button style="font-size:12px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;">All →</button>
+                </div>
+                <div class="chart-wrap">
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="height:60%"></div></div>
+                    <span class="chart-label">M</span>
+                  </div>
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="height:85%"></div></div>
+                    <span class="chart-label">T</span>
+                  </div>
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="height:45%"></div></div>
+                    <span class="chart-label">W</span>
+                  </div>
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="height:90%"></div></div>
+                    <span class="chart-label">T</span>
+                  </div>
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="height:70%"></div></div>
+                    <span class="chart-label">F</span>
+                  </div>
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill today" style="height:74%"></div></div>
+                    <span class="chart-label today">S</span>
+                  </div>
+                  <div class="chart-col">
+                    <div class="chart-bar-track"><div class="chart-bar-fill" style="height:0%"></div></div>
+                    <span class="chart-label">S</span>
+                  </div>
+                </div>
+                <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;color:var(--text-3);font-weight:500;">
+                  <span>Best <strong style="color:var(--text)">Thursday</strong></span>
+                  <span>Worst <strong style="color:var(--text)">Wednesday</strong></span>
+                </div>
+              </div>
+
+              <!-- Templates -->
+              <div class="card" style="padding:20px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                  <div class="card-title">Quick Apply</div>
+                  <button style="font-size:12px;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;">All →</button>
+                </div>
+                <div class="tpl-item">
+                  <div class="tpl-icon">🌅</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;">My Typical Monday</div>
+                    <div style="font-size:11px;color:var(--text-3);margin-top:1px;">5 blocks</div>
+                  </div>
+                  <div class="tpl-apply">Apply</div>
+                </div>
+                <div class="tpl-item">
+                  <div class="tpl-icon">📚</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;">Study Sprint</div>
+                    <div style="font-size:11px;color:var(--text-3);margin-top:1px;">3 blocks</div>
+                  </div>
+                  <div class="tpl-apply">Apply</div>
+                </div>
+                <div class="tpl-item" style="margin-bottom:0;">
+                  <div class="tpl-icon">😴</div>
+                  <div>
+                    <div style="font-size:13px;font-weight:600;">Lazy Sunday</div>
+                    <div style="font-size:11px;color:var(--text-3);margin-top:1px;">2 blocks</div>
+                  </div>
+                  <div class="tpl-apply">Apply</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      function setLight() {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('btnLight').classList.add('on');
+        document.getElementById('btnDark').classList.remove('on');
+      }
+      function setDark() {
+        document.documentElement.classList.add('dark');
+        document.getElementById('btnDark').classList.add('on');
+        document.getElementById('btnLight').classList.remove('on');
+      }
+    </script>
+  </body>
+</html>

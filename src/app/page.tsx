@@ -1,535 +1,436 @@
-// Rendering: SSG (Static Site Generation).
-// This is a marketing landing page with no per-request data. Next.js
-// statically generates the HTML at build time and serves it as a static
-// asset on every request. Fastest possible page load.
+// Rendering: SSG.
+// Premium marketing landing — light lavender base, multi-color accents,
+// display type, full conversion sections (hero, social proof, features,
+// pricing, testimonials, FAQ) and a real footer.
 
-import Image from "next/image";
 import Link from "next/link";
+import { prisma } from "@/lib/db";
+import { MarketingNav, MarketingFooter, Logo, PrimaryLink, tint } from "@/components/marketing/MarketingChrome";
 
-export default function LandingPage() {
-  return (
-    <div className="min-h-screen bg-[#ECECF8] overflow-y-auto">
-      {/* ── NAVBAR ──────────────────────────────────── */}
-      <nav className="sticky top-0 z-30 backdrop-blur-md bg-[#ECECF8]/80 border-b border-[#E5E7EB]/50">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-3 md:py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-[#6C6FDF] rounded-xl flex items-center justify-center shadow-md shadow-[#6C6FDF]/40">
-              <i className="fa-solid fa-calendar-check text-white text-sm"></i>
-            </div>
-            <span className="text-xl font-extrabold text-[#1A1A2E]">Klok</span>
-          </Link>
+// Rendering: ISR — real "by the numbers" stats, refreshed hourly.
+export const revalidate = 3600;
 
-          <div className="flex items-center gap-1 sm:gap-3">
-            <Link
-              href="#features"
-              className="btn btn-ghost px-4 hidden md:inline-flex"
-            >
-              Features
-            </Link>
-            <Link
-              href="#how"
-              className="btn btn-ghost px-4 hidden md:inline-flex"
-            >
-              How it works
-            </Link>
-            <Link
-              href="/about"
-              className="btn btn-ghost px-4 hidden sm:inline-flex"
-            >
-              About
-            </Link>
-            <Link href="/sign-in" className="btn btn-ghost px-4">
-              Sign In
-            </Link>
-            <Link
-              href="/sign-up"
-              className="btn btn-primary shadow-md shadow-[#6C6FDF]/30"
-            >
-              Get Started
-            </Link>
-          </div>
-        </div>
-      </nav>
+// ── Palette ──────────────────────────────────────────
+const BG = "#F7F7FC";
+const SURFACE = "#FFFFFF";
+const INK = "#15152B";
+const INK2 = "#5B5B73";
+const INK3 = "#9494AE";
+const BORDER = "rgba(108,111,223,0.13)";
+const LAV = "#6C6FDF";
+const LAV2 = "#9B9EEF";
+const TEAL = "#2DD4BF";
+const PINK = "#F472B6";
+const AMBER = "#F59E0B";
+const VIOLET = "#8B6FE0";
+const GRAD = "#6C6FDF"; // solid brand fill — no gradients
 
-      {/* ── HERO ─────────────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 md:px-8 pt-12 md:pt-20 pb-16 md:pb-24 text-center">
-        <div className="inline-flex items-center gap-2 bg-white border border-[#EEEEFF] px-4 py-2 rounded-full text-sm font-semibold text-[#6C6FDF] shadow-sm mb-8">
-          <i className="fa-solid fa-sparkles text-xs"></i>
-          The honest daily tracker
-        </div>
-
-        <h1 className="hero-title text-4xl md:text-5xl lg:text-6xl font-extrabold leading-[1.1] text-[#1A1A2E] mb-6">
-          Plan Your Day.
-          <br />
-          <span className="grad-text">Own Your Reality.</span>
-        </h1>
-
-        <p className="text-base md:text-lg text-[#6B7280] max-w-2xl mx-auto mb-10 leading-relaxed">
-          The daily tracker built around the truth — you plan, you execute,
-          you miss things, you adjust. Klok helps you build a real rhythm
-          without judgement.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-12">
-          <Link
-            href="/sign-up"
-            className="btn btn-primary rounded-2xl shadow-lg shadow-[#6C6FDF]/30"
-            style={{ fontSize: "15px", padding: "14px 32px" }}
-          >
-            Start Tracking — Free <i className="fa-solid fa-arrow-right"></i>
-          </Link>
-          <Link
-            href="/about"
-            className="btn btn-outline rounded-2xl"
-            style={{ fontSize: "15px", padding: "14px 32px" }}
-          >
-            Learn More
-          </Link>
-        </div>
-
-        {/* Hero illustration */}
-        <div className="flex justify-center">
-          <Image
-            src="/illustrations/hero.svg"
-            alt="A calendar showing a day's planned blocks with completed and upcoming tasks"
-            width={520}
-            height={350}
-            priority
-            className="max-w-full h-auto drop-shadow-xl"
-          />
-        </div>
-      </section>
-
-      {/* ── TRUST STRIP ──────────────────────────────── */}
-      <section className="bg-white border-y border-[#E5E7EB]/50">
-        <div className="max-w-5xl mx-auto px-4 md:px-8 py-10">
-          <p className="text-center text-xs uppercase tracking-widest text-[#9CA3AF] font-semibold mb-6">
-            What you get with Klok
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 text-center">
-            <TrustItem
-              icon="fa-clock"
-              value="24h"
-              label="Hourly time blocks"
-            />
-            <TrustItem
-              icon="fa-list-check"
-              value="Unlimited"
-              label="Nested todos"
-            />
-            <TrustItem
-              icon="fa-layer-group"
-              value="Templates"
-              label="Save & apply days"
-            />
-            <TrustItem
-              icon="fa-fire"
-              value="Streaks"
-              label="Build a habit"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ─────────────────────────────── */}
-      <section id="how" className="max-w-5xl mx-auto px-4 md:px-8 py-16 md:py-24">
-        <div className="text-center mb-12">
-          <p className="text-xs uppercase tracking-widest text-[#6C6FDF] font-semibold mb-2">
-            How it works
-          </p>
-          <h2 className="text-3xl md:text-4xl font-extrabold text-[#1A1A2E] mb-3">
-            Three steps. That&apos;s it.
-          </h2>
-          <p className="text-[#6B7280] max-w-xl mx-auto">
-            No bloated onboarding, no premium tiers, no AI nudging you.
-            Just plan, track, and reflect.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <Step
-            number={1}
-            icon="fa-pen-to-square"
-            title="Plan your day"
-            description="Add time blocks for what you want to do — Morning Routine, Study, Lunch, whatever. Nest todos inside each block."
-          />
-          <Step
-            number={2}
-            icon="fa-check-double"
-            title="Track as you go"
-            description="Tick off todos as you finish them. Block status auto-updates. Or mark a whole block done in one click."
-          />
-          <Step
-            number={3}
-            icon="fa-chart-line"
-            title="Reflect & repeat"
-            description="See your patterns in the weekly and monthly views. Save your best days as templates and apply them again."
-          />
-        </div>
-      </section>
-
-      {/* ── FEATURES GRID ────────────────────────────── */}
-      <section
-        id="features"
-        className="bg-white border-y border-[#E5E7EB]/50"
-      >
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-16 md:py-24">
-          <div className="text-center mb-12">
-            <p className="text-xs uppercase tracking-widest text-[#6C6FDF] font-semibold mb-2">
-              Features
-            </p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1A1A2E] mb-3">
-              Everything you need. Nothing you don&apos;t.
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-            <FeatureCard
-              icon="fa-clock"
-              iconBg="bg-[#EEEEFF]"
-              iconColor="text-[#6C6FDF]"
-              title="Hourly Time Blocks"
-              description="Plan your day in blocks with nested todos. See exactly where every hour goes."
-            />
-            <FeatureCard
-              icon="fa-list-check"
-              iconBg="bg-[#DCFCE7]"
-              iconColor="text-[#15803D]"
-              title="Nested Todos"
-              description="Each block has its own checklist. Status updates from your todos automatically."
-            />
-            <FeatureCard
-              icon="fa-layer-group"
-              iconBg="bg-[#F3E8FF]"
-              iconColor="text-[#7E22CE]"
-              title="Day Templates"
-              description='Save today as a template. Apply "My Typical Monday" to any future date.'
-            />
-            <FeatureCard
-              icon="fa-fire"
-              iconBg="bg-[#FEF3C7]"
-              iconColor="text-[#F59E0B]"
-              title="Streak Tracking"
-              description="Log consistently and watch your streak grow. Missing a day breaks the chain."
-            />
-            <FeatureCard
-              icon="fa-tag"
-              iconBg="bg-[#DBEAFE]"
-              iconColor="text-[#1D4ED8]"
-              title="Activity Tags"
-              description="9 default tags plus custom ones. Color-code your day and group blocks by activity."
-            />
-            <FeatureCard
-              icon="fa-chart-bar"
-              iconBg="bg-[#DCFCE7]"
-              iconColor="text-[#15803D]"
-              title="Weekly Insights"
-              description="Week, month, and year views — see when you're winning and where you slip."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* ── PHILOSOPHY ───────────────────────────────── */}
-      <section className="max-w-5xl mx-auto px-4 md:px-8 py-16 md:py-24">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 items-center">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[#6C6FDF] font-semibold mb-2">
-              Why Klok
-            </p>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1A1A2E] mb-4 leading-tight">
-              Built for honest <span className="grad-text">reflection.</span>
-            </h2>
-            <p className="text-[#6B7280] leading-relaxed mb-4">
-              Most productivity apps make you feel guilty when you miss things.
-              Klok assumes you will — and helps you adjust without judgment.
-            </p>
-            <p className="text-[#6B7280] leading-relaxed mb-6">
-              Plan your day in blocks. Some you&apos;ll smash. Some you&apos;ll
-              miss. Both are data. Both teach you what works for you.
-            </p>
-            <Link
-              href="/about"
-              className="text-[#6C6FDF] font-semibold hover:underline inline-flex items-center gap-1"
-            >
-              Read more about our approach{" "}
-              <i className="fa-solid fa-arrow-right text-xs"></i>
-            </Link>
-          </div>
-
-          <div className="card p-6 md:p-8" style={{ borderRadius: "24px" }}>
-            <div className="space-y-3">
-              <BlockExample
-                emoji="🌅"
-                title="Morning Routine"
-                time="7:00 – 8:00"
-                state="done"
-                stateLabel="Done ✓"
-              />
-              <BlockExample
-                emoji="📚"
-                title="Study Time"
-                time="9:00 – 11:00"
-                state="partial"
-                stateLabel="2 of 3"
-              />
-              <BlockExample
-                emoji="💻"
-                title="Project Work"
-                time="14:00 – 16:00"
-                state="missed"
-                stateLabel="Missed"
-              />
-              <BlockExample
-                emoji="🏃"
-                title="Exercise"
-                time="18:00 – 19:00"
-                state="planned"
-                stateLabel="Upcoming"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ────────────────────────────────── */}
-      <section className="max-w-4xl mx-auto px-4 md:px-8 pb-16 md:pb-24">
-        <div
-          className="rounded-3xl p-8 md:p-12 text-center shadow-xl"
-          style={{
-            background: "linear-gradient(135deg, #6C6FDF 0%, #9B9EEF 100%)",
-          }}
-        >
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
-            Start tracking today.
-          </h2>
-          <p className="text-white/90 text-base md:text-lg max-w-xl mx-auto mb-8">
-            Free. No credit card. No bullshit. Just a real daily tracker built
-            for real people.
-          </p>
-          <Link
-            href="/sign-up"
-            className="btn rounded-2xl bg-white text-[#6C6FDF] hover:opacity-90 shadow-lg inline-flex font-bold"
-            style={{ fontSize: "15px", padding: "14px 32px" }}
-          >
-            Get Started Free <i className="fa-solid fa-arrow-right"></i>
-          </Link>
-        </div>
-      </section>
-
-      {/* ── FOOTER ───────────────────────────────────── */}
-      <footer className="bg-white border-t border-[#E5E7EB]/50">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-10 md:py-12">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
-            <div className="col-span-2">
-              <Link href="/" className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 bg-[#6C6FDF] rounded-xl flex items-center justify-center">
-                  <i className="fa-solid fa-calendar-check text-white text-xs"></i>
-                </div>
-                <span className="text-lg font-extrabold text-[#1A1A2E]">
-                  Klok
-                </span>
-              </Link>
-              <p className="text-sm text-[#6B7280] max-w-xs leading-relaxed">
-                The honest daily tracker. Plan, execute, reflect — without
-                judgment.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold text-[#1A1A2E] uppercase tracking-widest mb-3">
-                Product
-              </h3>
-              <div className="space-y-2">
-                <Link
-                  href="#features"
-                  className="block text-sm text-[#6B7280] hover:text-[#6C6FDF]"
-                >
-                  Features
-                </Link>
-                <Link
-                  href="#how"
-                  className="block text-sm text-[#6B7280] hover:text-[#6C6FDF]"
-                >
-                  How it works
-                </Link>
-                <Link
-                  href="/about"
-                  className="block text-sm text-[#6B7280] hover:text-[#6C6FDF]"
-                >
-                  About
-                </Link>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-xs font-bold text-[#1A1A2E] uppercase tracking-widest mb-3">
-                Account
-              </h3>
-              <div className="space-y-2">
-                <Link
-                  href="/sign-in"
-                  className="block text-sm text-[#6B7280] hover:text-[#6C6FDF]"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="block text-sm text-[#6B7280] hover:text-[#6C6FDF]"
-                >
-                  Create Account
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-[#9CA3AF]">
-              © {new Date().getFullYear()} Klok. All rights reserved.
-            </p>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/about"
-                className="text-xs text-[#9CA3AF] hover:text-[#6C6FDF]"
-              >
-                About
-              </Link>
-              <Link
-                href="/sign-in"
-                className="text-xs text-[#9CA3AF] hover:text-[#6C6FDF]"
-              >
-                Sign In
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-// ── Sub-components ──
-
-function TrustItem({
-  icon,
-  value,
-  label,
-}: {
-  icon: string;
-  value: string;
-  label: string;
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-center w-12 h-12 bg-[#EEEEFF] rounded-2xl mx-auto mb-3">
-        <i className={`fa-solid ${icon} text-[#6C6FDF]`}></i>
-      </div>
-      <div className="text-lg font-extrabold text-[#1A1A2E]">{value}</div>
-      <div className="text-xs text-[#6B7280] mt-0.5">{label}</div>
-    </div>
-  );
-}
-
-function Step({
-  number,
-  icon,
-  title,
-  description,
-}: {
-  number: number;
-  icon: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="card p-6 relative">
-      <div className="absolute -top-3 -left-3 w-9 h-9 bg-[#6C6FDF] rounded-2xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg shadow-[#6C6FDF]/30">
-        {number}
-      </div>
-      <div className="w-12 h-12 bg-[#EEEEFF] rounded-2xl flex items-center justify-center mb-4">
-        <i className={`fa-solid ${icon} text-[#6C6FDF] text-lg`}></i>
-      </div>
-      <h3 className="font-bold text-[#1A1A2E] mb-2">{title}</h3>
-      <p className="text-sm text-[#6B7280] leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function FeatureCard({
-  icon,
-  iconBg,
-  iconColor,
-  title,
-  description,
-}: {
-  icon: string;
-  iconBg: string;
-  iconColor: string;
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="feature-card">
-      <div
-        className={`w-12 h-12 ${iconBg} rounded-2xl flex items-center justify-center mb-4`}
-      >
-        <i className={`fa-solid ${icon} ${iconColor} text-lg`}></i>
-      </div>
-      <h3 className="font-bold text-[#1A1A2E] mb-2 text-sm">{title}</h3>
-      <p className="text-sm text-[#6B7280] leading-relaxed">{description}</p>
-    </div>
-  );
-}
-
-function BlockExample({
-  emoji,
-  title,
-  time,
-  state,
-  stateLabel,
-}: {
-  emoji: string;
-  title: string;
-  time: string;
-  state: "done" | "partial" | "missed" | "planned";
-  stateLabel: string;
-}) {
-  const bgMap = {
-    done: { card: "#F0FFF4", border: "#DCFCE7" },
-    partial: { card: "#FAFAFF", border: "#EEEEFF" },
-    missed: { card: "#FFF5F5", border: "#FEE2E2" },
-    planned: { card: "white", border: "#F3F4F6" },
-  };
-  const badgeMap = {
-    done: { color: "#15803D", bg: "#DCFCE7" },
-    partial: { color: "#6C6FDF", bg: "#EEEEFF" },
-    missed: { color: "#DC2626", bg: "#FEE2E2" },
-    planned: { color: "#9CA3AF", bg: "#F3F4F6" },
-  };
+export default async function LandingPage() {
+  const [userCount, blockCount, doneTodoCount] = await Promise.all([
+    prisma.user.count(),
+    prisma.block.count(),
+    prisma.todo.count({ where: { status: "DONE" } }),
+  ]);
 
   return (
     <div
-      className="rounded-xl p-3 flex items-center justify-between"
-      style={{
-        background: bgMap[state].card,
-        border: `1px solid ${bgMap[state].border}`,
-      }}
+      className="min-h-screen overflow-x-hidden"
+      style={{ background: BG, color: INK, fontFamily: "var(--font-sans), system-ui, sans-serif" }}
     >
-      <div>
-        <div className="font-bold text-sm text-[#1A1A2E]">
-          {emoji} {title}
-        </div>
-        <div className="text-xs text-[#9CA3AF] mt-0.5">{time}</div>
-      </div>
-      <span
-        className="text-xs font-bold px-2 py-1 rounded-lg"
-        style={{
-          color: badgeMap[state].color,
-          background: badgeMap[state].bg,
-        }}
+      {/* ── ANNOUNCEMENT BAR ─────────────────────────────── */}
+      <div
+        className="w-full text-center text-xs font-medium py-2 px-4"
+        style={{ background: GRAD, color: "#fff" }}
       >
-        {stateLabel}
-      </span>
+        <i className="fa-solid fa-sparkles mr-1.5" style={{ fontSize: 11 }}></i>
+        Klok is in public beta — every feature is free while we build.{" "}
+        <Link href="/sign-up" className="underline underline-offset-2 font-semibold">
+          Claim your spot →
+        </Link>
+      </div>
+
+      {/* ── NAV ──────────────────────────────────────────── */}
+      <MarketingNav />
+
+      {/* ── HERO ─────────────────────────────────────────── */}
+      <section className="relative">
+        <Glows />
+        <div className="relative max-w-5xl mx-auto px-6 md:px-10 pt-20 md:pt-28 pb-16 text-center" style={{ zIndex: 1 }}>
+          <Pill>
+            <span className="w-1.5 h-1.5 rounded-full pulse" style={{ background: LAV }}></span>
+            The honest daily tracker
+          </Pill>
+
+          <h1
+            className="font-display text-5xl md:text-7xl lg:text-[84px] font-extrabold leading-[1.03] mt-8 mb-7 mx-auto"
+            style={{ color: INK, maxWidth: 920 }}
+          >
+            Plan your day.{" "}
+            <span style={{ color: LAV }}>Own your reality.</span>
+          </h1>
+
+          <p className="text-lg md:text-xl max-w-2xl mx-auto leading-[1.55] mb-9" style={{ color: INK2 }}>
+            Most planners pretend you&apos;ll do everything. Klok doesn&apos;t. Block out
+            your day, track what really happened, and reflect on the gap — guilt-free.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+            <PrimaryLink href="/sign-up" big>
+              Start free <i className="fa-solid fa-arrow-right text-xs"></i>
+            </PrimaryLink>
+            <a
+              href="#how"
+              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl text-sm font-semibold lift"
+              style={{ color: INK, background: SURFACE, border: `1px solid ${BORDER}`, minWidth: 170, justifyContent: "center", boxShadow: "var(--shadow-sm)" }}
+            >
+              <i className="fa-regular fa-circle-play" style={{ color: LAV }}></i> See how it works
+            </a>
+          </div>
+
+          {/* micro social proof */}
+          <div className="flex items-center justify-center gap-3 text-xs" style={{ color: INK3 }}>
+            <div className="flex -space-x-2">
+              {[LAV, TEAL, AMBER, PINK].map((c, i) => (
+                <div key={i} className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-[9px] font-bold text-white"
+                  style={{ background: c, borderColor: BG }}>
+                  {["S", "A", "M", "R"][i]}
+                </div>
+              ))}
+            </div>
+            <span>No credit card · Free during beta · Set up in 60 seconds</span>
+          </div>
+        </div>
+
+        {/* App mockup */}
+        <AppMockup />
+      </section>
+
+      {/* ── KLOK BY THE NUMBERS ──────────────────────────── */}
+      <section style={{ borderTop: `1px solid ${BORDER}`, borderBottom: `1px solid ${BORDER}`, background: SURFACE }}>
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-14">
+          <p className="text-center text-xs font-bold uppercase tracking-widest mb-8" style={{ color: INK3, letterSpacing: "0.12em" }}>
+            Klok by the numbers
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: userCount.toLocaleString(), label: "People planning", color: LAV },
+              { value: blockCount.toLocaleString(), label: "Time blocks scheduled", color: TEAL },
+              { value: doneTodoCount.toLocaleString(), label: "Todos completed", color: AMBER },
+              { value: "Free", label: "While in beta", color: PINK },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <div className="font-display text-4xl md:text-5xl font-extrabold mb-1.5 tabular" style={{ color: s.color }}>
+                  {s.value}
+                </div>
+                <div className="text-sm" style={{ color: INK2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FEATURES (bento) ─────────────────────────────── */}
+      <section id="features" className="max-w-6xl mx-auto px-6 md:px-10 py-24 md:py-32">
+        <SectionHead eyebrow="Features" title="Everything you need. Nothing you don't." sub="Built for honest reflection, not productivity theatre." />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* big tile */}
+          <BentoCard className="md:col-span-2" color={LAV} icon="fa-clock"
+            title="Hourly time blocks"
+            body="Lay out your day hour by hour. Each block has a title, time range, tag, and its own checklist — drag through your day with total clarity.">
+            <MiniBlocks />
+          </BentoCard>
+          <BentoCard color={TEAL} icon="fa-list-check"
+            title="Trackable todos"
+            body="Go beyond checkboxes — track time, distance, or counts with targets and a built-in timer." />
+          <BentoCard color={AMBER} icon="fa-layer-group"
+            title="Day templates"
+            body="Save a good day as a template, apply it to any future date in one tap." />
+          <BentoCard color={PINK} icon="fa-rotate"
+            title="Recurring blocks"
+            body="Set a routine once — Klok auto-creates it every day, weekday, or on the days you choose." />
+          <BentoCard color={VIOLET} icon="fa-chart-line"
+            title="Plan vs Reality"
+            body="See exactly where your plan met your day — and where it didn't. The data that actually changes habits." />
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ─────────────────────────────────── */}
+      <section id="how" style={{ borderTop: `1px solid ${BORDER}`, background: SURFACE }}>
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-24 md:py-32">
+          <SectionHead eyebrow="How it works" title="Three steps. That's the whole app." sub="No bloated onboarding. No 14-day trial countdown." />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { num: "01", icon: "fa-pen-to-square", color: LAV, title: "Plan your day", body: "Add time blocks and nest todos inside each one. Takes a minute." },
+              { num: "02", icon: "fa-check-double", color: TEAL, title: "Track as you go", body: "Tick things off, run timers, mark what slipped. Status updates itself." },
+              { num: "03", icon: "fa-chart-simple", color: AMBER, title: "Reflect & repeat", body: "Review your week, spot your patterns, and keep your best days as templates." },
+            ].map((s) => (
+              <div key={s.num} className="rounded-2xl p-7 lift" style={{ background: BG, border: `1px solid ${BORDER}` }}>
+                <div className="flex items-center gap-3 mb-5">
+                  <span className="font-display text-sm font-bold px-2.5 py-1 rounded-lg" style={{ background: tint(s.color, 0.1), color: s.color }}>{s.num}</span>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: tint(s.color, 0.12) }}>
+                    <i className={`fa-solid ${s.icon}`} style={{ color: s.color, fontSize: 15 }}></i>
+                  </div>
+                </div>
+                <h3 className="font-display text-xl font-bold mb-2" style={{ color: INK }}>{s.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: INK2 }}>{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── PRICING ──────────────────────────────────────── */}
+      <section id="pricing" className="max-w-6xl mx-auto px-6 md:px-10 py-24 md:py-32">
+        <SectionHead eyebrow="Pricing" title="Free while we're in beta." sub="Every feature is free right now. When paid plans arrive, early users keep a lifetime discount — no card required today." />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto items-stretch">
+          <PriceCard
+            name="Free" price="$0" cadence="forever"
+            note="The core planner, always free."
+            blurb="Everything you need to plan and track an honest day."
+            features={["Unlimited time blocks & todos", "Week, month & year analytics", "Day templates", "Carry-forward & streaks"]}
+            cta="Start free" ctaHref="/sign-up" />
+          <PriceCard
+            highlight badge="Free in beta" name="Pro" price="$0" cadence="during beta"
+            note="Paid later (~$5/mo) — beta users keep a discount."
+            blurb="For people who run their whole life in Klok."
+            features={["Everything in Free", "Trackable metrics & timers", "Unlimited recurring rules", "Plan vs Reality insights", "Priority support"]}
+            cta="Start free" ctaHref="/sign-up" />
+          <PriceCard
+            name="Team" price="Coming soon" cadence=""
+            note="Shared planning for small teams."
+            blurb="Want Klok for your team or studio? Tell us what you need."
+            features={["Everything in Pro", "Shared templates", "Team analytics", "Admin & billing controls"]}
+            cta="Get notified" ctaHref="/contact" />
+        </div>
+      </section>
+
+      {/* ── TESTIMONIALS ─────────────────────────────────── */}
+      <section style={{ borderTop: `1px solid ${BORDER}`, background: SURFACE }}>
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-24 md:py-32">
+          <SectionHead eyebrow="Loved by early users" title="People plan honestly with Klok." sub="A few words from the beta." />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {[
+              { q: "I finally stopped feeling like a failure for not finishing my to-do list. Seeing the gap instead of hiding it changed how I plan.", name: "Sana K.", role: "Designer", color: LAV },
+              { q: "The Plan vs Reality view is genuinely the first productivity feature that taught me something about myself.", name: "Arjun M.", role: "Founder", color: TEAL },
+              { q: "Time blocks + recurring routines replaced three apps for me. It's fast and it gets out of the way.", name: "Maya R.", role: "PhD student", color: PINK },
+            ].map((t) => (
+              <figure key={t.name} className="rounded-2xl p-6 lift" style={{ background: BG, border: `1px solid ${BORDER}` }}>
+                <div className="flex gap-0.5 mb-4" style={{ color: AMBER }}>
+                  {[0, 1, 2, 3, 4].map((i) => <i key={i} className="fa-solid fa-star text-xs"></i>)}
+                </div>
+                <blockquote className="text-sm leading-relaxed mb-5" style={{ color: INK }}>“{t.q}”</blockquote>
+                <figcaption className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: t.color }}>
+                    {t.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold" style={{ color: INK }}>{t.name}</div>
+                    <div className="text-xs" style={{ color: INK3 }}>{t.role}</div>
+                  </div>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ──────────────────────────────────────────── */}
+      <section id="faq" className="max-w-3xl mx-auto px-6 md:px-10 py-24 md:py-32">
+        <SectionHead eyebrow="FAQ" title="Questions, answered." />
+        <div className="space-y-3">
+          {[
+            { q: "Is Klok really free?", a: "Yes — every feature is free while we're in public beta. When we introduce paid plans, early users keep a permanent discount." },
+            { q: "Do I need a credit card to start?", a: "No. Sign up with an email and you're in. No card, no trial countdown." },
+            { q: "What makes Klok different from other planners?", a: "Most apps assume you'll complete everything. Klok is built around the gap between plan and reality, so you can reflect honestly and actually improve — without the guilt." },
+            { q: "Can I plan recurring routines?", a: "Yes. Create a recurring rule once and Klok automatically generates the block every day, every weekday, or on the specific days you pick." },
+            { q: "Is my data private?", a: "Your data is yours. It's stored securely and never sold. You can export or permanently delete your account at any time from Settings." },
+            { q: "Does it work on mobile?", a: "Klok is fully responsive and works in any mobile browser, with a dedicated bottom navigation. Native apps are on the roadmap." },
+          ].map((f) => (
+            <details key={f.q} className="faq-item">
+              <summary>
+                {f.q}
+                <i className="fa-solid fa-chevron-down faq-chev text-xs"></i>
+              </summary>
+              <div className="faq-body">{f.a}</div>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ────────────────────────────────────── */}
+      <section className="px-6 md:px-10 pb-24">
+        <div className="relative max-w-5xl mx-auto rounded-3xl overflow-hidden text-center px-6 py-20 md:py-24" style={{ background: GRAD }}>
+          <div className="relative" style={{ zIndex: 1 }}>
+            <h2 className="font-display text-4xl md:text-6xl font-extrabold mb-5 text-white">Plan your first honest day.</h2>
+            <p className="text-lg mb-9 max-w-md mx-auto" style={{ color: "rgba(255,255,255,0.88)" }}>
+              Free during beta. Set up in under a minute.
+            </p>
+            <Link href="/sign-up" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-bold lift"
+              style={{ background: "#fff", color: LAV, boxShadow: "0 12px 32px rgba(0,0,0,0.18)" }}>
+              Get started free <i className="fa-solid fa-arrow-right text-xs"></i>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ───────────────────────────────────────── */}
+      <MarketingFooter />
     </div>
   );
+}
+
+// ══════════════════════════════════════════════════════
+// Subcomponents
+// ══════════════════════════════════════════════════════
+
+function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="inline-flex items-center gap-2 text-xs font-semibold px-3.5 py-1.5 rounded-full" style={{ background: "rgba(108,111,223,0.09)", border: "1px solid rgba(108,111,223,0.22)", color: LAV }}>
+      {children}
+    </div>
+  );
+}
+
+function SectionHead({ eyebrow, title, sub }: { eyebrow: string; title: string; sub?: string }) {
+  return (
+    <div className="mb-14 text-center max-w-2xl mx-auto">
+      <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: LAV, letterSpacing: "0.12em" }}>{eyebrow}</p>
+      <h2 className="font-display text-4xl md:text-5xl font-extrabold" style={{ color: INK }}>{title}</h2>
+      {sub && <p className="text-base md:text-lg mt-4" style={{ color: INK2 }}>{sub}</p>}
+    </div>
+  );
+}
+
+function BentoCard({ color, icon, title, body, children, className = "" }: { color: string; icon: string; title: string; body: string; children?: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-2xl p-7 lift flex flex-col ${className}`} style={{ background: SURFACE, border: `1px solid ${BORDER}`, boxShadow: "var(--shadow-sm)" }}>
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style={{ background: tint(color, 0.12) }}>
+        <i className={`fa-solid ${icon}`} style={{ color, fontSize: 17 }}></i>
+      </div>
+      <h3 className="font-display text-xl font-bold mb-2" style={{ color: INK }}>{title}</h3>
+      <p className="text-sm leading-relaxed" style={{ color: INK2 }}>{body}</p>
+      {children}
+    </div>
+  );
+}
+
+function MiniBlocks() {
+  const rows = [
+    { e: "☀️", t: "Morning Routine", c: TEAL, s: "Done" },
+    { e: "📚", t: "Deep Work", c: LAV, s: "Now" },
+    { e: "🏃", t: "Run · 5km", c: PINK, s: "Missed" },
+  ];
+  return (
+    <div className="mt-6 space-y-2">
+      {rows.map((r) => (
+        <div key={r.t} className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: BG, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${r.c}` }}>
+          <span className="text-xs font-semibold" style={{ color: INK }}>{r.e} {r.t}</span>
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded" style={{ background: tint(r.c, 0.14), color: r.c }}>{r.s}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PriceCard({ name, price, cadence, blurb, features, cta, ctaHref, highlight, badge, note }: { name: string; price: string; cadence: string; blurb: string; features: string[]; cta: string; ctaHref: string; highlight?: boolean; badge?: string; note?: string }) {
+  return (
+    <div className="rounded-2xl p-7 flex flex-col lift relative"
+      style={{ background: highlight ? SURFACE : BG, border: highlight ? `2px solid ${LAV}` : `1px solid ${BORDER}`, boxShadow: highlight ? "var(--shadow-lg)" : "var(--shadow-sm)" }}>
+      {badge && (
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-bold px-3 py-1 rounded-full text-white whitespace-nowrap" style={{ background: GRAD }}>
+          {badge}
+        </span>
+      )}
+      <div className="font-display text-lg font-bold mb-1" style={{ color: INK }}>{name}</div>
+      <p className="text-sm mb-5" style={{ color: INK2 }}>{blurb}</p>
+      <div className="flex items-end gap-1 mb-1">
+        <span className="font-display text-4xl font-extrabold" style={{ color: INK }}>{price}</span>
+        {cadence && <span className="text-sm mb-1.5" style={{ color: INK3 }}>{cadence}</span>}
+      </div>
+      <p className="text-xs mb-5 min-h-[16px]" style={{ color: INK3 }}>{note ?? ""}</p>
+      <ul className="space-y-2.5 mb-7 flex-1">
+        {features.map((f) => (
+          <li key={f} className="flex items-start gap-2.5 text-sm" style={{ color: INK2 }}>
+            <i className="fa-solid fa-check mt-0.5" style={{ color: TEAL, fontSize: 12 }}></i>
+            <span>{f}</span>
+          </li>
+        ))}
+      </ul>
+      <Link href={ctaHref} className="text-center px-4 py-3 rounded-xl text-sm font-bold lift"
+        style={highlight ? { background: GRAD, color: "#fff", boxShadow: "0 8px 22px rgba(108,111,223,0.35)" } : { background: SURFACE, color: INK, border: `1px solid ${BORDER}` }}>
+        {cta}
+      </Link>
+    </div>
+  );
+}
+
+function AppMockup() {
+  return (
+    <div className="relative max-w-6xl mx-auto px-6 md:px-10 pb-24" style={{ zIndex: 1 }}>
+      <div className="relative rounded-2xl overflow-hidden mx-auto" style={{ border: "1px solid rgba(108,111,223,0.2)", background: SURFACE, maxWidth: 1080, boxShadow: "0 50px 100px -28px rgba(108,111,223,0.4), 0 0 80px rgba(108,111,223,0.12)" }}>
+        <div className="flex items-center gap-1.5 px-4 py-3" style={{ background: "rgba(108,111,223,0.05)", borderBottom: `1px solid ${BORDER}` }}>
+          <span className="w-3 h-3 rounded-full" style={{ background: PINK }}></span>
+          <span className="w-3 h-3 rounded-full" style={{ background: AMBER }}></span>
+          <span className="w-3 h-3 rounded-full" style={{ background: TEAL }}></span>
+          <span className="ml-4 text-xs px-4 py-0.5 rounded-md" style={{ background: SURFACE, color: INK3, border: `1px solid ${BORDER}` }}>klok.app/today</span>
+        </div>
+        <div className="flex" style={{ background: BG, minHeight: 420 }}>
+          <div className="w-48 flex-shrink-0 hidden sm:flex flex-col p-3 gap-1" style={{ background: SURFACE, borderRight: `1px solid ${BORDER}` }}>
+            <div className="flex items-center gap-2 px-2 py-2 mb-2">
+              <Logo />
+              <span className="font-display text-sm font-bold" style={{ color: INK }}>Klok</span>
+            </div>
+            {[["Dashboard", false], ["Today's Log", true], ["Analytics", false], ["Templates", false], ["Recurring", false]].map(([label, active]) => (
+              <div key={label as string} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs"
+                style={{ background: active ? "rgba(108,111,223,0.12)" : "transparent", color: active ? LAV : INK3, fontWeight: active ? 600 : 400 }}>
+                <div className="w-3 h-3 rounded-sm" style={{ background: active ? LAV : "rgba(21,21,43,0.12)" }}></div>
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="font-display text-base font-bold mb-0.5" style={{ color: INK }}>Today&apos;s Log</div>
+                <div className="text-xs" style={{ color: INK3 }}>Wednesday, 17 June 2026</div>
+              </div>
+              <div className="px-3 py-1.5 rounded-md text-xs font-semibold text-white" style={{ background: GRAD, boxShadow: "0 4px 12px rgba(108,111,223,0.3)" }}>+ New Block</div>
+            </div>
+            <div className="space-y-2.5">
+              <MockRow emoji="☀️" title="Morning Routine" meta="07:00 – 08:00 · 3/3 todos" badge="Done" accent={TEAL} />
+              <div className="rounded-lg p-3 flex items-center justify-between" style={{ background: "rgba(108,111,223,0.08)", border: "1px solid rgba(108,111,223,0.25)", borderLeft: `3px solid ${LAV}` }}>
+                <div>
+                  <div className="text-xs font-semibold mb-0.5 flex items-center gap-1.5" style={{ color: INK }}>
+                    📚 Deep Work
+                    <span className="w-1.5 h-1.5 rounded-full pulse" style={{ background: LAV }}></span>
+                  </div>
+                  <div className="text-[10px]" style={{ color: INK3 }}>09:00 – 11:00 · 2/4 todos</div>
+                </div>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded" style={{ background: "rgba(108,111,223,0.16)", color: LAV }}>Now</span>
+              </div>
+              <MockRow emoji="🏃" title="Run · 5km" meta="11:30 – 12:30" badge="Missed" accent={PINK} />
+              <MockRow emoji="🎯" title="Project Review" meta="14:00 – 16:00 · 0/2 todos" accent="rgba(21,21,43,0.25)" badge="Upcoming" muted />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MockRow({ emoji, title, meta, badge, accent, muted }: { emoji: string; title: string; meta: string; badge: string; accent: string; muted?: boolean }) {
+  return (
+    <div className="rounded-lg p-3 flex items-center justify-between" style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderLeft: `3px solid ${accent}` }}>
+      <div>
+        <div className="text-xs font-semibold mb-0.5" style={{ color: INK }}>{emoji} {title}</div>
+        <div className="text-[10px]" style={{ color: INK3 }}>{meta}</div>
+      </div>
+      <span className="text-[10px] font-medium px-2 py-0.5 rounded" style={{ background: muted ? "rgba(21,21,43,0.05)" : tint(accent, 0.14), color: accent }}>{badge}</span>
+    </div>
+  );
+}
+
+function Glows() {
+  // No gradients — kept as a no-op so the hero markup stays stable.
+  return null;
 }

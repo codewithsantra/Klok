@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 type Tag = { id: string; name: string; emoji: string };
 
@@ -12,6 +13,32 @@ export type BlockInitial = {
   endTime: string;
   tagId: string | null;
 };
+
+// ── Todo draft state ────────────────────────────────────────
+type MetricType = "TIME" | "DISTANCE" | "COUNT" | "CUSTOM";
+type TodoDraft = {
+  text: string;
+  // Trackable goal — null/undefined for simple todos
+  metric?: {
+    type: MetricType;
+    target: number;
+    unit: string;
+  };
+};
+
+// Default unit per metric type
+function defaultUnit(type: MetricType): string {
+  switch (type) {
+    case "TIME":
+      return "hrs";
+    case "DISTANCE":
+      return "km";
+    case "COUNT":
+      return "items";
+    case "CUSTOM":
+      return "";
+  }
+}
 
 export default function BlockModal({
   open,
@@ -34,29 +61,39 @@ export default function BlockModal({
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
   const [tagId, setTagId] = useState<string>("");
-  const [todos, setTodos] = useState<string[]>([""]);
+  const [todos, setTodos] = useState<TodoDraft[]>([{ text: "" }]);
+  const [blockTrack, setBlockTrack] = useState(false);
+  const [blockMetricType, setBlockMetricType] = useState<MetricType>("TIME");
+  const [blockMetricTarget, setBlockMetricTarget] = useState<number>(1);
+  const [blockMetricUnit, setBlockMetricUnit] = useState("hrs");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Reset / populate fields when the modal opens
   useEffect(() => {
     if (!open) return;
     setError(null);
     if (mode === "edit" && initial) {
       setTitle(initial.title);
-      setDate(currentDateISO); // Edit mode doesn't change date
+      setDate(currentDateISO);
       setStartTime(initial.startTime);
       setEndTime(initial.endTime);
       setTagId(initial.tagId ?? "");
-      // Existing todos are managed inline on the timeline, not in this modal.
-      setTodos([""]);
+      setTodos([{ text: "" }]);
+      setBlockTrack(false);
+      setBlockMetricType("TIME");
+      setBlockMetricTarget(1);
+      setBlockMetricUnit("hrs");
     } else {
       setTitle("");
       setDate(currentDateISO);
       setStartTime("09:00");
       setEndTime("10:00");
       setTagId("");
-      setTodos([""]);
+      setTodos([{ text: "" }]);
+      setBlockTrack(false);
+      setBlockMetricType("TIME");
+      setBlockMetricTarget(1);
+      setBlockMetricUnit("hrs");
     }
   }, [open, mode, initial, currentDateISO]);
 
@@ -67,7 +104,20 @@ export default function BlockModal({
     setError(null);
     setSubmitting(true);
 
-    const cleanTodos = todos.map((t) => t.trim()).filter(Boolean);
+    // Send full todo drafts (text + optional metric) to the API.
+    const cleanTodos = todos
+      .map((t) => ({
+        text: t.text.trim(),
+        metric:
+          t.metric && t.metric.target > 0
+            ? {
+                type: t.metric.type,
+                target: t.metric.target,
+                unit: t.metric.unit.trim() || defaultUnit(t.metric.type),
+              }
+            : null,
+      }))
+      .filter((t) => t.text);
 
     try {
       if (mode === "create") {
@@ -81,6 +131,11 @@ export default function BlockModal({
             tagId: tagId || null,
             date,
             todos: cleanTodos,
+            ...(blockTrack ? {
+              metricType: blockMetricType,
+              metricTarget: blockMetricTarget,
+              metricUnit: blockMetricUnit,
+            } : {}),
           }),
         });
         const json = await res.json();
@@ -89,12 +144,9 @@ export default function BlockModal({
           setSubmitting(false);
           return;
         }
-        // If user picked a different date, jump there so they see the new block
-        if (date !== currentDateISO) {
-          router.push(`/today?date=${date}`);
-        } else {
-          router.refresh();
-        }
+        toast("Block added");
+        if (date !== currentDateISO) router.push(`/today?date=${date}`);
+        else router.refresh();
         onClose();
         return;
       } else if (mode === "edit" && initial) {
@@ -115,7 +167,7 @@ export default function BlockModal({
           return;
         }
       }
-
+      toast("Block updated");
       router.refresh();
       onClose();
     } catch (err) {
@@ -132,13 +184,16 @@ export default function BlockModal({
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/blocks/${initial.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/blocks/${initial.id}`, {
+        method: "DELETE",
+      });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error ?? "Could not delete");
         setSubmitting(false);
         return;
       }
+      toast("Block deleted");
       router.refresh();
       onClose();
     } catch {
@@ -147,29 +202,83 @@ export default function BlockModal({
     }
   }
 
+  function updateTodo(i: number, patch: Partial<TodoDraft>) {
+    setTodos((prev) =>
+      prev.map((t, idx) => (idx === i ? { ...t, ...patch } : t)),
+    );
+  }
+
+  function toggleTrack(i: number) {
+    setTodos((prev) =>
+      prev.map((t, idx) =>
+        idx === i
+          ? t.metric
+            ? { ...t, metric: undefined }
+            : {
+                ...t,
+                metric: {
+                  type: "TIME",
+                  target: 1,
+                  unit: defaultUnit("TIME"),
+                },
+              }
+          : t,
+      ),
+    );
+  }
+
+  function updateMetric(
+    i: number,
+    patch: Partial<NonNullable<TodoDraft["metric"]>>,
+  ) {
+    setTodos((prev) =>
+      prev.map((t, idx) =>
+        idx === i && t.metric
+          ? { ...t, metric: { ...t.metric, ...patch } }
+          : t,
+      ),
+    );
+  }
+
+  function removeTodo(i: number) {
+    setTodos((prev) =>
+      prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev,
+    );
+  }
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div
-        className="card p-5 md:p-6 w-full max-w-md animate-fade-in"
-        style={{ maxHeight: "90vh", overflowY: "auto" }}
+        className="card modal-card w-full max-w-md animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-bold text-[#1A1A2E]">
+        <div className="modal-head flex items-center justify-between p-5 md:p-6">
+          <h2 className="font-semibold" style={{ color: "var(--text)" }}>
             {mode === "create" ? "Add Time Block" : "Edit Block"}
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 bg-[#F3F4F6] rounded-xl flex items-center justify-center hover:bg-[#FEE2E2]"
+            className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+            style={{
+              background: "var(--surface-2)",
+              border: "1px solid var(--border)",
+            }}
           >
-            <i className="fa-solid fa-xmark text-[#6B7280] text-sm"></i>
+            <i
+              className="fa-solid fa-xmark text-sm"
+              style={{ color: "var(--text-2)" }}
+            ></i>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body space-y-4 p-5 md:p-6">
           <div>
-            <label className="block text-xs font-semibold text-[#1A1A2E] mb-1.5">
+            <label
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: "var(--text)" }}
+            >
               Block Title
             </label>
             <input
@@ -180,9 +289,13 @@ export default function BlockModal({
               required
             />
           </div>
+
           {mode === "create" && (
             <div>
-              <label className="block text-xs font-semibold text-[#1A1A2E] mb-1.5">
+              <label
+                className="block text-xs font-semibold mb-1.5"
+                style={{ color: "var(--text)" }}
+              >
                 Date
               </label>
               <input
@@ -194,9 +307,13 @@ export default function BlockModal({
               />
             </div>
           )}
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#1A1A2E] mb-1.5">
+              <label
+                className="block text-xs font-semibold mb-1.5"
+                style={{ color: "var(--text)" }}
+              >
                 Start Time
               </label>
               <input
@@ -208,7 +325,10 @@ export default function BlockModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#1A1A2E] mb-1.5">
+              <label
+                className="block text-xs font-semibold mb-1.5"
+                style={{ color: "var(--text)" }}
+              >
                 End Time
               </label>
               <input
@@ -220,9 +340,16 @@ export default function BlockModal({
               />
             </div>
           </div>
+
           <div>
-            <label className="block text-xs font-semibold text-[#1A1A2E] mb-1.5">
-              Tag (optional)
+            <label
+              className="block text-xs font-semibold mb-1.5"
+              style={{ color: "var(--text)" }}
+            >
+              Tag{" "}
+              <span style={{ color: "var(--text-3)", fontWeight: 400 }}>
+                (optional)
+              </span>
             </label>
             <select
               className="inp"
@@ -240,52 +367,137 @@ export default function BlockModal({
 
           {mode === "create" && (
             <div>
-              <label className="block text-xs font-semibold text-[#1A1A2E] mb-2">
+              <label
+                className="block text-xs font-semibold mb-2"
+                style={{ color: "var(--text)" }}
+              >
                 Todos{" "}
-                <span className="text-[#9CA3AF] font-normal">(optional)</span>
+                <span style={{ color: "var(--text-3)", fontWeight: 400 }}>
+                  (optional)
+                </span>
               </label>
               <div className="space-y-2">
                 {todos.map((todo, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      className="inp flex-1"
-                      style={{ padding: "8px 12px" }}
-                      value={todo}
-                      onChange={(e) =>
-                        setTodos((prev) =>
-                          prev.map((t, idx) => (idx === i ? e.target.value : t)),
-                        )
-                      }
-                      placeholder="e.g. Brush teeth, drink water..."
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTodos((prev) =>
-                          prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev,
-                        )
-                      }
-                      className="w-7 h-7 bg-[#F3F4F6] rounded-lg flex items-center justify-center hover:bg-[#FEE2E2] flex-shrink-0"
-                    >
-                      <i className="fa-solid fa-xmark text-[#9CA3AF] text-xs"></i>
-                    </button>
-                  </div>
+                  <TodoDraftRow
+                    key={i}
+                    todo={todo}
+                    onChangeText={(text) => updateTodo(i, { text })}
+                    onToggleTrack={() => toggleTrack(i)}
+                    onUpdateMetric={(patch) => updateMetric(i, patch)}
+                    onRemove={() => removeTodo(i)}
+                  />
                 ))}
               </div>
               <button
                 type="button"
-                onClick={() => setTodos((prev) => [...prev, ""])}
-                className="text-xs text-[#6C6FDF] font-semibold flex items-center gap-1.5 hover:underline mt-2"
+                onClick={() =>
+                  setTodos((prev) => [...prev, { text: "" }])
+                }
+                className="text-xs font-semibold flex items-center gap-1.5 hover:underline mt-3"
+                style={{ color: "var(--accent)" }}
               >
-                <i className="fa-solid fa-plus text-[10px]"></i> Add another todo
+                <i className="fa-solid fa-plus text-[10px]"></i> Add another
+                todo
               </button>
             </div>
           )}
 
+          {mode === "create" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-xs font-semibold" style={{ color: "var(--text)" }}>
+                  Block Tracker{" "}
+                  <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(optional)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setBlockTrack((v) => !v)}
+                  className="rounded flex items-center gap-1.5 transition-colors text-xs font-semibold"
+                  style={{
+                    height: 30,
+                    padding: "0 10px",
+                    background: blockTrack ? "var(--btn-primary-bg)" : "var(--surface-2)",
+                    color: blockTrack ? "var(--btn-primary-text)" : "var(--text-2)",
+                    border: "1px solid var(--border)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <i className={`fa-solid ${blockTrack ? "fa-check" : "fa-stopwatch"}`} style={{ fontSize: 11 }}></i>
+                  {blockTrack ? "Enabled" : "Add Timer / Target"}
+                </button>
+              </div>
+              {blockTrack && (
+                <div className="rounded-lg p-3 space-y-3" style={{ background: "var(--surface-2)", border: "1px solid var(--border-2)" }}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {([
+                      { v: "TIME" as MetricType, label: "Time", icon: "fa-clock" },
+                      { v: "DISTANCE" as MetricType, label: "Distance", icon: "fa-route" },
+                      { v: "COUNT" as MetricType, label: "Count", icon: "fa-hashtag" },
+                      { v: "CUSTOM" as MetricType, label: "Custom", icon: "fa-pen" },
+                    ]).map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => {
+                          setBlockMetricType(opt.v);
+                          setBlockMetricUnit(defaultUnit(opt.v));
+                        }}
+                        className="text-[11px] font-medium px-2.5 py-1 rounded transition-colors"
+                        style={{
+                          background: blockMetricType === opt.v ? "var(--btn-primary-bg)" : "var(--surface)",
+                          color: blockMetricType === opt.v ? "var(--btn-primary-text)" : "var(--text-2)",
+                          border: "1px solid var(--border)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <i className={`fa-solid ${opt.icon} mr-1`}></i>{opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-medium" style={{ color: "var(--text-3)" }}>Target</label>
+                    <input
+                      type="number" step="0.25" min="0"
+                      value={blockMetricTarget || ""}
+                      onChange={(e) => setBlockMetricTarget(parseFloat(e.target.value) || 0)}
+                      className="inp" style={{ width: 80, padding: "6px 10px", fontSize: 13 }}
+                      placeholder="1"
+                    />
+                    <input
+                      type="text"
+                      value={blockMetricUnit}
+                      onChange={(e) => setBlockMetricUnit(e.target.value)}
+                      className="inp" style={{ width: 90, padding: "6px 10px", fontSize: 13 }}
+                      placeholder="hrs / km"
+                      maxLength={20}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          </div>{/* /modal-body */}
+
+          <div className="modal-foot p-5 md:p-6 space-y-3">
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-[#FFF5F5] rounded-xl border border-[#FEE2E2]">
-              <i className="fa-solid fa-circle-exclamation text-[#DC2626] text-sm"></i>
-              <span className="text-xs text-[#DC2626] font-medium">{error}</span>
+            <div
+              className="flex items-center gap-2 p-3 rounded-lg"
+              style={{
+                background: "var(--danger-bg)",
+                border: "1px solid rgba(220,38,38,.2)",
+              }}
+            >
+              <i
+                className="fa-solid fa-circle-exclamation text-sm"
+                style={{ color: "var(--danger)" }}
+              ></i>
+              <span
+                className="text-xs font-medium"
+                style={{ color: "var(--danger)" }}
+              >
+                {error}
+              </span>
             </div>
           )}
 
@@ -304,8 +516,7 @@ export default function BlockModal({
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="btn btn-ghost flex-1 justify-center border border-[#E5E7EB] disabled:opacity-50"
-              style={{ flex: 1 }}
+              className="btn btn-outline flex-1 justify-center disabled:opacity-50"
             >
               Cancel
             </button>
@@ -313,7 +524,6 @@ export default function BlockModal({
               type="submit"
               disabled={submitting}
               className="btn btn-primary flex-1 justify-center disabled:opacity-50"
-              style={{ flex: 1 }}
             >
               {submitting
                 ? mode === "create"
@@ -324,8 +534,179 @@ export default function BlockModal({
                   : "Save Changes"}
             </button>
           </div>
+          </div>{/* /modal-foot */}
         </form>
       </div>
+    </div>
+  );
+}
+
+// ── Single todo draft row with optional inline metric panel ─
+function TodoDraftRow({
+  todo,
+  onChangeText,
+  onToggleTrack,
+  onUpdateMetric,
+  onRemove,
+}: {
+  todo: TodoDraft;
+  onChangeText: (text: string) => void;
+  onToggleTrack: () => void;
+  onUpdateMetric: (patch: Partial<NonNullable<TodoDraft["metric"]>>) => void;
+  onRemove: () => void;
+}) {
+  return (
+    <div
+      style={{
+        border: todo.metric ? "1px solid var(--border-2)" : "none",
+        borderRadius: 8,
+        padding: todo.metric ? "8px" : "0",
+        background: todo.metric ? "var(--surface-2)" : "transparent",
+        transition: "background 0.15s, border-color 0.15s",
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <input
+          className="inp flex-1"
+          value={todo.text}
+          onChange={(e) => onChangeText(e.target.value)}
+          placeholder="e.g. Study SQL, drink water..."
+        />
+
+        {/* Track toggle button */}
+        <button
+          type="button"
+          onClick={onToggleTrack}
+          className="rounded flex items-center justify-center gap-1.5 transition-colors flex-shrink-0 text-xs font-semibold"
+          style={{
+            height: 36,
+            padding: "0 11px",
+            background: todo.metric ? "var(--btn-primary-bg)" : "var(--surface-2)",
+            color: todo.metric ? "var(--btn-primary-text)" : "var(--text-2)",
+            border: "1px solid var(--border)",
+            cursor: "pointer",
+          }}
+          title={todo.metric ? "Remove tracking" : "Add a timer or target to this todo"}
+        >
+          <i className={`fa-solid ${todo.metric ? "fa-check" : "fa-stopwatch"}`} style={{ fontSize: 12 }}></i>
+          {todo.metric ? "Tracking" : "Track"}
+        </button>
+
+        {/* Remove */}
+        <button
+          type="button"
+          onClick={onRemove}
+          className="w-9 h-9 rounded flex items-center justify-center transition-colors flex-shrink-0"
+          style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <i
+            className="fa-solid fa-xmark text-xs"
+            style={{ color: "var(--text-3)" }}
+          ></i>
+        </button>
+      </div>
+
+      {/* Inline metric panel (only when trackable) */}
+      {todo.metric && (
+        <div
+          className="mt-2.5 pt-2.5"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          {/* Type picker */}
+          <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wider"
+              style={{
+                color: "var(--text-3)",
+                letterSpacing: "0.06em",
+                marginRight: 4,
+              }}
+            >
+              Track
+            </span>
+            {(
+              [
+                { v: "TIME", label: "Time", icon: "fa-clock" },
+                { v: "DISTANCE", label: "Distance", icon: "fa-route" },
+                { v: "COUNT", label: "Count", icon: "fa-hashtag" },
+                { v: "CUSTOM", label: "Custom", icon: "fa-pen" },
+              ] as { v: MetricType; label: string; icon: string }[]
+            ).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() =>
+                  onUpdateMetric({
+                    type: opt.v,
+                    unit: defaultUnit(opt.v),
+                  })
+                }
+                className="text-[11px] font-medium px-2.5 py-1 rounded transition-colors"
+                style={{
+                  background:
+                    todo.metric?.type === opt.v
+                      ? "var(--btn-primary-bg)"
+                      : "var(--surface)",
+                  color:
+                    todo.metric?.type === opt.v
+                      ? "var(--btn-primary-text)"
+                      : "var(--text-2)",
+                  border: "1px solid var(--border)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <i className={`fa-solid ${opt.icon} mr-1`}></i>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Target + Unit */}
+          <div className="flex items-center gap-2">
+            <label
+              className="text-[11px] font-medium"
+              style={{ color: "var(--text-3)" }}
+            >
+              Target
+            </label>
+            <input
+              type="number"
+              step="0.25"
+              min="0"
+              value={todo.metric.target || ""}
+              onChange={(e) =>
+                onUpdateMetric({
+                  target: parseFloat(e.target.value) || 0,
+                })
+              }
+              className="inp"
+              style={{ width: 80, padding: "6px 10px", fontSize: 13 }}
+              placeholder="8"
+            />
+            <input
+              type="text"
+              value={todo.metric.unit}
+              onChange={(e) => onUpdateMetric({ unit: e.target.value })}
+              className="inp"
+              style={{ width: 90, padding: "6px 10px", fontSize: 13 }}
+              placeholder="hrs / km / pgs"
+              maxLength={20}
+            />
+            <span
+              className="text-[11px]"
+              style={{ color: "var(--text-3)", marginLeft: "auto" }}
+            >
+              {todo.metric.type === "TIME"
+                ? "Use the timer or log manually"
+                : "Log progress manually"}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

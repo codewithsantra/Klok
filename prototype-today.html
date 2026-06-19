@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Klok — Today's Log (v2)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --bg:        #08080A;
+      --surface:   #0F0F11;
+      --surface-2: #18181B;
+      --surface-3: #24242A;
+      --surface-4: #2E2E36;
+      --border:    rgba(255,255,255,0.06);
+      --border-2:  rgba(255,255,255,0.1);
+      --border-3:  rgba(255,255,255,0.16);
+      --text:      #FAFAFA;
+      --text-2:    rgba(255,255,255,0.7);
+      --text-3:    rgba(255,255,255,0.5);
+      --text-4:    rgba(255,255,255,0.3);
+      --success:   #34D399;
+      --warn:      #FBBF24;
+      --danger:    #F87171;
+    }
+
+    body{
+      font-family:'Inter',system-ui,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      font-size:14px;line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+      min-height:100vh;
+    }
+
+    /* ── SHELL ─────────────────────────────────────── */
+    .shell{display:flex;min-height:100vh}
+
+    /* ── SIDEBAR ───────────────────────────────────── */
+    .sidebar{
+      width:220px;flex-shrink:0;
+      background:var(--surface);
+      border-right:1px solid var(--border);
+      padding:14px 10px;
+      display:flex;flex-direction:column;gap:2px;
+    }
+    .logo{display:flex;align-items:center;gap:10px;padding:6px 10px;margin-bottom:18px}
+    .logo-mark{width:22px;height:22px;border-radius:5px;background:#fff;display:grid;place-items:center;font-size:10px;color:#000;font-weight:800}
+    .logo-name{font-weight:600;letter-spacing:-0.01em}
+    .nav-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:6px;color:var(--text-2);font-size:13px;cursor:pointer;transition:background .12s,color .12s}
+    .nav-item:hover{background:var(--surface-2);color:var(--text)}
+    .nav-item.active{background:var(--surface-2);color:var(--text);font-weight:500}
+    .nav-icon{width:14px;font-size:13px;opacity:.7;text-align:center}
+    .sidebar-footer{margin-top:auto;padding:8px 10px;display:flex;align-items:center;gap:10px;color:var(--text-2);font-size:12px}
+    .avatar-mini{width:22px;height:22px;border-radius:5px;background:#fff;color:#000;display:grid;place-items:center;font-weight:700;font-size:10px}
+
+    /* ── MAIN ──────────────────────────────────────── */
+    main{flex:1;min-width:0;display:flex;flex-direction:column}
+    .topbar{height:44px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid var(--border);color:var(--text-2);font-size:13px}
+    .topbar .crumb{color:var(--text-3)}
+    .topbar .crumb-sep{margin:0 6px;color:var(--text-4)}
+    .topbar b{color:var(--text);font-weight:500}
+
+    .content{flex:1;padding:36px 40px 80px;max-width:880px;width:100%;margin:0 auto}
+
+    /* ── HEADER ────────────────────────────────────── */
+    .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;gap:16px;flex-wrap:wrap}
+    .page-title{font-size:28px;font-weight:600;letter-spacing:-0.025em;margin-bottom:8px}
+    .date-row{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:13.5px}
+    .date-nav{
+      width:28px;height:28px;border-radius:7px;
+      background:var(--surface-2);border:1px solid var(--border);
+      display:grid;place-items:center;color:var(--text-2);
+      cursor:pointer;transition:background .12s;font-size:11px;
+    }
+    .date-nav:hover{background:var(--surface-3)}
+    .date-current{font-weight:500;color:var(--text);padding:0 6px}
+    .actions{display:flex;gap:8px}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-weight:500;font-size:13.5px;cursor:pointer;border:none;font-family:inherit;transition:all .15s}
+    .btn-primary{background:#fff;color:#000}
+    .btn-primary:hover{opacity:.9}
+    .btn-secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--border-2)}
+    .btn-secondary:hover{background:var(--surface-3);border-color:var(--border-3)}
+
+    /* SVG icons */
+    .icon{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+    .icon-sm{width:13px;height:13px}
+    .icon-lg{width:18px;height:18px}
+
+    /* ── BLOCK ─────────────────────────────────────── */
+    .block{
+      margin-bottom:18px;
+      padding:18px 22px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:14px;
+    }
+    .block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .block-title{display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;letter-spacing:-0.01em}
+    .block-emoji{font-size:18px}
+    .block-time{font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums;font-weight:400}
+    .block-status{font-size:11.5px;font-weight:500;padding:3px 10px;border-radius:6px;background:var(--surface-2);color:var(--text-3);border:1px solid var(--border)}
+    .block-status.now{background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.15)}
+    .block-status.now::before{content:'';display:inline-block;width:5px;height:5px;border-radius:50%;background:#fff;margin-right:6px;animation:pulse 2s infinite;vertical-align:1px}
+    .block-status.done{background:rgba(52,211,153,.1);color:var(--success);border-color:rgba(52,211,153,.2)}
+
+    .todos{margin-top:14px;border-top:1px solid var(--border);padding-top:6px;display:flex;flex-direction:column;gap:2px}
+
+    /* ── SIMPLE TODO (one line) ────────────────────── */
+    .todo{
+      display:flex;align-items:center;gap:12px;
+      padding:10px 10px;border-radius:8px;
+      transition:background .12s;position:relative;
+    }
+    .todo:hover{background:rgba(255,255,255,0.025)}
+
+    /* Checkbox */
+    .cb{
+      width:18px;height:18px;border-radius:5px;
+      border:1.5px solid var(--border-3);
+      flex-shrink:0;cursor:pointer;
+      display:grid;place-items:center;
+      transition:all .15s;background:transparent;
+    }
+    .cb:hover{border-color:var(--text-2)}
+    .cb.done{background:#fff;border-color:#fff}
+    .cb.done::after{content:'';width:9px;height:5px;border-left:2px solid #000;border-bottom:2px solid #000;transform:rotate(-45deg) translateY(-1px)}
+    .cb.skip{border-color:var(--warn);position:relative}
+    .cb.skip::after{content:'';width:10px;height:1.5px;background:var(--warn);position:absolute;transform:rotate(-45deg)}
+
+    .todo-text{flex:1;font-size:14px;cursor:text}
+    .todo.done .todo-text{color:var(--text-3);text-decoration:line-through;text-decoration-color:var(--text-4)}
+    .todo.skip .todo-text{color:var(--text-2);font-style:italic}
+
+    /* The single hover icon — the only one */
+    .todo-menu-btn{
+      width:28px;height:28px;border-radius:6px;
+      display:grid;place-items:center;
+      color:var(--text-3);cursor:pointer;
+      opacity:0;transition:opacity .15s,background .12s,color .12s;
+      flex-shrink:0;
+      background:transparent;border:none;font-family:inherit;
+    }
+    .todo:hover .todo-menu-btn,
+    .todo-menu-btn.open{opacity:1}
+    .todo-menu-btn:hover{background:var(--surface-2);color:var(--text)}
+
+    /* ── DROPDOWN MENU ─────────────────────────────── */
+    .menu{
+      display:none;position:absolute;right:8px;top:100%;
+      margin-top:4px;z-index:10;
+      background:var(--surface-3);
+      border:1px solid var(--border-3);
+      border-radius:9px;
+      padding:5px;min-width:180px;
+      box-shadow:0 12px 32px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.02);
+    }
+    .menu.open{display:block;animation:menuin .12s ease}
+    @keyframes menuin{from{opacity:0;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+    .menu-item{
+      display:flex;align-items:center;gap:10px;
+      padding:7px 10px;border-radius:5px;
+      color:var(--text-2);font-size:13px;cursor:pointer;
+      transition:background .1s,color .1s;
+    }
+    .menu-item:hover{background:var(--surface-4);color:var(--text)}
+    .menu-item.danger{color:var(--danger)}
+    .menu-item.danger:hover{background:rgba(248,113,113,.08)}
+    .menu-divider{height:1px;background:var(--border);margin:4px 0}
+
+    /* ── TRACKABLE TODO CARD ───────────────────────── */
+    .todo-track{
+      display:flex;flex-direction:column;gap:0;
+      padding:14px 16px 16px;border-radius:10px;
+      background:var(--surface-2);
+      border:1px solid var(--border);
+      margin:4px 0;
+      transition:border-color .15s;
+      position:relative;
+    }
+    .todo-track:hover{border-color:var(--border-2)}
+    .todo-track.running{
+      background:rgba(255,255,255,0.04);
+      border-color:rgba(255,255,255,0.18);
+    }
+
+    .track-head{display:flex;align-items:center;gap:12px}
+    .track-head .cb{margin-top:0}
+    .track-name{flex:1;font-size:14.5px;font-weight:500}
+    .track-target{
+      font-size:12px;color:var(--text-3);
+      font-variant-numeric:tabular-nums;
+      background:var(--surface-3);
+      padding:3px 9px;border-radius:5px;
+      border:1px solid var(--border);
+      flex-shrink:0;
+    }
+
+    /* progress */
+    .track-progress{
+      margin:14px 0 14px 30px;
+      display:flex;align-items:center;gap:14px;
+    }
+    .progress-info{
+      font-size:12.5px;color:var(--text-2);
+      font-variant-numeric:tabular-nums;
+      min-width:130px;
+    }
+    .progress-info .actual{color:var(--text);font-weight:600;font-size:14px}
+    .progress-info .of{color:var(--text-3)}
+    .progress-info .pct{color:var(--text-3);margin-left:6px;font-size:11.5px}
+
+    .progress-bar{
+      flex:1;height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden;
+      border:1px solid var(--border);
+    }
+    .progress-fill{
+      height:100%;background:#fff;border-radius:99px;transition:width .4s ease;
+    }
+
+    /* Timer + buttons row */
+    .track-controls{
+      margin-left:30px;
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    }
+
+    /* Big timer display when running */
+    .timer-display{
+      display:flex;align-items:center;gap:10px;
+      padding:8px 14px;border-radius:8px;
+      background:#000;
+      border:1px solid var(--border-2);
+      font-family:'JetBrains Mono',monospace;
+      font-size:18px;font-weight:600;color:#fff;
+      font-variant-numeric:tabular-nums;letter-spacing:0.02em;
+    }
+    .timer-display .pulse-dot{
+      width:6px;height:6px;border-radius:50%;
+      background:var(--success);box-shadow:0 0 8px var(--success);
+      animation:pulse 1.5s infinite;
+    }
+
+    /* Action buttons — clearly visible and labeled */
+    .track-btn{
+      display:inline-flex;align-items:center;gap:7px;
+      padding:8px 14px;border-radius:7px;
+      background:#fff;color:#000;
+      border:none;cursor:pointer;
+      font-family:inherit;font-size:13px;font-weight:500;
+      transition:opacity .12s;
+    }
+    .track-btn:hover{opacity:.9}
+    .track-btn.secondary{
+      background:var(--surface-3);color:var(--text);
+      border:1px solid var(--border-2);
+    }
+    .track-btn.secondary:hover{background:var(--surface-4);border-color:var(--border-3)}
+    .track-btn.danger{
+      background:rgba(248,113,113,.1);color:var(--danger);
+      border:1px solid rgba(248,113,113,.25);
+    }
+    .track-btn.danger:hover{background:rgba(248,113,113,.18)}
+
+    /* The menu btn for trackable */
+    .track-menu-wrap{position:relative;margin-left:auto}
+    .track-menu-btn{
+      width:28px;height:28px;border-radius:6px;
+      display:grid;place-items:center;
+      color:var(--text-3);cursor:pointer;
+      background:transparent;border:none;font-family:inherit;
+      transition:background .12s,color .12s;
+    }
+    .track-menu-btn:hover,.track-menu-btn.open{background:var(--surface-3);color:var(--text)}
+
+    /* Log inline form (slides out from + Log btn) */
+    .log-form{
+      display:none;align-items:center;gap:8px;
+      padding:6px 6px 6px 12px;border-radius:7px;
+      background:var(--surface-3);border:1px solid var(--border-2);
+      font-size:13px;
+    }
+    .log-form.open{display:inline-flex;animation:slidein .15s ease}
+    .log-form input{
+      width:60px;background:transparent;border:none;outline:none;color:var(--text);
+      font-family:inherit;font-size:14px;
+      text-align:right;font-variant-numeric:tabular-nums;font-weight:600;
+    }
+    .log-form .unit{color:var(--text-3);font-size:12.5px}
+    .log-form button{
+      background:#fff;color:#000;border:none;padding:5px 12px;
+      border-radius:5px;cursor:pointer;font-weight:500;font-size:12.5px;
+      font-family:inherit;
+    }
+    @keyframes slidein{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+
+    /* Comment under skipped todo */
+    .comment-row{
+      margin:0 0 4px 30px;
+      padding:8px 12px;
+      display:flex;align-items:center;gap:10px;
+      background:rgba(251,191,36,0.05);
+      border:1px solid rgba(251,191,36,0.15);
+      border-radius:7px;
+      font-size:13px;color:var(--text-2);
+    }
+    .comment-row .comment-icon{color:var(--warn);flex-shrink:0}
+    .comment-row input{
+      flex:1;background:transparent;border:none;outline:none;
+      color:var(--text);font-family:inherit;font-size:13px;
+    }
+    .comment-row input::placeholder{color:var(--text-3);font-style:italic}
+
+    /* Add todo row */
+    .add-todo{
+      display:flex;align-items:center;gap:12px;
+      padding:10px;
+      color:var(--text-4);font-size:13px;
+      cursor:pointer;border-radius:7px;
+      transition:color .12s,background .12s;margin-top:4px;
+    }
+    .add-todo:hover{color:var(--text-2);background:rgba(255,255,255,0.02)}
+    .add-todo svg{stroke:currentColor}
+
+    /* Add block button */
+    .add-block{
+      width:100%;padding:18px;
+      background:transparent;
+      border:1px dashed var(--border-2);
+      border-radius:12px;
+      color:var(--text-3);
+      font-size:14px;font-weight:500;
+      cursor:pointer;font-family:inherit;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      transition:background .12s,color .12s,border-color .12s;
+    }
+    .add-block:hover{background:rgba(255,255,255,0.02);color:var(--text);border-color:rgba(255,255,255,0.2)}
+
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+    /* Legend */
+    .legend{
+      margin-top:40px;
+      padding:16px 18px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--surface);
+      font-size:12.5px;color:var(--text-2);
+    }
+    .legend h4{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;font-weight:500}
+    .legend ul{list-style:none;display:grid;grid-template-columns:repeat(2,1fr);gap:8px 24px}
+    .legend li{display:flex;align-items:center;gap:8px;line-height:1.6}
+    .legend kbd{background:var(--surface-2);color:var(--text);padding:2px 8px;border-radius:4px;border:1px solid var(--border-2);font-family:'JetBrains Mono',monospace;font-size:10.5px}
+
+    @media (max-width:720px){
+      .sidebar{display:none}
+      .content{padding:20px 16px 80px}
+      .legend ul{grid-template-columns:1fr}
+      .track-controls{margin-left:0}
+      .track-progress{margin-left:0}
+      .todo-menu-btn{opacity:1}
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">K</div>
+      <span class="logo-name">Klok</span>
+    </div>
+    <div class="nav-item"><span class="nav-icon">⌂</span> Dashboard</div>
+    <div class="nav-item active"><span class="nav-icon">▤</span> Today's Log</div>
+    <div class="nav-item"><span class="nav-icon">⎌</span> Analytics</div>
+    <div class="nav-item"><span class="nav-icon">≡</span> Templates</div>
+    <div class="nav-item"><span class="nav-icon">↻</span> Recurring</div>
+    <div style="height:14px"></div>
+    <div class="nav-item"><span class="nav-icon">⚙</span> Settings</div>
+    <div class="sidebar-footer">
+      <div class="avatar-mini">S</div>
+      <span>sank</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="topbar">
+      <span class="crumb">Klok</span>
+      <span class="crumb-sep">/</span>
+      <b>Today's Log</b>
+    </div>
+
+    <div class="content">
+
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Today</h1>
+          <div class="date-row">
+            <div class="date-nav">‹</div>
+            <span class="date-current">Sunday, 7 June 2026</span>
+            <div class="date-nav">›</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn btn-secondary">Apply Template</button>
+          <button class="btn btn-primary">
+            <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Block
+          </button>
+        </div>
+      </div>
+
+      <!-- ── BLOCK 1: Morning Routine ── -->
+      <div class="block">
+        <div class="block-head">
+          <div class="block-title">
+            <span class="block-emoji">🌅</span>
+            Morning Routine
+            <span class="block-time">6:00 – 8:00 AM</span>
+          </div>
+          <span class="block-status done">Done</span>
+        </div>
+        <div class="todos">
+
+          <div class="todo done" onclick="toggleTodo(this)">
+            <div class="cb done"></div>
+            <div class="todo-text">Wake up</div>
+            <div style="position:relative">
+              <button class="todo-menu-btn" onclick="event.stopPropagation();toggleMenu(this)">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+              <div class="menu"></div>
+            </div>
+          </div>
+
+          <div class="todo done" onclick="toggleTodo(this)">
+            <div class="cb done"></div>
+            <div class="todo-text">Brush teeth</div>
+            <div style="position:relative">
+              <button class="todo-menu-btn" onclick="event.stopPropagation();toggleMenu(this)">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+              <div class="menu"></div>
+            </div>
+          </div>
+
+          <div class="todo done" onclick="toggleTodo(this)">
+            <div class="cb done"></div>
+            <div class="todo-text">Drink water</div>
+            <div style="position:relative">
+              <button class="todo-menu-btn" onclick="event.stopPropagation();toggleMenu(this)">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+              <div class="menu"></div>
+            </div>
+          </div>
+
+          <!-- SKIPPED todo + visible comment below -->
+          <div class="todo skip" onclick="toggleTodo(this)">
+            <div class="cb skip"></div>
+            <div class="todo-text">Workout</div>
+            <div style="position:relative">
+              <button class="todo-menu-btn" onclick="event.stopPropagation();toggleMenu(this)">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+              <div class="menu"></div>
+            </div>
+          </div>
+          <div class="comment-row">
+            <svg class="icon icon-sm comment-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <input value="Did at 7pm instead — felt good" />
+          </div>
+
+          <div class="add-todo">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add a todo
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BLOCK 2: Deep Work (NOW) ── -->
+      <div class="block">
+        <div class="block-head">
+          <div class="block-title">
+            <span class="block-emoji">📚</span>
+            Deep Work
+            <span class="block-time">9:00 AM – 5:00 PM</span>
+          </div>
+          <span class="block-status now">Now</span>
+        </div>
+        <div class="todos">
+
+          <!-- TRACKABLE — timer paused -->
+          <div class="todo-track" id="track1">
+            <div class="track-head">
+              <div class="cb" onclick="this.classList.toggle('done');this.closest('.todo-track').classList.toggle('completed')"></div>
+              <div class="track-name">Study SQL</div>
+              <div class="track-target">Target: 8 hrs</div>
+              <div class="track-menu-wrap">
+                <button class="track-menu-btn" onclick="toggleMenu(this)">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+                <div class="menu"></div>
+              </div>
+            </div>
+
+            <div class="track-progress">
+              <div class="progress-info">
+                <span class="actual">2.5</span><span class="of"> / 8 hrs</span>
+                <span class="pct">31%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:31%"></div></div>
+            </div>
+
+            <div class="track-controls">
+              <button class="track-btn" onclick="startTimer('timer1')" id="startBtn1">
+                <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
+                Start Timer
+              </button>
+              <div class="timer-display" id="display1" style="display:none">
+                <span class="pulse-dot"></span>
+                <span id="timer1">00:00:00</span>
+                <button class="track-btn secondary" style="padding:4px 10px;font-size:12px" onclick="stopTimer('timer1')">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  Pause
+                </button>
+              </div>
+              <button class="track-btn secondary" onclick="openLog(this)">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Log time
+              </button>
+              <div class="log-form">
+                <input type="number" placeholder="0.5" step="0.25" />
+                <span class="unit">hours</span>
+                <button>Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TRACKABLE — timer RUNNING -->
+          <div class="todo-track running" id="track2">
+            <div class="track-head">
+              <div class="cb" onclick="this.classList.toggle('done');this.closest('.todo-track').classList.toggle('completed')"></div>
+              <div class="track-name">Read book chapter</div>
+              <div class="track-target">Target: 30 pages</div>
+              <div class="track-menu-wrap">
+                <button class="track-menu-btn" onclick="toggleMenu(this)">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+                <div class="menu"></div>
+              </div>
+            </div>
+
+            <div class="track-progress">
+              <div class="progress-info">
+                <span class="actual">12</span><span class="of"> / 30 pages</span>
+                <span class="pct">40%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:40%"></div></div>
+            </div>
+
+            <div class="track-controls">
+              <button class="track-btn" onclick="startTimer('timer2')" id="startBtn2" style="display:none">
+                <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" stroke="none"/></svg>
+                Start Timer
+              </button>
+              <div class="timer-display" id="display2">
+                <span class="pulse-dot"></span>
+                <span id="timer2">00:25:30</span>
+                <button class="track-btn secondary" style="padding:4px 10px;font-size:12px" onclick="stopTimer('timer2')">
+                  <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+                  Pause
+                </button>
+              </div>
+              <button class="track-btn secondary" onclick="openLog(this)">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Log pages
+              </button>
+              <div class="log-form">
+                <input type="number" placeholder="0" />
+                <span class="unit">pages</span>
+                <button>Add</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Simple pending -->
+          <div class="todo" onclick="toggleTodo(this)">
+            <div class="cb"></div>
+            <div class="todo-text">Review pull requests</div>
+            <div style="position:relative">
+              <button class="todo-menu-btn" onclick="event.stopPropagation();toggleMenu(this)">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+              <div class="menu"></div>
+            </div>
+          </div>
+
+          <div class="add-todo">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add a todo
+          </div>
+        </div>
+      </div>
+
+      <!-- ── BLOCK 3: Evening ── -->
+      <div class="block">
+        <div class="block-head">
+          <div class="block-title">
+            <span class="block-emoji">🌙</span>
+            Evening
+            <span class="block-time">6:00 – 10:00 PM</span>
+          </div>
+          <span class="block-status">Upcoming</span>
+        </div>
+        <div class="todos">
+          <div class="todo" onclick="toggleTodo(this)">
+            <div class="cb"></div>
+            <div class="todo-text">Cook dinner</div>
+            <div style="position:relative">
+              <button class="todo-menu-btn" onclick="event.stopPropagation();toggleMenu(this)">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+              </button>
+              <div class="menu"></div>
+            </div>
+          </div>
+
+          <!-- TRACKABLE — not started, distance -->
+          <div class="todo-track" id="track3">
+            <div class="track-head">
+              <div class="cb" onclick="this.classList.toggle('done');this.closest('.todo-track').classList.toggle('completed')"></div>
+              <div class="track-name">Evening walk</div>
+              <div class="track-target">Target: 5 km</div>
+              <div class="track-menu-wrap">
+                <button class="track-menu-btn" onclick="toggleMenu(this)">
+                  <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+                </button>
+                <div class="menu"></div>
+              </div>
+            </div>
+            <div class="track-progress">
+              <div class="progress-info">
+                <span class="actual">0</span><span class="of"> / 5 km</span>
+                <span class="pct">0%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+            </div>
+            <div class="track-controls">
+              <button class="track-btn secondary" onclick="openLog(this)">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Log distance
+              </button>
+              <div class="log-form">
+                <input type="number" placeholder="0" step="0.5" />
+                <span class="unit">km</span>
+                <button>Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="add-todo">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add a todo
+          </div>
+        </div>
+      </div>
+
+      <button class="add-block">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Block
+      </button>
+
+      <div class="legend">
+        <h4>Try these</h4>
+        <ul>
+          <li><kbd>Click checkbox</kbd> Mark done / undo</li>
+          <li><kbd>Click ⋮</kbd> Opens menu (skip · note · edit · delete)</li>
+          <li><kbd>Click Start Timer</kbd> Big timer counts up live</li>
+          <li><kbd>Click Pause</kbd> Stops timer · resumes when restarted</li>
+          <li><kbd>Click Log time</kbd> Inline number entry — type & Add</li>
+          <li>Already-running timer ticks on load (Read book chapter)</li>
+        </ul>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ── MENU TEMPLATE (cloned into each menu) ── -->
+<template id="menu-template">
+  <div class="menu-item" onclick="skipFromMenu(this)">
+    <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    Mark skipped
+  </div>
+  <div class="menu-item">
+    <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Add note
+  </div>
+  <div class="menu-item">
+    <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Edit
+  </div>
+  <div class="menu-divider"></div>
+  <div class="menu-item danger">
+    <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+    Delete
+  </div>
+</template>
+
+<script>
+  // Populate all empty .menu divs with the template content
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const tpl = document.getElementById('menu-template').content;
+    document.querySelectorAll('.menu').forEach(m=>{
+      m.appendChild(tpl.cloneNode(true));
+    });
+  });
+
+  function toggleTodo(row){
+    if(row.classList.contains('skip')) return;
+    const cb = row.querySelector('.cb');
+    cb.classList.toggle('done');
+    row.classList.toggle('done');
+  }
+
+  function toggleMenu(btn){
+    // Close any other open menus
+    document.querySelectorAll('.menu.open').forEach(m=>{
+      if(m !== btn.nextElementSibling) m.classList.remove('open');
+    });
+    document.querySelectorAll('.todo-menu-btn.open,.track-menu-btn.open').forEach(b=>{
+      if(b !== btn) b.classList.remove('open');
+    });
+    const menu = btn.nextElementSibling;
+    menu.classList.toggle('open');
+    btn.classList.toggle('open');
+  }
+
+  document.addEventListener('click',(e)=>{
+    if(!e.target.closest('.todo-menu-btn,.track-menu-btn,.menu')){
+      document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open'));
+      document.querySelectorAll('.todo-menu-btn.open,.track-menu-btn.open').forEach(b=>b.classList.remove('open'));
+    }
+  });
+
+  function skipFromMenu(item){
+    const todo = item.closest('.todo');
+    if(todo){
+      todo.classList.toggle('skip');
+      const cb = todo.querySelector('.cb');
+      cb.classList.remove('done');
+      cb.classList.toggle('skip');
+      todo.classList.remove('done');
+
+      // Show inline comment row below
+      let comment = todo.nextElementSibling;
+      if(!comment || !comment.classList.contains('comment-row')){
+        comment = document.createElement('div');
+        comment.className='comment-row';
+        comment.innerHTML = `
+          <svg class="icon icon-sm comment-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <input placeholder="When / why? (optional)" autofocus />
+        `;
+        todo.after(comment);
+        const inp = comment.querySelector('input');
+        setTimeout(()=>inp.focus(),50);
+      }
+    }
+    // close menu
+    document.querySelectorAll('.menu.open').forEach(m=>m.classList.remove('open'));
+    document.querySelectorAll('.todo-menu-btn.open').forEach(b=>b.classList.remove('open'));
+  }
+
+  function openLog(btn){
+    const form = btn.nextElementSibling;
+    btn.style.display='none';
+    form.classList.add('open');
+    const inp = form.querySelector('input');
+    inp.focus();
+    inp.addEventListener('keydown',e=>{
+      if(e.key==='Escape' || e.key==='Enter'){
+        form.classList.remove('open');
+        btn.style.display='';
+      }
+    });
+    form.querySelector('button').onclick = ()=>{
+      form.classList.remove('open');
+      btn.style.display='';
+    };
+  }
+
+  // ── Timer logic ─────────────────────────────────────
+  const timers = {};
+  function pad(n){return n<10?'0'+n:n}
+  function fmt(ms){
+    const t=Math.floor(ms/1000);
+    return pad(Math.floor(t/3600))+':'+pad(Math.floor((t%3600)/60))+':'+pad(t%60);
+  }
+  function startTimer(id){
+    const num = id.replace('timer','');
+    document.getElementById('startBtn'+num).style.display='none';
+    document.getElementById('display'+num).style.display='flex';
+    document.getElementById('track'+num).classList.add('running');
+    if(!timers[id]) timers[id] = {elapsed:0};
+    const disp = document.getElementById(id).textContent;
+    const parts = disp.split(':').map(Number);
+    timers[id].elapsed = (parts[0]*3600+parts[1]*60+parts[2])*1000;
+    timers[id].start = Date.now();
+    timers[id].interval = setInterval(()=>{
+      document.getElementById(id).textContent = fmt(timers[id].elapsed + Date.now() - timers[id].start);
+    },1000);
+  }
+  function stopTimer(id){
+    const num = id.replace('timer','');
+    if(timers[id]?.interval) clearInterval(timers[id].interval);
+    document.getElementById('startBtn'+num).style.display='';
+    document.getElementById('display'+num).style.display='none';
+    document.getElementById('track'+num).classList.remove('running');
+  }
+
+  // Auto-start timer 2 on load (Read book chapter is already running)
+  window.addEventListener('load',()=>{
+    timers['timer2'] = {elapsed:(25*60+30)*1000, start:Date.now()};
+    timers['timer2'].interval = setInterval(()=>{
+      document.getElementById('timer2').textContent = fmt(timers['timer2'].elapsed + Date.now() - timers['timer2'].start);
+    },1000);
+  });
+</script>
+
+</body>
+</html>

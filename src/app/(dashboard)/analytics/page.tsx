@@ -5,7 +5,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { addDays, parseISODate, toISODate, todayUTC } from "@/lib/dates";
+import { addDays, parseISODate, toISODate, todayInZone } from "@/lib/dates";
 import {
   computeMonthStats,
   computeWeekStats,
@@ -34,7 +34,7 @@ export default async function AnalyticsPage({
   const view: ViewKey =
     params.view === "month" || params.view === "year" ? params.view : "week";
 
-  const today = todayUTC();
+  const today = todayInZone(user.timeZone);
 
   // ── Resolve the "reference date" for the chosen view ──
   // For week: the end date of the 7-day window. Default = today.

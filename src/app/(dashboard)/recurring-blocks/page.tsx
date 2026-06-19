@@ -1,69 +1,76 @@
-// Rendering: SSG (no per-request data).
-// This is a placeholder page — the feature is on the v2 roadmap. The
-// schema already supports `Block.recurrence` and `recurrenceEndDate`,
-// but the engine that materializes future occurrences hasn't been built.
-// Documented in README under "Assumptions and Limitations."
+// Rendering: SSR (per-user data behind auth).
 
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { todayInZone, addDays } from "@/lib/dates";
+import RecurringClient, { type RuleData } from "./RecurringClient";
 
-export default function RecurringBlocksPage() {
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Find the next date (within ~2 weeks) the rule fires and label it.
+function nextRunLabel(
+  active: boolean,
+  daysOfWeek: number[],
+  startTime: string,
+  today: Date,
+): string {
+  if (!active) return "Paused";
+  if (daysOfWeek.length === 0) return "—";
+  for (let i = 0; i < 14; i++) {
+    const d = addDays(today, i);
+    if (daysOfWeek.includes(d.getUTCDay())) {
+      const label = i === 0 ? "Today" : i === 1 ? "Tomorrow" : DAY_LABELS[d.getUTCDay()];
+      return `${label}, ${startTime}`;
+    }
+  }
+  return "—";
+}
+
+export default async function RecurringBlocksPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/sign-in");
+
+  const [rules, tags] = await Promise.all([
+    prisma.recurringRule.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.tag.findMany({
+      where: { userId: user.id, active: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const tagMap = new Map(tags.map((t) => [t.id, t]));
+  const today = todayInZone(user.timeZone);
+
+  const initialRules: RuleData[] = rules.map((r) => {
+    const todos = Array.isArray(r.todosTemplate)
+      ? (r.todosTemplate as unknown[]).map((t) => String(t))
+      : [];
+    const tag = r.tagId ? tagMap.get(r.tagId) : undefined;
+    return {
+      id: r.id,
+      name: r.name,
+      emoji: r.emoji,
+      tagId: r.tagId,
+      tagName: tag?.name ?? "No tag",
+      startTime: r.startTime,
+      endTime: r.endTime,
+      recurrence: r.recurrence as RuleData["recurrence"],
+      daysOfWeek: r.daysOfWeek,
+      active: r.active,
+      todos,
+      todosCount: todos.length,
+      nextRun: nextRunLabel(r.active, r.daysOfWeek, r.startTime, today),
+    };
+  });
+
   return (
-    <div className="animate-fade-in">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-1">
-        <h1 className="text-xl font-extrabold text-[#1A1A2E]">
-          Recurring Blocks
-        </h1>
-      </div>
-      <p className="text-sm text-[#9CA3AF] mb-5">
-        Schedule a block to repeat daily, weekly, or on custom days.
-      </p>
-
-      <div className="card p-8 md:p-12 text-center">
-        <div className="w-16 h-16 bg-[#EEEEFF] rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <i className="fa-solid fa-rotate text-[#6C6FDF] text-2xl"></i>
-        </div>
-        <p className="text-base font-bold text-[#1A1A2E]">Coming in v2</p>
-        <p className="text-sm text-[#9CA3AF] mt-2 mb-6 max-w-lg mx-auto leading-relaxed">
-          The recurrence engine — generating future occurrences based on a
-          rule like &quot;every weekday until December 31&quot; — is on the
-          v2 roadmap. The data model already supports it
-          (<code className="text-[10px] bg-[#F3F4F6] px-1.5 py-0.5 rounded">
-            Block.recurrence
-          </code>{" "}
-          and{" "}
-          <code className="text-[10px] bg-[#F3F4F6] px-1.5 py-0.5 rounded">
-            recurrenceEndDate
-          </code>
-          ), but the background job that materializes occurrences hasn&apos;t
-          been built.
-        </p>
-
-        <div
-          className="max-w-md mx-auto p-4 rounded-2xl text-left"
-          style={{ background: "#F9F9FF", border: "1px solid #EEEEFF" }}
-        >
-          <div className="flex items-start gap-3">
-            <i className="fa-solid fa-lightbulb text-[#6C6FDF] mt-0.5"></i>
-            <div>
-              <div className="text-xs font-bold text-[#1A1A2E] mb-1">
-                In the meantime — use Templates
-              </div>
-              <p className="text-xs text-[#6B7280] leading-relaxed">
-                Save your typical day&apos;s blocks as a template, then apply
-                it to any future date with one click. Same outcome with one
-                more step.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/templates"
-            className="btn btn-primary text-xs py-2 mt-3 w-full justify-center"
-            style={{ fontSize: "12px" }}
-          >
-            <i className="fa-solid fa-layer-group"></i> Go to Templates
-          </Link>
-        </div>
-      </div>
-    </div>
+    <RecurringClient
+      initialRules={initialRules}
+      tags={tags.map((t) => ({ id: t.id, name: t.name, emoji: t.emoji }))}
+    />
   );
 }

@@ -60,6 +60,152 @@ export async function toggleTodoAction(todoId: string) {
 }
 
 /**
+ * Set a todo's status directly (PENDING | DONE | INCOMPLETE | SKIPPED).
+ */
+export async function setTodoStatusAction(
+  todoId: string,
+  status: "PENDING" | "DONE" | "INCOMPLETE" | "SKIPPED",
+) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const todo = await prisma.todo.findFirst({
+    where: { id: todoId, block: { userId: user.id } },
+    select: { id: true, blockId: true },
+  });
+  if (!todo) return;
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { status },
+  });
+
+  await recomputeBlockStatus(todo.blockId);
+  revalidatePath("/today");
+}
+
+/**
+ * Update a todo's free-text comment/note. Empty string clears it.
+ */
+export async function updateTodoCommentAction(todoId: string, comment: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const trimmed = comment.trim().slice(0, 500);
+  const todo = await prisma.todo.findFirst({
+    where: { id: todoId, block: { userId: user.id } },
+    select: { id: true },
+  });
+  if (!todo) return;
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { comment: trimmed || null },
+  });
+  revalidatePath("/today");
+}
+
+/**
+ * Rename a todo.
+ */
+export async function updateTodoTextAction(todoId: string, text: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 300) return;
+
+  const todo = await prisma.todo.findFirst({
+    where: { id: todoId, block: { userId: user.id } },
+    select: { id: true },
+  });
+  if (!todo) return;
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { text: trimmed },
+  });
+  revalidatePath("/today");
+}
+
+/**
+ * Start (or resume) the timer on a trackable TIME todo.
+ * Server-truth: stores the wall-clock start so elapsed survives a tab close.
+ */
+export async function startTimerAction(todoId: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const todo = await prisma.todo.findFirst({
+    where: { id: todoId, block: { userId: user.id } },
+    select: { id: true, timerStartedAt: true },
+  });
+  if (!todo || todo.timerStartedAt) return; // already running
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { timerStartedAt: new Date() },
+  });
+  revalidatePath("/today");
+}
+
+/**
+ * Pause the timer: fold the running interval into accumulated ms and,
+ * for TIME metrics, reflect total time into metricActual (hours).
+ */
+export async function pauseTimerAction(todoId: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const todo = await prisma.todo.findFirst({
+    where: { id: todoId, block: { userId: user.id } },
+    select: {
+      id: true,
+      timerStartedAt: true,
+      timerAccumMs: true,
+      metricType: true,
+    },
+  });
+  if (!todo || !todo.timerStartedAt) return; // not running
+
+  const newAccum =
+    todo.timerAccumMs + (Date.now() - todo.timerStartedAt.getTime());
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: {
+      timerStartedAt: null,
+      timerAccumMs: newAccum,
+      ...(todo.metricType === "TIME"
+        ? { metricActual: newAccum / 3_600_000 }
+        : {}),
+    },
+  });
+  revalidatePath("/today");
+}
+
+/**
+ * Add a manual progress amount to a trackable todo's actual.
+ */
+export async function logProgressAction(todoId: string, amount: number) {
+  const user = await getCurrentUser();
+  if (!user) return;
+  if (!Number.isFinite(amount) || amount <= 0) return;
+
+  const todo = await prisma.todo.findFirst({
+    where: { id: todoId, block: { userId: user.id } },
+    select: { id: true, metricActual: true },
+  });
+  if (!todo) return;
+
+  await prisma.todo.update({
+    where: { id: todo.id },
+    data: { metricActual: todo.metricActual + amount },
+  });
+  revalidatePath("/today");
+}
+
+/**
  * Add a todo to an existing block.
  */
 export async function addTodoAction(blockId: string, formData: FormData) {
