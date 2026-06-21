@@ -371,6 +371,7 @@ p, li, label {
 .comment-row.note .comment-icon { color: var(--text-3); }
 .comment-row input {
   flex: 1;
+  min-width: 0; /* allow the input to shrink so the Save button stays inside */
   background: transparent;
   border: none;
   outline: none;
@@ -383,6 +384,29 @@ p, li, label {
   font-style: italic;
 }
 .comment-icon { flex-shrink: 0; font-size: 12px; }
+.note-save {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.note-save:hover { opacity: 0.88; }
+.note-saved {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--success);
+}
 
 /* ── TRACKABLE TODO CARD ──────────────────────────────────── */
 .todo-track {

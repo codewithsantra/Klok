@@ -22,6 +22,8 @@ type Todo = TodoData;
 type Block = {
   id: string; title: string; startTime: string; endTime: string;
   status: "PLANNED" | "DONE" | "PARTIAL" | "SKIPPED";
+  recurrence: "NONE" | "DAILY" | "WEEKDAYS" | "WEEKLY" | "CUSTOM";
+  recurringRuleId: string | null;
   tagId: string | null; tag: Tag | null; todos: Todo[];
   metricType: "TIME" | "DISTANCE" | "COUNT" | "CUSTOM" | null;
   metricUnit: string | null;
@@ -50,7 +52,7 @@ export default function TodayClient({
   function openCreate() { setModalMode("create"); setEditing(undefined); setModalOpen(true); }
   function openEdit(block: Block) {
     setModalMode("edit");
-    setEditing({ id: block.id, title: block.title, startTime: block.startTime, endTime: block.endTime, tagId: block.tagId });
+    setEditing({ id: block.id, title: block.title, startTime: block.startTime, endTime: block.endTime, tagId: block.tagId, recurrence: block.recurrence, recurringRuleId: block.recurringRuleId });
     setModalOpen(true);
   }
 
@@ -153,7 +155,7 @@ export default function TodayClient({
 
       {/* Plan vs Reality view */}
       {view === "compare" && (
-        <PlanVsRealityView blocks={blocks} isPastDate={isPastDate} />
+        <PlanVsRealityView blocks={blocks} isPastDate={isPastDate} nowHHMM={nowHHMM} />
       )}
 
       {/* Main grid (Timeline view) */}

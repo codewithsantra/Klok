@@ -14,7 +14,6 @@ export default function robots(): MetadataRoute.Robots {
         "/analytics",
         "/templates",
         "/settings",
-        "/recurring-blocks",
         "/onboarding",
         "/reset-password",
         "/api/",

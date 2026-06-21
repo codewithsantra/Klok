@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { name: "Today's Log", icon: "fa-calendar-day", href: "/today" },
   { name: "Analytics",   icon: "fa-chart-bar",    href: "/analytics" },
   { name: "Templates",   icon: "fa-layer-group",  href: "/templates" },
-  { name: "Recurring",   icon: "fa-rotate",       href: "/recurring-blocks" },
 ];
 
 const MOBILE_NAV = [
