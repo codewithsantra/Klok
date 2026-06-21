@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
+import { resolveDays } from "@/lib/recurrence";
 
 /**
  * POST /api/blocks
@@ -111,6 +112,34 @@ export async function POST(request: NextRequest) {
     const blockMetricTarget = blockMetricType && Number(body.metricTarget) > 0 ? Number(body.metricTarget) : null;
     const blockMetricUnit = blockMetricType ? String(body.metricUnit ?? "").slice(0, 20) || null : null;
 
+    // ── Recurrence (optional) — creates a RecurringRule so the block
+    //    auto-appears on future matching days. ──
+    const REPEAT_KINDS = ["DAILY", "WEEKDAYS", "WEEKLY", "CUSTOM"] as const;
+    const repeat = REPEAT_KINDS.includes(body.repeat) ? body.repeat : null;
+    const rawDays: number[] = Array.isArray(body.daysOfWeek)
+      ? body.daysOfWeek.map(Number).filter((d: number) => Number.isInteger(d) && d >= 0 && d <= 6)
+      : [];
+
+    let recurringRuleId: string | null = null;
+    if (repeat) {
+      const rule = await prisma.recurringRule.create({
+        data: {
+          userId: user.id,
+          name: title,
+          emoji: "🔁",
+          tagId,
+          startTime,
+          endTime,
+          recurrence: repeat,
+          daysOfWeek: resolveDays(repeat, rawDays),
+          startDate: date,
+          todosTemplate: todos.map((t) => t.text),
+        },
+        select: { id: true },
+      });
+      recurringRuleId = rule.id;
+    }
+
     // ── Create ──
     const block = await prisma.block.create({
       data: {
@@ -120,6 +149,7 @@ export async function POST(request: NextRequest) {
         date,
         startTime,
         endTime,
+        ...(repeat ? { recurrence: repeat, recurringRuleId } : {}),
         ...(blockMetricType ? { metricType: blockMetricType, metricTarget: blockMetricTarget, metricUnit: blockMetricUnit } : {}),
         todos: {
           create: todos.map((t) => ({

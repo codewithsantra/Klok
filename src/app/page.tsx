@@ -380,7 +380,7 @@ function AppMockup() {
               <Logo />
               <span className="font-display text-sm font-bold" style={{ color: INK }}>Klok</span>
             </div>
-            {[["Dashboard", false], ["Today's Log", true], ["Analytics", false], ["Templates", false], ["Recurring", false]].map(([label, active]) => (
+            {[["Dashboard", false], ["Today's Log", true], ["Analytics", false], ["Templates", false]].map(([label, active]) => (
               <div key={label as string} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs"
                 style={{ background: active ? "rgba(108,111,223,0.12)" : "transparent", color: active ? LAV : INK3, fontWeight: active ? 600 : 400 }}>
                 <div className="w-3 h-3 rounded-sm" style={{ background: active ? LAV : "rgba(21,21,43,0.12)" }}></div>

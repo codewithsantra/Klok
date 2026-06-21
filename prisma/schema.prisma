@@ -93,6 +93,8 @@ model Block {
   status            BlockStatus @default(PLANNED)
   recurrence        Recurrence  @default(NONE)
   recurrenceEndDate DateTime?   @db.Date
+  recurringRuleId   String?
+  recurringRule     RecurringRule? @relation(fields: [recurringRuleId], references: [id], onDelete: SetNull)
   todos             Todo[]
   // Block-level tracking (used when a block has no todos but you still
   // want to time it or track a target — e.g. "Study" for 2h).
@@ -182,6 +184,7 @@ model RecurringRule {
   active       Boolean    @default(true)
   todosTemplate Json      @default("[]")
   lastRunDate  DateTime?  @db.Date
+  blocks       Block[]
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }

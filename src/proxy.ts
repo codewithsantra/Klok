@@ -9,7 +9,6 @@ const PROTECTED_PATHS = [
   "/today",
   "/analytics",
   "/templates",
-  "/recurring-blocks",
   "/settings",
   "/onboarding",
 ];

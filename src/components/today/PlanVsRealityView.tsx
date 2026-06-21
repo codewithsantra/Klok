@@ -28,13 +28,26 @@ type Block = {
   todos: Todo[];
 };
 
-export function PlanVsRealityView({ blocks, isPastDate }: { blocks: Block[]; isPastDate?: boolean }) {
+export function PlanVsRealityView({
+  blocks,
+  isPastDate,
+  nowHHMM,
+}: {
+  blocks: Block[];
+  isPastDate?: boolean;
+  nowHHMM?: string | null;
+}) {
+  // A block's window has elapsed (so a still-PLANNED block counts as missed).
+  // True for any past day, or today once we're past the block's end time.
+  const blockIsOver = (b: Block) =>
+    !!isPastDate || (nowHHMM != null && nowHHMM > b.endTime);
+
   // Compute summary stats
   const plannedBlocks = blocks.length;
   const completedBlocks = blocks.filter((b) => b.status === "DONE").length;
   const partialBlocks = blocks.filter((b) => b.status === "PARTIAL").length;
   const missedBlocks = blocks.filter(
-    (b) => b.status === "PLANNED" || b.status === "SKIPPED",
+    (b) => blockIsOver(b) && (b.status === "PLANNED" || b.status === "SKIPPED"),
   ).length;
 
   const plannedTodos = blocks.reduce((a, b) => a + b.todos.length, 0);
@@ -115,7 +128,7 @@ export function PlanVsRealityView({ blocks, isPastDate }: { blocks: Block[]; isP
       {/* Per-block comparison */}
       <div className="space-y-3">
         {blocks.map((b) => (
-          <BlockCompare key={b.id} block={b} isPastDate={isPastDate} />
+          <BlockCompare key={b.id} block={b} blockIsOver={blockIsOver(b)} />
         ))}
       </div>
     </div>
@@ -149,12 +162,12 @@ function StatCell({
   );
 }
 
-function BlockCompare({ block, isPastDate }: { block: Block; isPastDate?: boolean }) {
+function BlockCompare({ block, blockIsOver }: { block: Block; blockIsOver?: boolean }) {
   const doneCount = block.todos.filter((t) => t.status === "DONE").length;
   const totalCount = block.todos.length;
   const incomplete = block.todos.filter((t) => t.status === "INCOMPLETE");
 
-  const isMissed = isPastDate && block.status === "PLANNED";
+  const isMissed = !!blockIsOver && block.status === "PLANNED";
 
   const statusColor =
     block.status === "DONE"
@@ -248,26 +261,37 @@ function BlockCompare({ block, isPastDate }: { block: Block; isPastDate?: boolea
                 const isDone = t.status === "DONE";
                 const isSkipped =
                   t.status === "INCOMPLETE" || t.status === "SKIPPED";
+                // A still-pending todo only counts as "Missed" once the block's
+                // time has elapsed; otherwise it's simply not done yet.
+                const isMissedTodo = !isDone && !isSkipped && blockIsOver;
                 const bg = isDone
                   ? "rgba(52,211,153,0.06)"
                   : isSkipped
                     ? "rgba(251,191,36,0.06)"
-                    : "rgba(248,113,113,0.06)";
+                    : isMissedTodo
+                      ? "rgba(248,113,113,0.06)"
+                      : "var(--surface-2)";
                 const color = isDone
                   ? "var(--success)"
                   : isSkipped
                     ? "var(--warning)"
-                    : "var(--danger)";
+                    : isMissedTodo
+                      ? "var(--danger)"
+                      : "var(--text-3)";
                 const icon = isDone
                   ? "fa-check"
                   : isSkipped
                     ? "fa-ban"
-                    : "fa-xmark";
+                    : isMissedTodo
+                      ? "fa-xmark"
+                      : "fa-circle";
                 const label = isDone
                   ? "Done"
                   : isSkipped
                     ? "Skipped"
-                    : "Missed";
+                    : isMissedTodo
+                      ? "Missed"
+                      : "Pending";
                 return (
                   <div
                     key={t.id}

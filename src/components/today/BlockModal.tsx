@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
+import { stopRecurringSeriesAction } from "@/actions/recurring";
 
 type Tag = { id: string; name: string; emoji: string };
 
@@ -12,10 +13,24 @@ export type BlockInitial = {
   startTime: string;
   endTime: string;
   tagId: string | null;
+  recurrence?: string;
+  recurringRuleId?: string | null;
 };
 
 // ── Todo draft state ────────────────────────────────────────
 type MetricType = "TIME" | "DISTANCE" | "COUNT" | "CUSTOM";
+type RepeatKind = "NONE" | "DAILY" | "WEEKDAYS" | "WEEKLY" | "CUSTOM";
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function repeatLabel(r?: string): string {
+  switch (r) {
+    case "DAILY": return "every day";
+    case "WEEKDAYS": return "on weekdays";
+    case "WEEKLY": return "weekly";
+    case "CUSTOM": return "on custom days";
+    default: return "";
+  }
+}
 type TodoDraft = {
   text: string;
   // Trackable goal — null/undefined for simple todos
@@ -66,12 +81,16 @@ export default function BlockModal({
   const [blockMetricType, setBlockMetricType] = useState<MetricType>("TIME");
   const [blockMetricTarget, setBlockMetricTarget] = useState<number>(1);
   const [blockMetricUnit, setBlockMetricUnit] = useState("hrs");
+  const [repeat, setRepeat] = useState<RepeatKind>("NONE");
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([1, 2, 3, 4, 5]);
+  const [confirmStop, setConfirmStop] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
+    setConfirmStop(false);
     if (mode === "edit" && initial) {
       setTitle(initial.title);
       setDate(currentDateISO);
@@ -83,6 +102,8 @@ export default function BlockModal({
       setBlockMetricType("TIME");
       setBlockMetricTarget(1);
       setBlockMetricUnit("hrs");
+      setRepeat("NONE");
+      setDaysOfWeek([1, 2, 3, 4, 5]);
     } else {
       setTitle("");
       setDate(currentDateISO);
@@ -94,6 +115,8 @@ export default function BlockModal({
       setBlockMetricType("TIME");
       setBlockMetricTarget(1);
       setBlockMetricUnit("hrs");
+      setRepeat("NONE");
+      setDaysOfWeek([1, 2, 3, 4, 5]);
     }
   }, [open, mode, initial, currentDateISO]);
 
@@ -136,6 +159,10 @@ export default function BlockModal({
               metricTarget: blockMetricTarget,
               metricUnit: blockMetricUnit,
             } : {}),
+            ...(repeat !== "NONE" ? {
+              repeat,
+              daysOfWeek,
+            } : {}),
           }),
         });
         const json = await res.json();
@@ -144,7 +171,7 @@ export default function BlockModal({
           setSubmitting(false);
           return;
         }
-        toast("Block added");
+        toast(repeat !== "NONE" ? "Recurring block created" : "Block added");
         if (date !== currentDateISO) router.push(`/today?date=${date}`);
         else router.refresh();
         onClose();
@@ -174,6 +201,22 @@ export default function BlockModal({
       console.error(err);
       setError("Network error. Try again.");
     } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleStopRepeating() {
+    if (!initial) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await stopRecurringSeriesAction(initial.id);
+      toast("Stopped repeating");
+      router.refresh();
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setError("Could not stop the series. Try again.");
       setSubmitting(false);
     }
   }
@@ -365,6 +408,59 @@ export default function BlockModal({
             </select>
           </div>
 
+          {mode === "edit" && initial?.recurringRuleId && (
+            <div
+              className="rounded-lg p-3"
+              style={{ background: "var(--accent-bg)", border: "1px solid rgba(94,106,210,.15)" }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <i className="fa-solid fa-rotate" style={{ color: "var(--accent)", fontSize: 12 }}></i>
+                <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>
+                  This block repeats{repeatLabel(initial.recurrence) ? ` ${repeatLabel(initial.recurrence)}` : ""}
+                </span>
+              </div>
+              <p className="text-[11px] mb-2.5" style={{ color: "var(--text-3)" }}>
+                New blocks are auto-created on future days. Stopping cancels the
+                series — today and past days are kept.
+              </p>
+              {!confirmStop ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmStop(true)}
+                  disabled={submitting}
+                  className="text-xs font-semibold px-3 py-1.5 rounded disabled:opacity-50"
+                  style={{ color: "var(--danger)", background: "var(--danger-bg)", border: "1px solid rgba(220,38,38,.2)", cursor: "pointer" }}
+                >
+                  <i className="fa-solid fa-circle-stop mr-1.5"></i> Stop repeating
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px]" style={{ color: "var(--text-2)" }}>
+                    Stop future blocks?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmStop(false)}
+                    disabled={submitting}
+                    className="text-xs px-2.5 py-1 rounded disabled:opacity-50"
+                    style={{ color: "var(--text-2)", background: "var(--surface)", border: "1px solid var(--border)", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleStopRepeating}
+                    disabled={submitting}
+                    className="text-xs font-semibold px-2.5 py-1 rounded disabled:opacity-50"
+                    style={{ color: "#fff", background: "var(--danger)", border: "none", cursor: "pointer" }}
+                  >
+                    Stop
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {mode === "create" && (
             <div>
               <label
@@ -473,6 +569,70 @@ export default function BlockModal({
                     />
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {mode === "create" && (
+            <div>
+              <label className="block text-xs font-semibold mb-2" style={{ color: "var(--text)" }}>
+                Repeat{" "}
+                <span style={{ color: "var(--text-3)", fontWeight: 400 }}>(optional)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { v: "NONE", label: "Once" },
+                  { v: "DAILY", label: "Every day" },
+                  { v: "WEEKDAYS", label: "Weekdays" },
+                  { v: "WEEKLY", label: "Weekly" },
+                  { v: "CUSTOM", label: "Custom" },
+                ] as { v: RepeatKind; label: string }[]).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setRepeat(opt.v)}
+                    className="text-[11px] font-medium px-2.5 py-1.5 rounded transition-colors"
+                    style={{
+                      background: repeat === opt.v ? "var(--btn-primary-bg)" : "var(--surface)",
+                      color: repeat === opt.v ? "var(--btn-primary-text)" : "var(--text-2)",
+                      border: "1px solid var(--border)",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {(repeat === "WEEKLY" || repeat === "CUSTOM") && (
+                <div className="flex gap-2 mt-3">
+                  {DAY_LABELS.map((d, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() =>
+                        setDaysOfWeek((prev) =>
+                          prev.includes(i) ? prev.filter((x) => x !== i) : [...prev, i].sort(),
+                        )
+                      }
+                      className="text-[11px] font-semibold rounded transition-colors"
+                      style={{
+                        width: 34, height: 34,
+                        background: daysOfWeek.includes(i) ? "var(--btn-primary-bg)" : "var(--surface)",
+                        color: daysOfWeek.includes(i) ? "var(--btn-primary-text)" : "var(--text-2)",
+                        border: "1px solid var(--border)",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {d.charAt(0)}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {repeat !== "NONE" && (
+                <p className="text-[11px] mt-2" style={{ color: "var(--text-3)" }}>
+                  <i className="fa-solid fa-circle-info mr-1"></i>
+                  This block will automatically appear on matching days.
+                </p>
               )}
             </div>
           )}

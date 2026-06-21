@@ -123,6 +123,38 @@ export async function deleteRecurringRuleAction(id: string) {
 }
 
 /**
+ * Stop a recurring series at its source, given any one of its blocks.
+ * - Removes future auto-generated blocks (date > today) so the series
+ *   stops appearing going forward.
+ * - Keeps today's and past blocks as historical record (the rule's
+ *   onDelete: SetNull un-links them from the deleted rule).
+ * - Deletes the underlying RecurringRule so nothing materializes again.
+ */
+export async function stopRecurringSeriesAction(blockId: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const block = await prisma.block.findFirst({
+    where: { id: blockId, userId: user.id },
+    select: { recurringRuleId: true },
+  });
+  if (!block?.recurringRuleId) return;
+
+  const ruleId = block.recurringRuleId;
+  const today = todayInZone(user.timeZone);
+
+  await prisma.block.deleteMany({
+    where: { userId: user.id, recurringRuleId: ruleId, date: { gt: today } },
+  });
+  await prisma.recurringRule.deleteMany({
+    where: { id: ruleId, userId: user.id },
+  });
+
+  revalidatePath("/today");
+  revalidatePath("/dashboard");
+}
+
+/**
  * Materialize active recurring rules into real Blocks for `date`.
  * Idempotent: skips a rule if a block with the same start time + title
  * already exists that day. Only runs for today or future dates.
@@ -150,11 +182,15 @@ export async function materializeRecurringRules(
 
   const existing = await prisma.block.findMany({
     where: { userId, date },
-    select: { startTime: true, title: true },
+    select: { startTime: true, title: true, recurringRuleId: true },
   });
   const seen = new Set(existing.map((b) => `${b.startTime}|${b.title}`));
+  const seenRuleIds = new Set(existing.map((b) => b.recurringRuleId).filter(Boolean));
 
   for (const rule of applicable) {
+    // Skip if this rule already produced a block today, or a manually-created
+    // block with the same start time + title already exists.
+    if (seenRuleIds.has(rule.id)) continue;
     if (seen.has(`${rule.startTime}|${rule.name}`)) continue;
     const todos = Array.isArray(rule.todosTemplate)
       ? (rule.todosTemplate as unknown[]).map((t) => String(t)).filter(Boolean)
@@ -168,6 +204,7 @@ export async function materializeRecurringRules(
         startTime: rule.startTime,
         endTime: rule.endTime,
         recurrence: rule.recurrence,
+        recurringRuleId: rule.id,
         todos: { create: todos.map((text) => ({ text })) },
       },
     });

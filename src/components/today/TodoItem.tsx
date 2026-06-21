@@ -112,11 +112,6 @@ function SimpleTodo({ todo }: { todo: TodoData }) {
     setMenuOpen(false);
     setConfirmDelete(true);
   }
-  function handleNoteSave() {
-    if (noteText !== (todo.comment ?? "")) {
-      startTx(() => updateTodoCommentAction(todo.id, noteText));
-    }
-  }
 
   return (
     <>
@@ -234,30 +229,30 @@ function SimpleTodo({ todo }: { todo: TodoData }) {
 
       {/* Skip comment row (amber) */}
       {skipMode && (
-        <div className="comment-row skip">
-          <i className="fa-solid fa-comment comment-icon"></i>
-          <input
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onBlur={handleNoteSave}
-            placeholder="When / why? (optional)"
-            maxLength={500}
-          />
-        </div>
+        <NoteRow
+          variant="skip"
+          value={noteText}
+          onChange={setNoteText}
+          onSave={(v) => {
+            if (v !== (todo.comment ?? ""))
+              startTx(() => updateTodoCommentAction(todo.id, v));
+          }}
+          placeholder="When / why? (optional)"
+        />
       )}
 
       {/* Plain note row (neutral) */}
       {!skipMode && showNote && (
-        <div className="comment-row note">
-          <i className="fa-solid fa-comment comment-icon"></i>
-          <input
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onBlur={handleNoteSave}
-            placeholder="Add a note..."
-            maxLength={500}
-          />
-        </div>
+        <NoteRow
+          variant="note"
+          value={noteText}
+          onChange={setNoteText}
+          onSave={(v) => {
+            if (v !== (todo.comment ?? ""))
+              startTx(() => updateTodoCommentAction(todo.id, v));
+          }}
+          placeholder="Add a note..."
+        />
       )}
     </>
   );
@@ -611,34 +606,101 @@ function TrackableTodo({ todo }: { todo: TodoData }) {
 
       {/* Comment rows */}
       {skipMode && (
-        <div className="comment-row skip" style={{ marginTop: 10 }}>
-          <i className="fa-solid fa-comment comment-icon"></i>
-          <input
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onBlur={() => {
-              if (noteText !== (todo.comment ?? ""))
-                startTx(() => updateTodoCommentAction(todo.id, noteText));
-            }}
-            placeholder="When / why? (optional)"
-            maxLength={500}
-          />
-        </div>
+        <NoteRow
+          variant="skip"
+          style={{ marginTop: 10 }}
+          value={noteText}
+          onChange={setNoteText}
+          onSave={(v) => {
+            if (v !== (todo.comment ?? ""))
+              startTx(() => updateTodoCommentAction(todo.id, v));
+          }}
+          placeholder="When / why? (optional)"
+        />
       )}
       {!skipMode && showNote && (
-        <div className="comment-row note" style={{ marginTop: 10 }}>
-          <i className="fa-solid fa-comment comment-icon"></i>
-          <input
-            value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
-            onBlur={() => {
-              if (noteText !== (todo.comment ?? ""))
-                startTx(() => updateTodoCommentAction(todo.id, noteText));
-            }}
-            placeholder="Add a note..."
-            maxLength={500}
-          />
-        </div>
+        <NoteRow
+          variant="note"
+          style={{ marginTop: 10 }}
+          value={noteText}
+          onChange={setNoteText}
+          onSave={(v) => {
+            if (v !== (todo.comment ?? ""))
+              startTx(() => updateTodoCommentAction(todo.id, v));
+          }}
+          placeholder="Add a note..."
+        />
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
+// NOTE ROW — editable comment with explicit Save (+ Enter to save)
+// and a brief "Saved" confirmation so the action is never silent.
+// ──────────────────────────────────────────────────────────────
+function NoteRow({
+  variant,
+  value,
+  onChange,
+  onSave,
+  placeholder,
+  style,
+}: {
+  variant: "skip" | "note";
+  value: string;
+  onChange: (v: string) => void;
+  onSave: (v: string) => void;
+  placeholder: string;
+  style?: React.CSSProperties;
+}) {
+  const [saved, setSaved] = useState(false);
+  const flashRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function save() {
+    onSave(value);
+    setSaved(true);
+    if (flashRef.current) clearTimeout(flashRef.current);
+    flashRef.current = setTimeout(() => setSaved(false), 1600);
+  }
+
+  useEffect(
+    () => () => {
+      if (flashRef.current) clearTimeout(flashRef.current);
+    },
+    [],
+  );
+
+  return (
+    <div className={`comment-row ${variant}`} style={style}>
+      <i className="fa-solid fa-comment comment-icon"></i>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            e.currentTarget.blur();
+          }
+        }}
+        placeholder={placeholder}
+        maxLength={500}
+      />
+      {saved ? (
+        <span className="note-saved">
+          <i className="fa-solid fa-check" style={{ fontSize: 10 }}></i> Saved
+        </span>
+      ) : (
+        <button
+          type="button"
+          className="note-save"
+          // Keep input focus so onBlur doesn't double-fire before the click.
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={save}
+        >
+          Save
+        </button>
       )}
     </div>
   );
