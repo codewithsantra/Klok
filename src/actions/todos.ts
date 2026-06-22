@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { todayInZone } from "@/lib/dates";
 
 /**
  * Internal helper: recompute and update a block's status based on its todos.
@@ -202,6 +203,81 @@ export async function logProgressAction(todoId: string, amount: number) {
     where: { id: todo.id },
     data: { metricActual: todo.metricActual + amount },
   });
+  revalidatePath("/today");
+}
+
+/**
+ * Reconcile the full set of todos on a block from the edit modal.
+ *
+ * `items` is the desired list: entries with an `id` are existing todos
+ * (text may be edited), entries without an `id` are new. Any existing todo
+ * not present in `items` is deleted. Existing todos are updated in place so
+ * their status / metrics / timers are preserved.
+ *
+ * When `applyToFuture` is true and the block belongs to a recurring rule,
+ * the rule's todo template is replaced with the new text list and future
+ * auto-generated blocks (date > today) are cleared so they regenerate with
+ * the new todos. Today's/past blocks keep what's reconciled here.
+ */
+export async function editBlockTodosAction(
+  blockId: string,
+  items: { id?: string; text: string }[],
+  applyToFuture: boolean,
+) {
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const block = await prisma.block.findFirst({
+    where: { id: blockId, userId: user.id },
+    select: {
+      id: true,
+      recurringRuleId: true,
+      todos: { select: { id: true } },
+    },
+  });
+  if (!block) return;
+
+  const cleaned = items
+    .map((i) => ({ id: i.id, text: i.text.trim().slice(0, 300) }))
+    .filter((i) => i.text);
+
+  const keepIds = new Set(cleaned.filter((i) => i.id).map((i) => i.id));
+  const toDelete = block.todos.map((t) => t.id).filter((id) => !keepIds.has(id));
+
+  if (toDelete.length) {
+    await prisma.todo.deleteMany({
+      where: { id: { in: toDelete }, blockId: block.id },
+    });
+  }
+  for (const it of cleaned) {
+    if (it.id) {
+      await prisma.todo.update({
+        where: { id: it.id },
+        data: { text: it.text },
+      });
+    } else {
+      await prisma.todo.create({ data: { blockId: block.id, text: it.text } });
+    }
+  }
+
+  if (applyToFuture && block.recurringRuleId) {
+    await prisma.recurringRule.update({
+      where: { id: block.recurringRuleId },
+      data: { todosTemplate: cleaned.map((i) => i.text) },
+    });
+    // Drop future auto-generated blocks so they regenerate with the new
+    // template on next visit (today & past are left untouched).
+    const today = todayInZone(user.timeZone);
+    await prisma.block.deleteMany({
+      where: {
+        userId: user.id,
+        recurringRuleId: block.recurringRuleId,
+        date: { gt: today },
+      },
+    });
+  }
+
+  await recomputeBlockStatus(block.id);
   revalidatePath("/today");
 }
 

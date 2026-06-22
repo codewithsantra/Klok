@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import type { WeekStats, MonthStats, YearStats } from "@/lib/analytics-stats";
+import { TagTimeDonut } from "@/components/analytics/TagTimeDonut";
+import type {
+  WeekStats,
+  MonthStats,
+  YearStats,
+  TagTimeStats,
+} from "@/lib/analytics-stats";
 
 const TAGS_CLASS_MAP: Record<string, string> = {
   Study: "tag-study", Work: "tag-work", Sleep: "tag-sleep",
@@ -10,12 +16,12 @@ const TAGS_CLASS_MAP: Record<string, string> = {
 };
 
 export default function AnalyticsClient({
-  view, week, month, year, year_number, monthName,
+  view, week, month, year, year_number, monthName, tagTime,
   prevPeriod, nextPeriod, periodLabel, disableNext,
 }: {
   view: "week" | "month" | "year";
   week: WeekStats | null; month: MonthStats | null; year: YearStats | null;
-  year_number: number; monthName: string;
+  year_number: number; monthName: string; tagTime: TagTimeStats;
   prevPeriod: string; nextPeriod: string; periodLabel: string; disableNext: boolean;
 }) {
   const prevHref = `/analytics?view=${view}&period=${prevPeriod}`;
@@ -63,6 +69,10 @@ export default function AnalyticsClient({
       {view === "week" && week && <WeekView week={week} />}
       {view === "month" && month && <MonthView month={month} monthName={monthName} year={year_number} />}
       {view === "year" && year && <YearView year={year} yearNum={year_number} />}
+
+      <div className="mt-5">
+        <TagTimeDonut tagTime={tagTime} subtitle={periodLabel} />
+      </div>
     </div>
   );
 }

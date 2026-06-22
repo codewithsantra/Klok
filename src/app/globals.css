@@ -638,6 +638,34 @@ p, li, label {
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* On narrow screens the 30px hanging indent + min-widths push the timer
+   box and progress bar out of the card. Drop the indent, let the info
+   shrink, and tighten the timer so everything stays inside. */
+@media (max-width: 640px) {
+  .track-progress,
+  .track-controls,
+  .comment-row {
+    margin-left: 0;
+  }
+  .track-progress {
+    gap: 10px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+  .track-progress .info {
+    min-width: 0;
+    flex-shrink: 0;
+  }
+  .timer-display {
+    font-size: 16px;
+    padding: 7px 11px;
+    gap: 8px;
+  }
+  .timer-display .pause-inline {
+    padding: 4px 9px;
+  }
+}
+
 /* Delete confirm popover */
 .confirm-popover {
   position: absolute;

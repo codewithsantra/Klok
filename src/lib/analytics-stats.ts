@@ -14,8 +14,58 @@ const MONTH_SHORT = [
 type RawBlock = {
   date: Date;
   status: string;
-  tag: { name: string } | null;
+  startTime?: string;
+  endTime?: string;
+  tag: { name: string; emoji?: string } | null;
 };
+
+// ── Time-by-tag aggregation ──────────────────────────────────
+export type TagTimeStat = {
+  name: string;
+  emoji: string;
+  minutes: number;
+  pct: number; // share of total minutes, 0..100
+};
+export type TagTimeStats = {
+  tags: TagTimeStat[];
+  totalMinutes: number;
+};
+
+function durationMinutes(start?: string, end?: string): number {
+  if (!start || !end) return 0;
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return 0;
+  const diff = eh * 60 + em - (sh * 60 + sm);
+  return diff > 0 ? diff : 0;
+}
+
+type TimeBlock = {
+  startTime?: string;
+  endTime?: string;
+  tag: { name: string; emoji?: string } | null;
+};
+
+/** Sum scheduled block durations per tag over the given blocks. */
+export function computeTagTimeStats(blocks: TimeBlock[]): TagTimeStats {
+  const map: Record<string, { name: string; emoji: string; minutes: number }> = {};
+  for (const b of blocks) {
+    const min = durationMinutes(b.startTime, b.endTime);
+    if (min <= 0) continue;
+    const name = b.tag?.name ?? "Untagged";
+    const emoji = b.tag?.emoji ?? "📌";
+    if (!map[name]) map[name] = { name, emoji, minutes: 0 };
+    map[name].minutes += min;
+  }
+  const totalMinutes = Object.values(map).reduce((s, t) => s + t.minutes, 0);
+  const tags = Object.values(map)
+    .map((t) => ({
+      ...t,
+      pct: totalMinutes ? Math.round((t.minutes / totalMinutes) * 100) : 0,
+    }))
+    .sort((a, b) => b.minutes - a.minutes);
+  return { tags, totalMinutes };
+}
 
 export type DayStat = {
   date: string;        // YYYY-MM-DD

@@ -11,6 +11,8 @@ import {
   type CarriedTodo,
 } from "@/components/today/CarryForwardBanner";
 import { PlanVsRealityView } from "@/components/today/PlanVsRealityView";
+import { TagTimeDonut } from "@/components/analytics/TagTimeDonut";
+import { computeTagTimeStats } from "@/lib/analytics-stats";
 import { addTodoAction } from "@/actions/todos";
 import { applyTemplateAction } from "@/actions/templates";
 import { markAllTodosAction, setBlockStatusAction } from "@/actions/blocks";
@@ -52,7 +54,7 @@ export default function TodayClient({
   function openCreate() { setModalMode("create"); setEditing(undefined); setModalOpen(true); }
   function openEdit(block: Block) {
     setModalMode("edit");
-    setEditing({ id: block.id, title: block.title, startTime: block.startTime, endTime: block.endTime, tagId: block.tagId, recurrence: block.recurrence, recurringRuleId: block.recurringRuleId });
+    setEditing({ id: block.id, title: block.title, startTime: block.startTime, endTime: block.endTime, tagId: block.tagId, recurrence: block.recurrence, recurringRuleId: block.recurringRuleId, todos: block.todos.map((t) => ({ id: t.id, text: t.text })) });
     setModalOpen(true);
   }
 
@@ -62,6 +64,7 @@ export default function TodayClient({
   const pendingTodos = totalTodos - doneTodos - skippedTodos;
   const pct = (n: number) => (totalTodos ? Math.round((n / totalTodos) * 100) : 0);
   const completedBlocks = blocks.filter((b) => b.status === "DONE").length;
+  const dayTagTime = computeTagTimeStats(blocks);
 
   return (
     <div className="animate-fade-in">
@@ -215,6 +218,10 @@ export default function TodayClient({
               </div>
             )}
           </div>
+
+          {dayTagTime.totalMinutes > 0 && (
+            <TagTimeDonut tagTime={dayTagTime} layout="stack" />
+          )}
         </div>
       </div>
       )}

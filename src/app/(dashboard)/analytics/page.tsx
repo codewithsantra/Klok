@@ -10,6 +10,7 @@ import {
   computeMonthStats,
   computeWeekStats,
   computeYearStats,
+  computeTagTimeStats,
 } from "@/lib/analytics-stats";
 import AnalyticsClient from "./AnalyticsClient";
 
@@ -81,9 +82,14 @@ export default async function AnalyticsPage({
     select: {
       date: true,
       status: true,
-      tag: { select: { name: true } },
+      startTime: true,
+      endTime: true,
+      tag: { select: { name: true, emoji: true } },
     },
   });
+
+  // Time spent per tag across the selected period (scheduled block durations).
+  const tagTime = computeTagTimeStats(blocks);
 
   // ── Compute stats for the active view ──
   const week =
@@ -141,6 +147,7 @@ export default async function AnalyticsPage({
       week={week}
       month={month}
       year={year}
+      tagTime={tagTime}
       year_number={referenceDate.getUTCFullYear()}
       monthName={MONTH_NAMES[referenceDate.getUTCMonth()]}
       prevPeriod={prevPeriod}

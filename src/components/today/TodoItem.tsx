@@ -686,6 +686,9 @@ function NoteRow({
         }}
         placeholder={placeholder}
         maxLength={500}
+        // Inline so the flex item can shrink (the stylesheet min-width:0
+        // gets overridden by Tailwind's layer cascade on some builds).
+        style={{ minWidth: 0 }}
       />
       {saved ? (
         <span className="note-saved">

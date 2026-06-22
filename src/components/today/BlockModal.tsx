@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
 import { stopRecurringSeriesAction } from "@/actions/recurring";
+import { editBlockTodosAction } from "@/actions/todos";
 
 type Tag = { id: string; name: string; emoji: string };
 
@@ -15,6 +16,7 @@ export type BlockInitial = {
   tagId: string | null;
   recurrence?: string;
   recurringRuleId?: string | null;
+  todos?: { id: string; text: string }[];
 };
 
 // ── Todo draft state ────────────────────────────────────────
@@ -84,6 +86,9 @@ export default function BlockModal({
   const [repeat, setRepeat] = useState<RepeatKind>("NONE");
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([1, 2, 3, 4, 5]);
   const [confirmStop, setConfirmStop] = useState(false);
+  // Edit-mode todo management
+  const [editTodos, setEditTodos] = useState<{ id?: string; text: string }[]>([]);
+  const [todoScope, setTodoScope] = useState<"day" | "future">("day");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -104,6 +109,8 @@ export default function BlockModal({
       setBlockMetricUnit("hrs");
       setRepeat("NONE");
       setDaysOfWeek([1, 2, 3, 4, 5]);
+      setEditTodos(initial.todos ? initial.todos.map((t) => ({ id: t.id, text: t.text })) : []);
+      setTodoScope("day");
     } else {
       setTitle("");
       setDate(currentDateISO);
@@ -193,6 +200,12 @@ export default function BlockModal({
           setSubmitting(false);
           return;
         }
+        // Reconcile todos (add/edit/delete), optionally to the whole series.
+        await editBlockTodosAction(
+          initial.id,
+          editTodos.map((t) => ({ id: t.id, text: t.text })),
+          !!initial.recurringRuleId && todoScope === "future",
+        );
       }
       toast("Block updated");
       router.refresh();
@@ -407,6 +420,88 @@ export default function BlockModal({
               ))}
             </select>
           </div>
+
+          {mode === "edit" && (
+            <div>
+              <label className="block text-xs font-semibold mb-2" style={{ color: "var(--text)" }}>
+                Todos
+              </label>
+              {editTodos.length === 0 && (
+                <p className="text-xs mb-2" style={{ color: "var(--text-3)" }}>
+                  No todos yet.
+                </p>
+              )}
+              <div className="space-y-2">
+                {editTodos.map((td, i) => (
+                  <div key={td.id ?? `new-${i}`} className="flex items-center gap-2">
+                    <input
+                      className="inp flex-1"
+                      value={td.text}
+                      onChange={(e) =>
+                        setEditTodos((prev) =>
+                          prev.map((x, idx) => (idx === i ? { ...x, text: e.target.value } : x)),
+                        )
+                      }
+                      placeholder="Todo text..."
+                      maxLength={300}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditTodos((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0"
+                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+                      title="Remove todo"
+                    >
+                      <i className="fa-solid fa-xmark text-xs" style={{ color: "var(--text-3)" }}></i>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditTodos((prev) => [...prev, { text: "" }])}
+                className="text-xs font-semibold flex items-center gap-1.5 hover:underline mt-3"
+                style={{ color: "var(--accent)" }}
+              >
+                <i className="fa-solid fa-plus text-[10px]"></i> Add todo
+              </button>
+
+              {initial?.recurringRuleId && (
+                <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
+                  <span className="block text-[11px] font-semibold mb-2" style={{ color: "var(--text-2)" }}>
+                    Apply todo changes to:
+                  </span>
+                  <div className="flex gap-2">
+                    {([
+                      { v: "day", label: "This day only" },
+                      { v: "future", label: "This + future days" },
+                    ] as { v: "day" | "future"; label: string }[]).map((opt) => (
+                      <button
+                        key={opt.v}
+                        type="button"
+                        onClick={() => setTodoScope(opt.v)}
+                        className="text-[11px] font-medium px-2.5 py-1.5 rounded transition-colors"
+                        style={{
+                          background: todoScope === opt.v ? "var(--btn-primary-bg)" : "var(--surface)",
+                          color: todoScope === opt.v ? "var(--btn-primary-text)" : "var(--text-2)",
+                          border: "1px solid var(--border)",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {todoScope === "future" && (
+                    <p className="text-[11px] mt-2" style={{ color: "var(--text-3)" }}>
+                      <i className="fa-solid fa-circle-info mr-1"></i>
+                      Updates the recurring template; future days regenerate with these todos.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {mode === "edit" && initial?.recurringRuleId && (
             <div
