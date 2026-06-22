@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { TagTimeStats } from "@/lib/analytics-stats";
+import { AnimatedNumber } from "@/components/ui/AnimatedNumber";
 
 // Cohesive jewel-tone palette — vivid but harmonized (consistent
 // saturation/lightness) so slices look designed, not like a rainbow.
@@ -105,10 +106,12 @@ export function TagTimeDonut({
                 />
               </PieChart>
             </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-xl font-bold" style={{ color: "var(--text)" }}>
-                {fmtDuration(tagTime.totalMinutes)}
-              </span>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" style={{ color: "var(--text)" }}>
+              <AnimatedNumber
+                value={tagTime.totalMinutes}
+                format={fmtDuration}
+                className="text-xl font-bold"
+              />
               <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
                 total
               </span>
