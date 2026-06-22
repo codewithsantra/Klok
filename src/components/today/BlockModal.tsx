@@ -101,7 +101,7 @@ export default function BlockModal({
       setDate(currentDateISO);
       setStartTime(initial.startTime);
       setEndTime(initial.endTime);
-      setTagId(initial.tagId ?? "");
+      setTagId(initial.tagId ?? tags[0]?.id ?? "");
       setTodos([{ text: "" }]);
       setBlockTrack(false);
       setBlockMetricType("TIME");
@@ -116,7 +116,7 @@ export default function BlockModal({
       setDate(currentDateISO);
       setStartTime("09:00");
       setEndTime("10:00");
-      setTagId("");
+      setTagId(tags[0]?.id ?? "");
       setTodos([{ text: "" }]);
       setBlockTrack(false);
       setBlockMetricType("TIME");
@@ -125,13 +125,20 @@ export default function BlockModal({
       setRepeat("NONE");
       setDaysOfWeek([1, 2, 3, 4, 5]);
     }
-  }, [open, mode, initial, currentDateISO]);
+  }, [open, mode, initial, currentDateISO, tags]);
 
   if (!open) return null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Require a tag (when the user has any) so blocks stay categorized.
+    if (tags.length > 0 && !tagId) {
+      setError("Please pick a tag.");
+      return;
+    }
+
     setSubmitting(true);
 
     // Send full todo drafts (text + optional metric) to the API.
@@ -402,17 +409,23 @@ export default function BlockModal({
               className="block text-xs font-semibold mb-1.5"
               style={{ color: "var(--text)" }}
             >
-              Tag{" "}
-              <span style={{ color: "var(--text-3)", fontWeight: 400 }}>
-                (optional)
-              </span>
+              Tag
             </label>
             <select
               className="inp"
               value={tagId}
               onChange={(e) => setTagId(e.target.value)}
+              required
             >
-              <option value="">— No tag —</option>
+              {/* Only offer "no tag" when the user has none yet — otherwise a
+                  tag is required so analytics stay meaningful. */}
+              {tags.length === 0 ? (
+                <option value="">— No tags yet —</option>
+              ) : (
+                <option value="" disabled>
+                  Select a tag…
+                </option>
+              )}
               {tags.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.emoji} {t.name}

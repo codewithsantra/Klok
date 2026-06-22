@@ -3,16 +3,17 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { TagTimeStats } from "@/lib/analytics-stats";
 
-// Calmer, cohesive palette — softer/desaturated so it doesn't shout.
+// Cohesive jewel-tone palette — vivid but harmonized (consistent
+// saturation/lightness) so slices look designed, not like a rainbow.
 const TAG_COLORS = [
-  "#6C6FDF", // lavender (brand)
-  "#62C4B4", // soft teal
-  "#E59CB8", // soft pink
-  "#E6B673", // soft amber
-  "#9E8FDC", // muted violet
-  "#8FB9E8", // muted blue
-  "#8FCBA0", // muted green
-  "#AEAECB", // grey-lilac
+  "#6366F1", // indigo (brand-aligned)
+  "#06B6D4", // cyan
+  "#F43F5E", // rose
+  "#F59E0B", // amber
+  "#8B5CF6", // violet
+  "#10B981", // emerald
+  "#3B82F6", // blue
+  "#EC4899", // pink
 ];
 
 function fmtDuration(min: number): string {

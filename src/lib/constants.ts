@@ -23,6 +23,9 @@ export const DAY_START_TIMES = [
 /** Default activity tags shown during onboarding (and Settings) */
 export type DefaultTag = { emoji: string; name: string; on: boolean };
 
+// All tags are seeded for every new user (on signup). The `on` flag also
+// drives the onboarding pre-selection — kept all-true so a new account starts
+// fully tagged, then the user can trim what they don't want in onboarding/Settings.
 export const DEFAULT_TAGS: DefaultTag[] = [
   { emoji: "😴", name: "Sleep", on: true },
   { emoji: "📚", name: "Study", on: true },
@@ -33,9 +36,9 @@ export const DEFAULT_TAGS: DefaultTag[] = [
   { emoji: "🏃", name: "Exercise", on: true },
   { emoji: "☕", name: "Break", on: true },
   { emoji: "🧘", name: "Personal", on: true },
-  { emoji: "🎮", name: "Gaming", on: false },
-  { emoji: "📖", name: "Reading", on: false },
-  { emoji: "🎵", name: "Music", on: false },
-  { emoji: "🚗", name: "Commute", on: false },
-  { emoji: "🛁", name: "Self-care", on: false },
+  { emoji: "🎮", name: "Gaming", on: true },
+  { emoji: "📖", name: "Reading", on: true },
+  { emoji: "🎵", name: "Music", on: true },
+  { emoji: "🚗", name: "Commute", on: true },
+  { emoji: "🛁", name: "Self-care", on: true },
 ];

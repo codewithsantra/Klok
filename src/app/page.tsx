@@ -18,7 +18,6 @@ const INK2 = "#5B5B73";
 const INK3 = "#9494AE";
 const BORDER = "rgba(108,111,223,0.13)";
 const LAV = "#6C6FDF";
-const LAV2 = "#9B9EEF";
 const TEAL = "#2DD4BF";
 const PINK = "#F472B6";
 const AMBER = "#F59E0B";

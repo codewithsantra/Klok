@@ -18,9 +18,9 @@ export default function OnboardingPage() {
 
   // Save tag toggles, then advance to step 2
   const handleStep1Continue = () => {
-    const offNames = tags.filter((t) => !t.on).map((t) => t.name);
+    const selections = tags.map((t) => ({ name: t.name, emoji: t.emoji, on: t.on }));
     startTransition(async () => {
-      await saveOnboardingTagsAction(offNames);
+      await saveOnboardingTagsAction(selections);
       setStep(2);
     });
   };
