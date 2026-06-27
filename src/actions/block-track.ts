@@ -53,8 +53,24 @@ export async function startBlockTimerAction(blockId: string) {
     select: { id: true, timerStartedAt: true },
   });
   if (!block || block.timerStartedAt) return;
+
+  // Pause any other running timer for this user (only one at a time).
+  const running = await prisma.block.findMany({
+    where: { userId: user.id, timerStartedAt: { not: null } },
+    select: { id: true, timerStartedAt: true, timerAccumMs: true },
+  });
+  for (const r of running) {
+    if (r.id === blockId || !r.timerStartedAt) continue;
+    const newAccum = r.timerAccumMs + (Date.now() - r.timerStartedAt.getTime());
+    await prisma.block.update({
+      where: { id: r.id },
+      data: { timerStartedAt: null, timerAccumMs: newAccum },
+    });
+  }
+
   await prisma.block.update({ where: { id: block.id }, data: { timerStartedAt: new Date() } });
   revalidatePath("/today");
+  revalidatePath("/timer");
 }
 
 export async function pauseBlockTimerAction(blockId: string) {
@@ -75,6 +91,7 @@ export async function pauseBlockTimerAction(blockId: string) {
     },
   });
   revalidatePath("/today");
+  revalidatePath("/timer");
 }
 
 export async function logBlockProgressAction(blockId: string, amount: number) {

@@ -9,20 +9,45 @@ import type {
   TagTimeStats,
 } from "@/lib/analytics-stats";
 
-const TAGS_CLASS_MAP: Record<string, string> = {
-  Study: "tag-study", Work: "tag-work", Sleep: "tag-sleep",
-  Exercise: "tag-health", Personal: "tag-personal",
-  Breakfast: "tag-meal", Lunch: "tag-meal", Dinner: "tag-meal", Break: "tag-break",
+const TAG_COLORS: Record<string, string> = {
+  Study: "#6366F1", Work: "#3B82F6", Sleep: "#8B5CF6",
+  Exercise: "#10B981", Personal: "#EC4899",
+  Breakfast: "#F59E0B", Lunch: "#F59E0B", Dinner: "#F59E0B", Break: "#06B6D4",
+};
+const DEFAULT_TAG_COLOR = "#94A3B8";
+
+type KanbanTask = {
+  id: string;
+  title: string;
+  date: string;
+  status: string;
+  startTime: string;
+  endTime: string;
+  tagName: string | null;
+  tagEmoji: string | null;
+};
+
+type TimerSessionView = {
+  id: string;
+  title: string;
+  date: string;
+  targetMinutes: number;
+  tagName: string | null;
+  tagEmoji: string | null;
+  elapsedMs: number;
 };
 
 export default function AnalyticsClient({
   view, week, month, year, year_number, monthName, tagTime,
-  prevPeriod, nextPeriod, periodLabel, disableNext,
+  prevPeriod, nextPeriod, periodLabel, disableNext, kanbanTasks,
+  timerSessions,
 }: {
   view: "week" | "month" | "year";
   week: WeekStats | null; month: MonthStats | null; year: YearStats | null;
   year_number: number; monthName: string; tagTime: TagTimeStats;
   prevPeriod: string; nextPeriod: string; periodLabel: string; disableNext: boolean;
+  kanbanTasks: KanbanTask[];
+  timerSessions: TimerSessionView[];
 }) {
   const prevHref = `/analytics?view=${view}&period=${prevPeriod}`;
   const nextHref = `/analytics?view=${view}&period=${nextPeriod}`;
@@ -43,7 +68,7 @@ export default function AnalyticsClient({
       </div>
 
       {/* Period nav */}
-      <div className="flex items-center gap-2 mb-5">
+      <div className="flex items-center gap-2 mb-6">
         <Link href={prevHref}
           className="w-7 h-7 rounded flex items-center justify-center transition-colors"
           style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
@@ -66,132 +91,405 @@ export default function AnalyticsClient({
         )}
       </div>
 
-      {view === "week" && week && <WeekView week={week} />}
-      {view === "month" && month && <MonthView month={month} monthName={monthName} year={year_number} />}
-      {view === "year" && year && <YearView year={year} yearNum={year_number} />}
+      {/* ── All sections flow vertically ── */}
+      <div className="space-y-5">
 
-      <div className="mt-5">
+        {/* ── Task Completion ── */}
+        <SectionLabel icon="fa-chart-column" label="Task Completion" />
+        {view === "week" && week && <CompletionChart week={week} />}
+        {view === "month" && month && <MonthView month={month} monthName={monthName} year={year_number} />}
+        {view === "year" && year && <YearView year={year} yearNum={year_number} />}
+        {view === "week" && (!week || week.totalBlocks === 0) && (
+          <EmptyMessage text="No tasks logged this week yet." />
+        )}
+
+        {/* ── Time by Tag (stacked bar for week + donut for all) ── */}
+        <SectionLabel icon="fa-tags" label="Time by Tag" />
+        {view === "week" && week && kanbanTasks.length > 0 && (
+          <StackedBarChart tasks={kanbanTasks} days={week.days} />
+        )}
         <TagTimeDonut tagTime={tagTime} subtitle={periodLabel} />
-      </div>
-    </div>
-  );
-}
 
-function WeekView({ week }: { week: WeekStats }) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <div className="lg:col-span-2 card p-6">
-        <h3 className="font-semibold text-sm mb-5" style={{ color: "var(--text)" }}>
-          Last 7 Days — Completion %
-        </h3>
-        {week.totalBlocks === 0 ? (
-          <EmptyMessage text="No blocks logged this week yet." />
-        ) : (
-          <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
-            {week.days.map((d) => (
-              <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5" style={{ height: "100%" }}>
-                <span className="text-[10px] font-semibold" style={{ color: "var(--text-2)", lineHeight: 1 }}>
-                  {d.total > 0 ? `${d.pct}%` : "—"}
-                </span>
-                {/* Track + fill */}
-                <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
-                  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                  <div
-                    className="w-full rounded-md"
-                    style={{
-                      height: `${d.total === 0 ? 0 : Math.max(d.pct, 5)}%`,
-                      background: d.total === 0 ? "transparent" : perfColor(d.pct),
-                      transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
-                    }}
-                    title={`${d.label}: ${d.done}/${d.total}`}
-                  />
-                </div>
-                <span className="text-[10px] font-semibold"
-                  style={{ color: d.isToday ? "var(--accent)" : "var(--text-2)", lineHeight: 1 }}>
-                  {d.isToday ? "Today" : d.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="card p-6 space-y-4">
-        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Week Summary</h3>
-        <div className="space-y-3">
-          <Row label="Avg score" value={week.avgPct === null ? "—" : `${week.avgPct}%`} valueColor="var(--accent)" />
-          <Row label="Best day" value={week.bestDay ? `${week.bestDay.label} (${week.bestDay.pct}%)` : "—"} valueColor="var(--success)" />
-          <Row label="Worst day" value={week.worstDay ? `${week.worstDay.label} (${week.worstDay.pct}%)` : "—"} valueColor="var(--danger)" />
-          <Row label="Total blocks" value={String(week.totalBlocks)} />
-        </div>
-        {week.tagCounts.length > 0 && (
-          <div>
-            <h4 className="font-semibold text-xs mb-2 mt-4" style={{ color: "var(--text)" }}>Top tags this week</h4>
-            <div className="flex flex-wrap gap-1.5">
-              {week.tagCounts.slice(0, 6).map((t) => (
-                <span key={t.name} className={`tag ${TAGS_CLASS_MAP[t.name] ?? "tag-personal"}`}>
-                  {t.name} · {t.count}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MonthView({ month, monthName, year }: { month: MonthStats; monthName: string; year: number }) {
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <div className="lg:col-span-2 card p-6">
-        <h3 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
-          {monthName} {year} — Heatmap
-        </h3>
-        {month.daysLogged === 0 ? (
-          <EmptyMessage text="No blocks logged this month yet." />
-        ) : (
+        {/* ── Focus Timer ── */}
+        {timerSessions.length > 0 && (
           <>
-            <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
-              {month.days.map((d) => (
-                <div key={d.date}
-                  className="rounded flex items-center justify-center aspect-square text-[10px] font-semibold"
-                  style={{
-                    background: d.pct === null ? "transparent" : `rgba(34,197,94,${(0.18 + (d.pct / 100) * 0.82).toFixed(2)})`,
-                    color: d.pct === null ? "transparent" : d.pct >= 45 ? "white" : "var(--success-text)",
-                    border: d.pct === null ? "1px dashed var(--border)" : "none",
-                  }}
-                  title={`${d.date}${d.pct !== null ? ` · ${d.pct}%` : ""}`}>
-                  {Number(d.date.split("-")[2])}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-3 mt-4">
-              <span className="text-[10px]" style={{ color: "var(--text-3)" }}>Less</span>
-              <div className="flex gap-1">
-                <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,.25)" }} />
-                <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,.55)" }} />
-                <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,1)" }} />
-              </div>
-              <span className="text-[10px]" style={{ color: "var(--text-3)" }}>More</span>
-            </div>
+            <SectionLabel icon="fa-stopwatch" label="Focus Timer" />
+            <TimerProgressView sessions={timerSessions} view={view} week={week} />
+            <TimerListView sessions={timerSessions} />
           </>
         )}
       </div>
+    </div>
+  );
+}
 
-      <div className="card p-6 space-y-4">
-        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>{monthName} Summary</h3>
-        <div className="space-y-3">
-          <Row label="Avg score" value={month.avgPct === null ? "—" : `${month.avgPct}%`} valueColor="var(--accent)" />
-          <Row label="Days logged" value={`${month.daysLogged} / ${month.totalDays}`} />
-          <Row label="Best day" value={month.bestDay ? `${month.bestDay.date.split("-")[2]} (${month.bestDay.pct}%)` : "—"} valueColor="var(--success)" />
-          <Row label="Worst day" value={month.worstDay ? `${month.worstDay.date.split("-")[2]} (${month.worstDay.pct}%)` : "—"} valueColor="var(--danger)" />
-        </div>
+// ── Section Label ────────────────────────────────────
+function SectionLabel({ icon, label }: { icon: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-2">
+      <i className={`fa-solid ${icon}`} style={{ fontSize: 11, color: "var(--accent)" }}></i>
+      <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
+        {label}
+      </span>
+      <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+    </div>
+  );
+}
+
+// ── Timer Progress View ─────────────────────────────
+function TimerProgressView({ sessions, view, week }: {
+  sessions: TimerSessionView[];
+  view: string;
+  week: WeekStats | null;
+}) {
+  const totalTargetMin = sessions.reduce((s, sess) => s + sess.targetMinutes, 0);
+  const totalElapsedMin = sessions.reduce((s, sess) => s + sess.elapsedMs / 60000, 0);
+  const overallPct = totalTargetMin > 0 ? Math.min(Math.round((totalElapsedMin / totalTargetMin) * 100), 100) : 0;
+
+  const dates = [...new Set(sessions.map((s) => s.date))].sort();
+
+  const dayData = (view === "week" && week ? week.days.map((d) => d.date) : dates).map((date) => {
+    const daySessions = sessions.filter((s) => s.date === date);
+    const target = daySessions.reduce((s, sess) => s + sess.targetMinutes, 0);
+    const elapsed = daySessions.reduce((s, sess) => s + sess.elapsedMs / 60000, 0);
+    const pct = target > 0 ? Math.min(Math.round((elapsed / target) * 100), 100) : 0;
+    const dayLabel = new Date(date + "T00:00:00Z").toLocaleDateString("en", { weekday: "short" });
+    const isToday = date === new Intl.DateTimeFormat("en-CA").format(new Date());
+    return { date, label: dayLabel, target, elapsed, pct, count: daySessions.length, isToday };
+  });
+
+  const maxTarget = Math.max(...dayData.map((d) => d.target), 60);
+
+  return (
+    <div className="card p-6">
+      <div className="flex flex-wrap gap-3 mb-5">
+        <StatChip label="Total" value={fmtMin(totalElapsedMin)} color="var(--accent)" />
+        <StatChip label="Goal" value={fmtMin(totalTargetMin)} color="var(--text)" />
+        <StatChip label="Progress" value={`${overallPct}%`} color={overallPct >= 80 ? "var(--success)" : "var(--accent)"} />
+        <StatChip label="Sessions" value={String(sessions.length)} color="var(--text)" />
+      </div>
+
+      <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
+        {dayData.map((d) => (
+          <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5" style={{ height: "100%" }}>
+            <span className="text-[10px] font-semibold" style={{ color: "var(--text-2)", lineHeight: 1 }}>
+              {d.target > 0 ? `${d.pct}%` : "—"}
+            </span>
+            <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+              <div className="w-full rounded-md"
+                style={{
+                  height: `${d.target === 0 ? 0 : Math.max((d.target / maxTarget) * 100, 5)}%`,
+                  background: d.target === 0 ? "transparent"
+                    : d.pct >= 80 ? "var(--success)"
+                    : d.pct >= 50 ? "var(--warning)"
+                    : d.count > 0 ? "var(--accent)" : "var(--surface-2)",
+                  opacity: d.pct >= 50 ? 1 : 0.6,
+                  transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
+                }}
+                title={`${d.label}: ${fmtMin(d.elapsed)} / ${fmtMin(d.target)}`} />
+            </div>
+            <span className="text-[10px] font-semibold"
+              style={{ color: d.isToday ? "var(--accent)" : "var(--text-2)", lineHeight: 1 }}>
+              {d.isToday ? "Today" : d.label}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+// ── Timer List View ─────────────────────────────────
+function TimerListView({ sessions }: { sessions: TimerSessionView[] }) {
+  const grouped = sessions.reduce<Record<string, TimerSessionView[]>>((acc, s) => {
+    (acc[s.date] ??= []).push(s);
+    return acc;
+  }, {});
+  const dates = Object.keys(grouped).sort().reverse();
+
+  return (
+    <div className="card p-6">
+      <div className="space-y-4">
+        {dates.map((date) => {
+          const daySessions = grouped[date];
+          const dayLabel = new Date(date + "T00:00:00Z").toLocaleDateString("en", {
+            weekday: "short", month: "short", day: "numeric",
+          });
+          return (
+            <div key={date}>
+              <div className="text-[11px] font-semibold mb-2 py-1 px-2 rounded"
+                style={{ background: "var(--surface-2)", color: "var(--text-2)", display: "inline-block" }}>
+                {dayLabel}
+              </div>
+              <div className="space-y-1.5">
+                {daySessions.map((s) => {
+                  const pct = Math.min(Math.round((s.elapsedMs / (s.targetMinutes * 60000)) * 100), 100);
+                  return (
+                    <div key={s.id} className="flex items-center gap-3 p-2.5 rounded-lg"
+                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                      <span className="text-sm">{s.tagEmoji ?? "🎯"}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate" style={{ color: "var(--text)" }}>
+                          {s.title}
+                        </div>
+                        <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: "var(--border)" }}>
+                          <div className="h-full rounded-full" style={{
+                            width: `${pct}%`,
+                            background: pct >= 100 ? "var(--success)" : "var(--accent)",
+                          }} />
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-[10px] font-semibold" style={{ color: pct >= 100 ? "var(--success)" : "var(--accent)" }}>
+                          {pct}%
+                        </div>
+                        <div className="text-[10px]" style={{ color: "var(--text-3)" }}>
+                          {fmtMin(s.elapsedMs / 60000)} / {fmtMin(s.targetMinutes)}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Completion Chart ──
+function CompletionChart({ week }: { week: WeekStats }) {
+  if (week.totalBlocks === 0) return <EmptyMessage text="No tasks logged this week yet." />;
+
+  const bestDay = week.bestDay;
+  const worstDay = week.worstDay;
+
+  return (
+    <div className="card p-6">
+      <div className="flex flex-wrap gap-3 mb-5">
+        <StatChip label="Avg" value={week.avgPct !== null ? `${week.avgPct}%` : "—"} color="var(--accent)" />
+        {bestDay && <StatChip label="Best" value={`${bestDay.label} ${bestDay.pct}%`} color="var(--success)" />}
+        {worstDay && <StatChip label="Worst" value={`${worstDay.label} ${worstDay.pct}%`} color="var(--danger)" />}
+        <StatChip label="Tasks" value={String(week.totalBlocks)} color="var(--text)" />
+      </div>
+
+      <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
+        {week.days.map((d) => (
+          <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5" style={{ height: "100%" }}>
+            <span className="text-[10px] font-semibold" style={{ color: "var(--text-2)", lineHeight: 1 }}>
+              {d.total > 0 ? `${d.pct}%` : "—"}
+            </span>
+            <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+              <div
+                className="w-full rounded-md"
+                style={{
+                  height: `${d.total === 0 ? 0 : Math.max(d.pct, 5)}%`,
+                  background: d.total === 0 ? "transparent" : perfColor(d.pct),
+                  transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
+                }}
+                title={`${d.label}: ${d.done}/${d.total}`}
+              />
+            </div>
+            <span className="text-[10px] font-semibold"
+              style={{ color: d.isToday ? "var(--accent)" : "var(--text-2)", lineHeight: 1 }}>
+              {d.isToday ? "Today" : d.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Stat Chip ──
+function StatChip({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+      <span className="text-[10px] font-medium" style={{ color: "var(--text-3)" }}>{label}</span>
+      <span className="text-xs font-bold" style={{ color }}>{value}</span>
+    </div>
+  );
+}
+
+// ── Stacked Bar Chart ─────────────────────────────────
+function StackedBarChart({ tasks, days }: { tasks: KanbanTask[]; days: { date: string; label: string; isToday: boolean }[] }) {
+  const allTags = [...new Set(tasks.map((t) => t.tagName ?? "Untagged"))];
+
+  function durationMin(s: string, e: string): number {
+    const [sh, sm] = s.split(":").map(Number);
+    const [eh, em] = e.split(":").map(Number);
+    const d = eh * 60 + em - (sh * 60 + sm);
+    return d > 0 ? d : 0;
+  }
+
+  const dayData = days.map((day) => {
+    const dayTasks = tasks.filter((t) => t.date === day.date);
+    const segments: { tag: string; minutes: number; color: string }[] = [];
+    for (const tag of allTags) {
+      const tagTasks = dayTasks.filter((t) => (t.tagName ?? "Untagged") === tag);
+      const minutes = tagTasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
+      if (minutes > 0) {
+        segments.push({ tag, minutes, color: TAG_COLORS[tag] ?? DEFAULT_TAG_COLOR });
+      }
+    }
+    return { ...day, segments, totalMinutes: segments.reduce((s, seg) => s + seg.minutes, 0) };
+  });
+
+  const maxMinutes = Math.max(...dayData.map((d) => d.totalMinutes), 60);
+
+  return (
+    <div className="card p-6">
+      <h3 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
+        Time by Tag per Day
+      </h3>
+      <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
+        {dayData.map((day) => (
+          <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5" style={{ height: "100%" }}>
+            <span className="text-[10px] font-semibold" style={{ color: "var(--text-2)", lineHeight: 1 }}>
+              {day.totalMinutes > 0 ? fmtMin(day.totalMinutes) : "—"}
+            </span>
+            <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+              {day.segments.map((seg, i) => (
+                <div key={i} className="w-full"
+                  style={{
+                    height: `${(seg.minutes / maxMinutes) * 100}%`,
+                    background: seg.color,
+                    minHeight: seg.minutes > 0 ? "3px" : 0,
+                  }}
+                  title={`${seg.tag}: ${fmtMin(seg.minutes)}`} />
+              ))}
+            </div>
+            <span className="text-[10px] font-semibold"
+              style={{ color: day.isToday ? "var(--accent)" : "var(--text-2)", lineHeight: 1 }}>
+              {day.isToday ? "Today" : day.label}
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-3 mt-4">
+        {allTags.map((tag) => (
+          <div key={tag} className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: TAG_COLORS[tag] ?? DEFAULT_TAG_COLOR }} />
+            <span className="text-[11px]" style={{ color: "var(--text-2)" }}>{tag}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Kanban View ───────────────────────────────────────
+function KanbanView({ tasks, days }: { tasks: KanbanTask[]; days: { date: string; label: string; isToday: boolean }[] }) {
+  const statusColor: Record<string, string> = {
+    DONE: "var(--success)",
+    SKIPPED: "var(--warning)",
+    PENDING: "var(--text-3)",
+  };
+
+  return (
+    <div className="card p-6">
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {days.map((day) => {
+          const dayTasks = tasks.filter((t) => t.date === day.date);
+          return (
+            <div key={day.date} className="flex-1 min-w-[120px]">
+              <div className="text-[11px] font-semibold text-center mb-2 py-1.5 rounded-md"
+                style={{
+                  background: day.isToday ? "var(--accent)" : "var(--surface-2)",
+                  color: day.isToday ? "white" : "var(--text-2)",
+                  border: day.isToday ? "none" : "1px solid var(--border)",
+                }}>
+                {day.isToday ? "Today" : day.label}
+                {dayTasks.length > 0 && (
+                  <span className="ml-1 opacity-75">({dayTasks.length})</span>
+                )}
+              </div>
+              <div className="space-y-1.5" style={{ minHeight: "80px" }}>
+                {dayTasks.length === 0 ? (
+                  <div className="text-center py-4">
+                    <span className="text-[10px]" style={{ color: "var(--text-3)" }}>—</span>
+                  </div>
+                ) : (
+                  dayTasks.map((task) => (
+                    <div key={task.id} className="rounded-md p-2"
+                      style={{
+                        background: "var(--surface-2)",
+                        border: "1px solid var(--border)",
+                        borderLeft: `3px solid ${statusColor[task.status] ?? "var(--text-3)"}`,
+                      }}>
+                      <div className="text-[11px] font-medium truncate" style={{ color: "var(--text)" }}>
+                        {task.tagEmoji ?? "📌"} {task.title}
+                      </div>
+                      <div className="text-[10px] mt-0.5" style={{ color: "var(--text-3)" }}>
+                        {task.startTime}–{task.endTime}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Month View ──
+function MonthView({ month, monthName, year }: { month: MonthStats; monthName: string; year: number }) {
+  return (
+    <div className="card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+          {monthName} {year} — Heatmap
+        </h3>
+        {month.daysLogged > 0 && (
+          <div className="flex gap-3">
+            <StatChip label="Avg" value={month.avgPct !== null ? `${month.avgPct}%` : "—"} color="var(--accent)" />
+            <StatChip label="Logged" value={`${month.daysLogged}/${month.totalDays}`} color="var(--text)" />
+          </div>
+        )}
+      </div>
+      {month.daysLogged === 0 ? (
+        <EmptyMessage text="No tasks logged this month yet." />
+      ) : (
+        <>
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(7, 1fr)" }}>
+            {month.days.map((d) => (
+              <div key={d.date}
+                className="rounded flex items-center justify-center aspect-square text-[10px] font-semibold"
+                style={{
+                  background: d.pct === null ? "transparent" : `rgba(34,197,94,${(0.18 + (d.pct / 100) * 0.82).toFixed(2)})`,
+                  color: d.pct === null ? "transparent" : d.pct >= 45 ? "white" : "var(--success-text)",
+                  border: d.pct === null ? "1px dashed var(--border)" : "none",
+                }}
+                title={`${d.date}${d.pct !== null ? ` · ${d.pct}%` : ""}`}>
+                {Number(d.date.split("-")[2])}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-3 mt-4">
+            <span className="text-[10px]" style={{ color: "var(--text-3)" }}>Less</span>
+            <div className="flex gap-1">
+              <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,.25)" }} />
+              <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,.55)" }} />
+              <div className="w-4 h-4 rounded" style={{ background: "rgba(34,197,94,1)" }} />
+            </div>
+            <span className="text-[10px]" style={{ color: "var(--text-3)" }}>More</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Year View ──
 function YearView({ year, yearNum }: { year: YearStats; yearNum: number }) {
   return (
     <div className="card p-6">
@@ -199,7 +497,7 @@ function YearView({ year, yearNum }: { year: YearStats; yearNum: number }) {
         {yearNum} — Monthly Averages
       </h3>
       {year.totalBlocks === 0 ? (
-        <EmptyMessage text="No blocks logged this year yet." />
+        <EmptyMessage text="No tasks logged this year yet." />
       ) : (
         <>
           <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
@@ -216,7 +514,7 @@ function YearView({ year, yearNum }: { year: YearStats; yearNum: number }) {
                       background: m.avgPct === null ? "transparent" : perfColor(m.avgPct),
                       transition: "height 0.35s cubic-bezier(0.2,0,0,1)",
                     }}
-                    title={`${m.label}: ${m.total} blocks`} />
+                    title={`${m.label}: ${m.total} tasks`} />
                 </div>
                 <span className="text-[10px]" style={{ color: "var(--text-2)", lineHeight: 1 }}>{m.label}</span>
               </div>
@@ -225,7 +523,7 @@ function YearView({ year, yearNum }: { year: YearStats; yearNum: number }) {
           {year.bestMonth && (
             <p className="text-xs mt-4" style={{ color: "var(--text-2)" }}>
               Best month: <strong style={{ color: "var(--text)" }}>{year.bestMonth.label}</strong> at{" "}
-              <strong style={{ color: "var(--text)" }}>{year.bestMonth.avgPct}%</strong>. Total blocks:{" "}
+              <strong style={{ color: "var(--text)" }}>{year.bestMonth.avgPct}%</strong>. Total tasks:{" "}
               <strong style={{ color: "var(--text)" }}>{year.totalBlocks}</strong>.
             </p>
           )}
@@ -235,18 +533,17 @@ function YearView({ year, yearNum }: { year: YearStats; yearNum: number }) {
   );
 }
 
-function Row({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
-  return (
-    <div className="flex justify-between text-sm">
-      <span style={{ color: "var(--text-2)" }}>{label}</span>
-      <span className="font-semibold" style={{ color: valueColor ?? "var(--text)" }}>{value}</span>
-    </div>
-  );
+// ── Shared helpers ────────────────────────────────────
+
+function fmtMin(m: number): string {
+  const h = Math.floor(m / 60);
+  const mm = Math.round(m % 60);
+  return h > 0 ? `${h}h${mm > 0 ? ` ${mm}m` : ""}` : `${mm}m`;
 }
 
 function EmptyMessage({ text }: { text: string }) {
   return (
-    <div className="flex flex-col items-center justify-center text-center py-12 gap-3">
+    <div className="card flex flex-col items-center justify-center text-center py-12 gap-3">
       <div
         className="w-12 h-12 rounded-xl flex items-center justify-center"
         style={{ background: "var(--accent-bg)" }}
@@ -255,13 +552,12 @@ function EmptyMessage({ text }: { text: string }) {
       </div>
       <p className="text-sm font-medium" style={{ color: "var(--text-2)" }}>{text}</p>
       <Link href="/today" className="btn btn-primary text-xs">
-        <i className="fa-solid fa-plus"></i> Plan a block
+        <i className="fa-solid fa-plus"></i> Add a task
       </Link>
     </div>
   );
 }
 
-// Performance-based bar color: green (strong), amber (ok), red (poor).
 function perfColor(pct: number): string {
   if (pct >= 80) return "var(--success)";
   if (pct >= 50) return "var(--warning)";

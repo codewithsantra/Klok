@@ -76,29 +76,58 @@ export default async function AnalyticsPage({
     if (rangeEnd > today) rangeEnd = today;
   }
 
-  // ── Fetch blocks in that range ──
-  const blocks = await prisma.block.findMany({
-    where: { userId: user.id, date: { gte: rangeStart, lte: rangeEnd } },
-    select: {
-      date: true,
-      status: true,
-      startTime: true,
-      endTime: true,
-      tag: { select: { name: true, emoji: true } },
-    },
-  });
+  // ── Fetch tasks and timer sessions in that range ──
+  const [tasks, timerSessions] = await Promise.all([
+    prisma.task.findMany({
+      where: { userId: user.id, date: { gte: rangeStart, lte: rangeEnd } },
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        status: true,
+        startTime: true,
+        endTime: true,
+        tag: { select: { name: true, emoji: true } },
+      },
+    }),
+    prisma.timerSession.findMany({
+      where: { userId: user.id, date: { gte: rangeStart, lte: rangeEnd } },
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        targetMinutes: true,
+        tag: { select: { name: true, emoji: true } },
+        subItems: { select: { timerAccumMs: true, timerStartedAt: true, targetMinutes: true } },
+      },
+    }),
+  ]);
 
-  // Time spent per tag across the selected period (scheduled block durations).
-  const tagTime = computeTagTimeStats(blocks);
+  // Time spent per tag across the selected period (scheduled task durations).
+  const tagTime = computeTagTimeStats(tasks);
+
+  // Tasks for kanban/bar views (only for week view)
+  const kanbanTasks = view === "week"
+    ? tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        date: toISODate(t.date),
+        status: t.status,
+        startTime: t.startTime,
+        endTime: t.endTime,
+        tagName: t.tag?.name ?? null,
+        tagEmoji: t.tag?.emoji ?? null,
+      }))
+    : [];
 
   // ── Compute stats for the active view ──
   const week =
-    view === "week" ? computeWeekStats(blocks, referenceDate) : null;
+    view === "week" ? computeWeekStats(tasks, referenceDate) : null;
   const month =
-    view === "month" ? computeMonthStats(blocks, referenceDate, today) : null;
+    view === "month" ? computeMonthStats(tasks, referenceDate, today) : null;
   const year =
     view === "year"
-      ? computeYearStats(blocks, referenceDate.getUTCFullYear())
+      ? computeYearStats(tasks, referenceDate.getUTCFullYear())
       : null;
 
   // ── Compute prev/next period strings + a friendly period label ──
@@ -141,6 +170,20 @@ export default async function AnalyticsPage({
     }
   })();
 
+  const timerSessionsView = timerSessions.map((s) => ({
+    id: s.id,
+    title: s.title,
+    date: toISODate(s.date),
+    targetMinutes: s.targetMinutes,
+    tagName: s.tag?.name ?? null,
+    tagEmoji: s.tag?.emoji ?? null,
+    elapsedMs: s.subItems.reduce((sum, i) => {
+      let ms = i.timerAccumMs;
+      if (i.timerStartedAt) ms += Date.now() - i.timerStartedAt.getTime();
+      return sum + ms;
+    }, 0),
+  }));
+
   return (
     <AnalyticsClient
       view={view}
@@ -154,6 +197,8 @@ export default async function AnalyticsPage({
       nextPeriod={nextPeriod}
       periodLabel={periodLabel}
       disableNext={isAtFutureEdge}
+      kanbanTasks={kanbanTasks}
+      timerSessions={timerSessionsView}
     />
   );
 }

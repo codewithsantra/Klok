@@ -1,10 +1,11 @@
-// Rendering: SSR (per-request).
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { todayInZone, nowHHMMInZone, addDays, isSameUTCDay } from "@/lib/dates";
 import { computeStreak, computeLongestStreak } from "@/lib/streak";
+import { computeTagTimeStats } from "@/lib/analytics-stats";
+import { TagTimeDonut } from "@/components/analytics/TagTimeDonut";
 
 const DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -15,32 +16,42 @@ export default async function DashboardPage() {
   const today = todayInZone(user.timeZone);
   const weekStart = addDays(today, -6);
 
-  const [todayBlocks, weekBlocks, allBlockDates] = await Promise.all([
-    prisma.block.findMany({
+  const [todayTasks, weekTasks, allTaskDates, timerSessions] = await Promise.all([
+    prisma.task.findMany({
       where: { userId: user.id, date: today },
-      include: { tag: true, todos: true },
+      include: { tag: true },
       orderBy: { startTime: "asc" },
     }),
-    prisma.block.findMany({
+    prisma.task.findMany({
       where: { userId: user.id, date: { gte: weekStart, lte: today } },
       select: { date: true, status: true },
     }),
-    prisma.block.findMany({
+    prisma.task.findMany({
       where: { userId: user.id },
       select: { date: true },
       orderBy: { date: "desc" },
     }),
+    prisma.timerSession.findMany({
+      where: { userId: user.id, date: today },
+      include: {
+        tag: { select: { emoji: true, name: true } },
+        subItems: { select: { title: true, timerAccumMs: true, timerStartedAt: true, targetMinutes: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
   ]);
 
-  const blocksTotal = todayBlocks.length;
-  const blocksDone = todayBlocks.filter((b) => b.status === "DONE").length;
+  const tasksTotal = todayTasks.length;
+  const tasksDone = todayTasks.filter((t) => t.status === "DONE").length;
+  const tasksSkipped = todayTasks.filter((t) => t.status === "SKIPPED").length;
   const productivityScore =
-    blocksTotal === 0 ? null : Math.round((blocksDone / blocksTotal) * 100);
+    tasksTotal === 0 ? null : Math.round((tasksDone / tasksTotal) * 100);
 
-  const streak = computeStreak(allBlockDates, today);
-  const longestStreak = computeLongestStreak(allBlockDates);
-  const weekDays = buildWeekChart(weekBlocks, today);
-  const previewBlocks = todayBlocks.slice(0, 4);
+  const streak = computeStreak(allTaskDates, today);
+  const longestStreak = computeLongestStreak(allTaskDates);
+  const weekDays = buildWeekChart(weekTasks, today);
+  const previewTasks = todayTasks.slice(0, 4);
+  const todayTagTime = computeTagTimeStats(todayTasks);
 
   const nowHHMM = nowHHMMInZone(user.timeZone);
 
@@ -57,12 +68,12 @@ export default async function DashboardPage() {
         <p className="text-sm mt-1" style={{ color: "var(--text-3)" }}>
           {streak > 0
             ? `🔥 ${streak}-day streak — keep it going!`
-            : "Plan your first block to start a streak."}
+            : "Plan your first task to start a streak."}
         </p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 stagger">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger">
         <Link href="/today" className="card p-5 stat-card flex items-center gap-4">
           <div
             className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -72,13 +83,13 @@ export default async function DashboardPage() {
           </div>
           <div className="flex-1">
             <div className="text-2xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.03em" }}>
-              {blocksDone}{" "}
+              {tasksDone}{" "}
               <span className="text-sm font-medium" style={{ color: "var(--text-3)" }}>
-                / {blocksTotal}
+                / {tasksTotal}
               </span>
             </div>
             <div className="text-xs font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
-              Blocks Completed
+              Tasks Completed
             </div>
           </div>
           <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
@@ -101,7 +112,7 @@ export default async function DashboardPage() {
           <div className="flex-1">
             <div className="text-sm font-bold" style={{ color: "var(--text)" }}>Productivity Score</div>
             <div className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-              {blocksDone} of {blocksTotal} blocks done
+              {tasksDone} of {tasksTotal} tasks done
             </div>
           </div>
           <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
@@ -137,22 +148,61 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {(() => {
+          const totalTargetMin = timerSessions.reduce((s, sess) => s + sess.targetMinutes, 0);
+          const totalElapsedMin = timerSessions.reduce((s, sess) =>
+            s + sess.subItems.reduce((si, i) => {
+              let ms = i.timerAccumMs;
+              if (i.timerStartedAt) ms += Date.now() - i.timerStartedAt.getTime();
+              return si + ms;
+            }, 0) / 60000, 0);
+          const timerPct = totalTargetMin > 0 ? Math.min(Math.round((totalElapsedMin / totalTargetMin) * 100), 100) : 0;
+          const fmtMin = (m: number) => { const h = Math.floor(m / 60); const mm = Math.round(m % 60); return h > 0 ? `${h}h ${mm}m` : `${mm}m`; };
+          return (
+            <Link href="/timer" className="card p-5 stat-card flex items-center gap-4">
+              <div className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: "var(--accent-bg)" }}>
+                <i className="fa-solid fa-stopwatch" style={{ color: "var(--accent)", fontSize: "16px" }}></i>
+              </div>
+              <div className="flex-1">
+                <div className="text-2xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.03em" }}>
+                  {fmtMin(totalElapsedMin)}{" "}
+                  <span className="text-sm font-medium" style={{ color: "var(--text-3)" }}>
+                    / {totalTargetMin > 0 ? fmtMin(totalTargetMin) : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-xs font-medium" style={{ color: "var(--text-2)" }}>
+                    Focus Timer
+                  </span>
+                  {totalTargetMin > 0 && (
+                    <span className="text-[11px] font-semibold" style={{ color: timerPct >= 100 ? "var(--success)" : "var(--accent)" }}>
+                      {timerPct}%
+                    </span>
+                  )}
+                </div>
+              </div>
+              <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
+            </Link>
+          );
+        })()}
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Today's blocks preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
+        {/* Today's tasks preview */}
         <div className="lg:col-span-2 card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
-              Today&apos;s Blocks
+              Today&apos;s Tasks
             </h2>
             <Link href="/today" className="text-xs font-semibold hover:underline" style={{ color: "var(--accent)" }}>
               See All →
             </Link>
           </div>
 
-          {previewBlocks.length === 0 ? (
+          {previewTasks.length === 0 ? (
             <div className="text-center py-10">
               <div
                 className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3"
@@ -161,26 +211,24 @@ export default async function DashboardPage() {
                 <i className="fa-solid fa-calendar-day" style={{ color: "var(--accent)", fontSize: "18px" }}></i>
               </div>
               <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-                No blocks scheduled yet
+                No tasks scheduled yet
               </p>
               <p className="text-xs mt-1 mb-4" style={{ color: "var(--text-3)" }}>
-                Plan your day by adding your first time block.
+                Plan your day by adding your first task.
               </p>
               <Link href="/today" className="btn btn-primary text-xs">
-                <i className="fa-solid fa-plus"></i> Add Block
+                <i className="fa-solid fa-plus"></i> Add Task
               </Link>
             </div>
           ) : (
             <div className="space-y-2 stagger">
-              {previewBlocks.map((block) => {
-                const tagClass = block.tag ? tagClassFor(block.tag.name) : "tag-personal";
-                const doneTodos = block.todos.filter((t) => t.status === "DONE").length;
-                const totalTodos = block.todos.length;
-                const badge = computeBadge(block.status, block.startTime, block.endTime, nowHHMM);
+              {previewTasks.map((task) => {
+                const tagClass = task.tag ? tagClassFor(task.tag.name) : "tag-personal";
+                const badge = computeBadge(task.status, task.startTime, task.endTime, nowHHMM);
 
                 return (
                   <div
-                    key={block.id}
+                    key={task.id}
                     className="flex items-start justify-between rounded-lg p-3"
                     style={{
                       background: "var(--surface-2)",
@@ -190,13 +238,12 @@ export default async function DashboardPage() {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium text-sm" style={{ color: "var(--text)" }}>
-                          {block.tag?.emoji ?? "📌"} {block.title}
+                          {task.tag?.emoji ?? "📌"} {task.title}
                         </span>
-                        {block.tag && <span className={`tag ${tagClass}`}>{block.tag.name}</span>}
+                        {task.tag && <span className={`tag ${tagClass}`}>{task.tag.name}</span>}
                       </div>
                       <div className="text-xs" style={{ color: "var(--text-3)" }}>
-                        {block.startTime} – {block.endTime}
-                        {totalTodos > 0 && ` · ${doneTodos}/${totalTodos} todos done`}
+                        {task.startTime} – {task.endTime}
                       </div>
                     </div>
                     <span className={`pill ${badge}`}>{badgeText(badge)}</span>
@@ -255,6 +302,51 @@ export default async function DashboardPage() {
               ))}
             </div>
           </div>
+
+          {todayTagTime.totalMinutes > 0 && (
+            <TagTimeDonut tagTime={todayTagTime} layout="stack" />
+          )}
+
+          {timerSessions.length > 0 && (
+            <Link href="/timer" className="card p-5 stat-card block">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+                  <i className="fa-solid fa-stopwatch mr-1.5" style={{ color: "var(--accent)" }}></i>
+                  Focus Timer
+                </h2>
+                <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
+              </div>
+              <div className="space-y-2">
+                {timerSessions.map((s) => {
+                  const elapsedMs = s.subItems.reduce((sum, i) => {
+                    let ms = i.timerAccumMs;
+                    if (i.timerStartedAt) ms += Date.now() - i.timerStartedAt.getTime();
+                    return sum + ms;
+                  }, 0);
+                  const targetMs = s.targetMinutes * 60000;
+                  const pct = Math.min(Math.round((elapsedMs / targetMs) * 100), 100);
+                  return (
+                    <div key={s.id}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-medium truncate" style={{ color: "var(--text)" }}>
+                          {s.tag?.emoji ?? "🎯"} {s.title}
+                        </span>
+                        <span className="font-semibold tabular ml-2" style={{ color: pct >= 100 ? "var(--success)" : "var(--accent)" }}>
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                        <div className="h-full rounded-full" style={{
+                          width: `${pct}%`,
+                          background: pct >= 100 ? "var(--success)" : "var(--accent)",
+                        }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -263,13 +355,13 @@ export default async function DashboardPage() {
 
 // ── Helpers ──
 
-function buildWeekChart(weekBlocks: { date: Date; status: string }[], today: Date) {
+function buildWeekChart(weekTasks: { date: Date; status: string }[], today: Date) {
   const days: { label: string; pct: number; isToday: boolean }[] = [];
   for (let i = 6; i >= 0; i--) {
     const day = addDays(today, -i);
-    const dayBlocks = weekBlocks.filter((b) => isSameUTCDay(b.date, day));
-    const total = dayBlocks.length;
-    const done = dayBlocks.filter((b) => b.status === "DONE").length;
+    const dayTasks = weekTasks.filter((t) => isSameUTCDay(t.date, day));
+    const total = dayTasks.length;
+    const done = dayTasks.filter((t) => t.status === "DONE").length;
     const pct = total === 0 ? 0 : Math.round((done / total) * 100);
     days.push({ label: DAY_SHORT[day.getUTCDay()], pct, isToday: i === 0 });
   }
@@ -279,10 +371,6 @@ function buildWeekChart(weekBlocks: { date: Date; status: string }[], today: Dat
 function computeBadge(status: string, startTime: string, endTime: string, nowHHMM: string): string {
   if (status === "DONE") return "pill-done";
   if (status === "SKIPPED") return "pill-skipped";
-  if (status === "PARTIAL") {
-    if (nowHHMM > endTime) return "pill-partial";
-    return "pill-now";
-  }
   if (nowHHMM > endTime) return "pill-missed";
   if (nowHHMM >= startTime) return "pill-now";
   return "pill-upcoming";
@@ -292,7 +380,6 @@ function badgeText(pillClass: string): string {
   const map: Record<string, string> = {
     "pill-done": "Done ✓",
     "pill-skipped": "Skipped",
-    "pill-partial": "Partial",
     "pill-now": "Now",
     "pill-missed": "Missed",
     "pill-upcoming": "Upcoming",

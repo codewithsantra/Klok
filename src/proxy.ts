@@ -7,6 +7,7 @@ const COOKIE_NAME = "klok_session";
 const PROTECTED_PATHS = [
   "/dashboard",
   "/today",
+  "/timer",
   "/analytics",
   "/templates",
   "/settings",

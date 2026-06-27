@@ -33,6 +33,14 @@ enum MetricType {
   CUSTOM
 }
 
+// ── New flow ──
+
+enum TaskStatus {
+  PENDING
+  DONE
+  SKIPPED
+}
+
 enum Recurrence {
   NONE
   DAILY
@@ -53,7 +61,10 @@ model User {
   updatedAt DateTime   @updatedAt
   templates Template[]
   recurringRules RecurringRule[]
+  dailyGoals DailyGoal[]
   passwordResetTokens PasswordResetToken[]
+  tasks         Task[]
+  timerSessions TimerSession[]
 }
 
 model PasswordResetToken {
@@ -76,8 +87,25 @@ model Tag {
   emoji          String
   active         Boolean         @default(true)
   blocks         Block[]
+  dailyGoals     DailyGoal[]
   createdAt      DateTime        @default(now())
   templateBlocks TemplateBlock[]
+  tasks          Task[]
+  timerSessions  TimerSession[]
+}
+
+model DailyGoal {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tagId         String
+  tag           Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  date          DateTime @db.Date
+  targetMinutes Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, tagId, date])
 }
 
 model Block {
@@ -165,6 +193,65 @@ model TemplateTodo {
   templateBlock   TemplateBlock @relation(fields: [templateBlockId], references: [id], onDelete: Cascade)
   text            String
   createdAt       DateTime      @default(now())
+}
+
+// ── New flow models ─────────────────────────────────────────
+
+model Task {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  tagId           String?
+  tag             Tag?         @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  date            DateTime     @db.Date
+  startTime       String
+  endTime         String
+  status          TaskStatus   @default(PENDING)
+  note            String?
+  recurrence      Recurrence   @default(NONE)
+  daysOfWeek      Int[]        @default([])
+  repeatEvery     Int          @default(1)
+  repeatUnit      String?      // "day" | "week" | "month" | "year"
+  repeatEndDate   DateTime?    @db.Date
+  repeatEndCount  Int?
+  recurringRuleId String?
+  carriedFromId   String?
+  timerSubItems   TimerSubItem[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([userId, date])
+}
+
+model TimerSession {
+  id            String         @id @default(cuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  tagId         String?
+  tag           Tag?           @relation(fields: [tagId], references: [id], onDelete: SetNull)
+  date          DateTime       @db.Date
+  targetMinutes Int
+  subItems      TimerSubItem[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([userId, date])
+}
+
+model TimerSubItem {
+  id             String        @id @default(cuid())
+  sessionId      String
+  session        TimerSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  title          String
+  targetMinutes  Int
+  timerStartedAt DateTime?
+  timerAccumMs   Int           @default(0)
+  taskId         String?
+  task           Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 }
 
 // A recurring block template that materializes into real Blocks on /today load.

@@ -20,7 +20,10 @@ import { toast } from "@/lib/toast";
 export type CarriedTodo = {
   id: string;
   text: string;
-  blockTitle: string; // which block it was in yesterday
+  blockTitle: string;
+  blockTagId: string | null;
+  blockStartTime: string;
+  blockEndTime: string;
 };
 
 export function CarryForwardBanner({
@@ -227,31 +230,35 @@ function CarriedTodoRow({
               minWidth: 180,
             }}
           >
-            {todayBlocks.length === 0 ? (
-              <button
-                type="button"
-                className="menu-item"
-                onClick={() => {
-                  onAddWithNewBlock(todo.id);
-                  setPickerOpen(false);
-                }}
-              >
-                <i className="fa-solid fa-plus"></i> Create block &amp; add
-              </button>
-            ) : (
-              todayBlocks.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  className="menu-item"
-                  onClick={() => {
-                    onAdd(b.id);
-                    setPickerOpen(false);
-                  }}
-                >
-                  <i className="fa-solid fa-plus"></i> {b.title}
-                </button>
-              ))
+            <button
+              type="button"
+              className="menu-item"
+              onClick={() => {
+                onAddWithNewBlock(todo.id);
+                setPickerOpen(false);
+              }}
+            >
+              <i className="fa-solid fa-arrow-rotate-left"></i> Recreate &quot;{todo.blockTitle}&quot;
+            </button>
+            {todayBlocks.length > 0 && (
+              <>
+                <div className="text-[10px] px-3 py-1.5" style={{ color: "var(--text-3)" }}>
+                  Or add to existing block:
+                </div>
+                {todayBlocks.map((b) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className="menu-item"
+                    onClick={() => {
+                      onAdd(b.id);
+                      setPickerOpen(false);
+                    }}
+                  >
+                    <i className="fa-solid fa-plus"></i> {b.title}
+                  </button>
+                ))}
+              </>
             )}
           </div>
         )}

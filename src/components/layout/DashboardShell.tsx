@@ -10,6 +10,7 @@ import Toaster from "./Toaster";
 const NAV_ITEMS = [
   { name: "Dashboard",   icon: "fa-house",        href: "/dashboard" },
   { name: "Today's Log", icon: "fa-calendar-day", href: "/today" },
+  { name: "Timer",       icon: "fa-stopwatch",    href: "/timer" },
   { name: "Analytics",   icon: "fa-chart-bar",    href: "/analytics" },
   { name: "Templates",   icon: "fa-layer-group",  href: "/templates" },
 ];
@@ -17,8 +18,8 @@ const NAV_ITEMS = [
 const MOBILE_NAV = [
   { name: "Home",      icon: "fa-house",        href: "/dashboard" },
   { name: "Today",     icon: "fa-calendar-day", href: "/today" },
+  { name: "Timer",     icon: "fa-stopwatch",    href: "/timer" },
   { name: "Analytics", icon: "fa-chart-bar",    href: "/analytics" },
-  { name: "Settings",  icon: "fa-gear",         href: "/settings" },
 ];
 
 export type UserSummary = {

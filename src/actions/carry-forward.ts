@@ -51,8 +51,9 @@ export async function carryForwardTodoAction(
 }
 
 /**
- * Carry a todo forward by creating a new "Carried Tasks" block on the target date.
- * Used when no blocks exist yet for today.
+ * Carry a todo forward by recreating its original block on the target date.
+ * Copies the source block's title, tag, and times so the carried todo
+ * lands in a faithful replica of its original context.
  */
 export async function carryForwardWithNewBlockAction(
   sourceTodoId: string,
@@ -71,17 +72,49 @@ export async function carryForwardWithNewBlockAction(
       metricType: true,
       metricUnit: true,
       metricTarget: true,
+      block: {
+        select: { title: true, tagId: true, startTime: true, endTime: true },
+      },
     },
   });
   if (!source) return;
 
+  const srcBlock = source.block;
+
+  // Reuse an existing block on today with the same title + tag if one exists.
+  const existing = await prisma.block.findFirst({
+    where: {
+      userId: user.id,
+      date,
+      title: srcBlock.title,
+      tagId: srcBlock.tagId,
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    await prisma.todo.create({
+      data: {
+        blockId: existing.id,
+        text: source.text,
+        metricType: source.metricType,
+        metricUnit: source.metricUnit,
+        metricTarget: source.metricTarget,
+        carriedFromId: sourceTodoId,
+      },
+    });
+    revalidatePath("/today");
+    return { blockId: existing.id };
+  }
+
   const block = await prisma.block.create({
     data: {
       userId: user.id,
-      title: "Carried Tasks",
+      title: srcBlock.title,
+      tagId: srcBlock.tagId,
       date,
-      startTime: "09:00",
-      endTime: "10:00",
+      startTime: srcBlock.startTime,
+      endTime: srcBlock.endTime,
       todos: {
         create: [{
           text: source.text,

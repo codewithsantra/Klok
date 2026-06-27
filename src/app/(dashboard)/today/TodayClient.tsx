@@ -2,69 +2,84 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
-import BlockModal, { type BlockInitial } from "@/components/today/BlockModal";
-import { TodoItem, type TodoData } from "@/components/today/TodoItem";
-import { BlockTracker } from "@/components/today/BlockTracker";
-import {
-  CarryForwardBanner,
-  type CarriedTodo,
-} from "@/components/today/CarryForwardBanner";
-import { PlanVsRealityView } from "@/components/today/PlanVsRealityView";
-import { TagTimeDonut } from "@/components/analytics/TagTimeDonut";
-import { computeTagTimeStats } from "@/lib/analytics-stats";
-import { addTodoAction } from "@/actions/todos";
-import { applyTemplateAction } from "@/actions/templates";
-import { markAllTodosAction, setBlockStatusAction } from "@/actions/blocks";
-import { setBlockMetricAction, clearBlockMetricAction } from "@/actions/block-track";
+import { useState, useTransition } from "react";
+import TaskModal, { type TaskInitial } from "@/components/today/TaskModal";
+import { toggleTaskAction, setTaskStatusAction, updateTaskNoteAction } from "@/actions/tasks";
+import { toast } from "@/lib/toast";
 
-type TemplateView = { id: string; name: string; blockCount: number };
 type Tag = { id: string; name: string; emoji: string };
-type Todo = TodoData;
-type Block = {
-  id: string; title: string; startTime: string; endTime: string;
-  status: "PLANNED" | "DONE" | "PARTIAL" | "SKIPPED";
-  recurrence: "NONE" | "DAILY" | "WEEKDAYS" | "WEEKLY" | "CUSTOM";
+type TemplateView = { id: string; name: string; blockCount: number };
+
+type TaskView = {
+  id: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  status: "PENDING" | "DONE" | "SKIPPED";
+  note: string | null;
+  tagId: string | null;
+  tag: Tag | null;
+  recurrence: string;
   recurringRuleId: string | null;
-  tagId: string | null; tag: Tag | null; todos: Todo[];
-  metricType: "TIME" | "DISTANCE" | "COUNT" | "CUSTOM" | null;
-  metricUnit: string | null;
-  metricTarget: number | null;
-  metricActual: number;
-  timerStartedAt: string | null;
-  timerAccumMs: number;
+  carriedFromId: string | null;
+};
+
+type CarriedTask = {
+  id: string;
+  title: string;
+  tagId: string | null;
+  tagEmoji: string | null;
+  startTime: string;
+  endTime: string;
 };
 
 export default function TodayClient({
-  blocks, carried, tags, templates, currentDateISO, currentDateLabel,
-  prevDateISO, nextDateISO, nowHHMM, isPastDate,
+  tasks, carried, tags, templates,
+  currentDateISO, currentDateLabel, prevDateISO, nextDateISO,
+  nowHHMM, isPastDate,
 }: {
-  blocks: Block[]; carried: CarriedTodo[]; tags: Tag[]; templates: TemplateView[];
-  currentDateISO: string; currentDateLabel: string;
-  prevDateISO: string; nextDateISO: string;
-  nowHHMM: string | null; isPastDate: boolean;
+  tasks: TaskView[];
+  carried: CarriedTask[];
+  tags: Tag[];
+  templates: TemplateView[];
+  currentDateISO: string;
+  currentDateLabel: string;
+  prevDateISO: string;
+  nextDateISO: string;
+  nowHHMM: string | null;
+  isPastDate: boolean;
 }) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
-  const [editing, setEditing] = useState<BlockInitial | undefined>();
-  const [applyOpen, setApplyOpen] = useState(false);
-  const [view, setView] = useState<"timeline" | "compare">("timeline");
+  const [editing, setEditing] = useState<TaskInitial | undefined>();
 
-  function openCreate() { setModalMode("create"); setEditing(undefined); setModalOpen(true); }
-  function openEdit(block: Block) {
-    setModalMode("edit");
-    setEditing({ id: block.id, title: block.title, startTime: block.startTime, endTime: block.endTime, tagId: block.tagId, recurrence: block.recurrence, recurringRuleId: block.recurringRuleId, todos: block.todos.map((t) => ({ id: t.id, text: t.text })) });
+  function openCreate() {
+    setModalMode("create");
+    setEditing(undefined);
     setModalOpen(true);
   }
 
-  const totalTodos = blocks.reduce((acc, b) => acc + b.todos.length, 0);
-  const doneTodos = blocks.reduce((acc, b) => acc + b.todos.filter((t) => t.status === "DONE").length, 0);
-  const skippedTodos = blocks.reduce((acc, b) => acc + b.todos.filter((t) => t.status === "INCOMPLETE" || t.status === "SKIPPED").length, 0);
-  const pendingTodos = totalTodos - doneTodos - skippedTodos;
-  const pct = (n: number) => (totalTodos ? Math.round((n / totalTodos) * 100) : 0);
-  const completedBlocks = blocks.filter((b) => b.status === "DONE").length;
-  const dayTagTime = computeTagTimeStats(blocks);
+  function openEdit(task: TaskView) {
+    setModalMode("edit");
+    setEditing({
+      id: task.id,
+      title: task.title,
+      startTime: task.startTime,
+      endTime: task.endTime,
+      tagId: task.tagId,
+      note: task.note,
+      recurrence: task.recurrence,
+      recurringRuleId: task.recurringRuleId,
+    });
+    setModalOpen(true);
+  }
+
+  const totalTasks = tasks.length;
+  const doneTasks = tasks.filter((t) => t.status === "DONE").length;
+  const skippedTasks = tasks.filter((t) => t.status === "SKIPPED").length;
+  const pendingTasks = totalTasks - doneTasks - skippedTasks;
+  const pct = (n: number) => (totalTasks ? Math.round((n / totalTasks) * 100) : 0);
 
   return (
     <div className="animate-fade-in">
@@ -75,113 +90,58 @@ export default function TodayClient({
             Today&apos;s Log
           </h1>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <Link
-              href={`/today?date=${prevDateISO}`}
+            <Link href={`/today?date=${prevDateISO}`}
               className="w-6 h-6 rounded flex items-center justify-center transition-colors"
-              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
-            >
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
               <i className="fa-solid fa-chevron-left" style={{ fontSize: "9px", color: "var(--text-2)" }}></i>
             </Link>
-            <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-              {currentDateLabel}
-            </span>
-            <Link
-              href={`/today?date=${nextDateISO}`}
+            <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>{currentDateLabel}</span>
+            <Link href={`/today?date=${nextDateISO}`}
               className="w-6 h-6 rounded flex items-center justify-center transition-colors"
-              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
-            >
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
               <i className="fa-solid fa-chevron-right" style={{ fontSize: "9px", color: "var(--text-2)" }}></i>
             </Link>
-            <input
-              type="date"
-              value={currentDateISO}
+            <input type="date" value={currentDateISO}
               onChange={(e) => router.push(`/today?date=${e.target.value}`)}
               className="inp"
-              style={{
-                width: "auto", padding: "3px 8px", fontSize: "11px",
+              style={{ width: "auto", padding: "3px 8px", fontSize: "11px",
                 background: "var(--accent-bg)", borderColor: "var(--accent-bg)",
-                color: "var(--accent)", fontWeight: 600,
-              }}
-            />
+                color: "var(--accent)", fontWeight: 600 }} />
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {templates.length > 0 && (
-            <button onClick={() => setApplyOpen(true)} className="btn btn-outline" style={{ fontSize: "12px" }}>
-              <i className="fa-solid fa-layer-group"></i> Apply Template
-            </button>
-          )}
-          <button onClick={openCreate} className="btn btn-primary" style={{ fontSize: "12px" }}>
-            <i className="fa-solid fa-plus"></i> Add Block
-          </button>
-        </div>
-      </div>
-
-      {/* Carry-Forward banner (renders only when there are carried todos) */}
-      <CarryForwardBanner
-        todos={carried}
-        todayBlocks={blocks.map((b) => ({ id: b.id, title: b.title }))}
-        currentDateISO={currentDateISO}
-      />
-
-      {/* View toggle: Timeline | Plan vs Reality */}
-      <div className="flex items-center gap-1 mb-4" style={{ width: "fit-content", background: "var(--surface-2)", border: "1px solid var(--border)", padding: 3, borderRadius: 8 }}>
-        <button
-          type="button"
-          onClick={() => setView("timeline")}
-          className="text-xs font-medium px-3 py-1.5 rounded transition-colors"
-          style={{
-            background: view === "timeline" ? "var(--surface)" : "transparent",
-            color: view === "timeline" ? "var(--text)" : "var(--text-2)",
-            border: view === "timeline" ? "1px solid var(--border)" : "1px solid transparent",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          <i className="fa-solid fa-list mr-1.5"></i> Timeline
-        </button>
-        <button
-          type="button"
-          onClick={() => setView("compare")}
-          className="text-xs font-medium px-3 py-1.5 rounded transition-colors"
-          style={{
-            background: view === "compare" ? "var(--surface)" : "transparent",
-            color: view === "compare" ? "var(--text)" : "var(--text-2)",
-            border: view === "compare" ? "1px solid var(--border)" : "1px solid transparent",
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          <i className="fa-solid fa-scale-balanced mr-1.5"></i> Plan vs Reality
+        <button onClick={openCreate} className="btn btn-primary" style={{ fontSize: "12px" }}>
+          <i className="fa-solid fa-plus"></i> Add Task
         </button>
       </div>
 
-      {/* Plan vs Reality view */}
-      {view === "compare" && (
-        <PlanVsRealityView blocks={blocks} isPastDate={isPastDate} nowHHMM={nowHHMM} />
+      {/* Carry-forward banner */}
+      {carried.length > 0 && (
+        <CarryBanner carried={carried} currentDateISO={currentDateISO} />
       )}
 
-      {/* Main grid (Timeline view) */}
-      {view === "timeline" && (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* Main grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* Timeline */}
         <div className="lg:col-span-2 card p-5">
-          {blocks.length === 0 ? (
+          {tasks.length === 0 ? (
             <div className="text-center py-14">
               <div className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3"
                 style={{ background: "var(--accent-bg)" }}>
                 <i className="fa-solid fa-clock" style={{ color: "var(--accent)", fontSize: "18px" }}></i>
               </div>
               <p className="text-base font-semibold" style={{ color: "var(--text)" }}>Nothing planned for this day</p>
-              <p className="text-sm mt-1 mb-5" style={{ color: "var(--text-3)" }}>Click &quot;Add Block&quot; to start tracking.</p>
+              <p className="text-sm mt-1 mb-5" style={{ color: "var(--text-3)" }}>
+                Click &quot;Add Task&quot; to start scheduling.
+              </p>
               <button onClick={openCreate} className="btn btn-primary" style={{ fontSize: "12px" }}>
-                <i className="fa-solid fa-plus"></i> Add First Block
+                <i className="fa-solid fa-plus"></i> Add First Task
               </button>
             </div>
           ) : (
             <div className="space-y-3 stagger">
-              {blocks.map((block) => (
-                <BlockCard key={block.id} block={block} onEdit={() => openEdit(block)} nowHHMM={nowHHMM} isPastDate={isPastDate} />
+              {tasks.map((task) => (
+                <TaskCard key={task.id} task={task} onEdit={() => openEdit(task)}
+                  nowHHMM={nowHHMM} isPastDate={isPastDate} />
               ))}
             </div>
           )}
@@ -191,257 +151,323 @@ export default function TodayClient({
         <div className="space-y-4">
           <div className="card p-5">
             <h3 className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>Day Summary</h3>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <div className="flex items-center justify-between text-xs">
-                <span style={{ color: "var(--text-2)" }}>Blocks completed</span>
-                <span className="font-semibold" style={{ color: "var(--text)" }}>{completedBlocks} / {blocks.length}</span>
+                <span style={{ color: "var(--text-2)" }}>Total tasks</span>
+                <span className="font-semibold" style={{ color: "var(--text)" }}>{totalTasks}</span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span style={{ color: "var(--text-2)" }}>Todos total</span>
-                <span className="font-semibold" style={{ color: "var(--text)" }}>{totalTodos}</span>
-              </div>
+              <ProgressRow label="Completed" value={doneTasks} total={totalTasks} color="var(--success)" />
+              <ProgressRow label="Skipped" value={skippedTasks} total={totalTasks} color="var(--warning)" />
+              <ProgressRow label="Pending" value={pendingTasks} total={totalTasks} color="var(--text-3)" />
+              {totalTasks > 0 && (
+                <p className="text-[10px] text-right pt-1" style={{ color: "var(--text-3)" }}>
+                  {pct(doneTasks)}% complete
+                </p>
+              )}
             </div>
           </div>
 
-          <div className="card p-5">
-            <h3 className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>Todos Progress</h3>
-            {totalTodos === 0 ? (
-              <p className="text-xs text-center py-3" style={{ color: "var(--text-3)" }}>No todos yet.</p>
-            ) : (
-              <div className="space-y-2.5">
-                <ProgressRow label="Completed" value={doneTodos} total={totalTodos} color="var(--success)" />
-                <ProgressRow label="Skipped" value={skippedTodos} total={totalTodos} color="var(--warning)" />
-                <ProgressRow label="Pending" value={pendingTodos} total={totalTodos} color="var(--text-3)" />
-                <p className="text-[10px] text-right pt-1" style={{ color: "var(--text-3)" }}>
-                  {pct(doneTodos)}% complete
-                </p>
-              </div>
-            )}
-          </div>
-
-          {dayTagTime.totalMinutes > 0 && (
-            <TagTimeDonut tagTime={dayTagTime} layout="stack" />
-          )}
+          {/* Plan vs Reality */}
+          {totalTasks > 0 && <PlanVsReality tasks={tasks} />}
         </div>
       </div>
-      )}
 
-      <BlockModal open={modalOpen} onClose={() => setModalOpen(false)} mode={modalMode} initial={editing} tags={tags} currentDateISO={currentDateISO} />
-
-      {applyOpen && (
-        <ApplyTemplateInline templates={templates} currentDateISO={currentDateISO} onClose={() => setApplyOpen(false)} />
-      )}
+      <TaskModal open={modalOpen} onClose={() => setModalOpen(false)}
+        mode={modalMode} initial={editing} tags={tags} currentDateISO={currentDateISO} />
     </div>
   );
 }
 
-function ApplyTemplateInline({ templates, currentDateISO, onClose }: {
-  templates: TemplateView[]; currentDateISO: string; onClose: () => void;
+// ── Task Card ─────────────────────────────────────────
+function TaskCard({ task, onEdit, nowHHMM, isPastDate }: {
+  task: TaskView; onEdit: () => void; nowHHMM: string | null; isPastDate: boolean;
 }) {
-  const [selected, setSelected] = useState<string>(templates[0]?.id ?? "");
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="card p-5 md:p-6 w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-semibold" style={{ color: "var(--text)" }}>Apply Template</h2>
-          <button type="button" onClick={onClose}
-            className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-            style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-            <i className="fa-solid fa-xmark text-sm" style={{ color: "var(--text-2)" }}></i>
-          </button>
-        </div>
-        <p className="text-sm mb-4" style={{ color: "var(--text-2)" }}>Pick a template to apply to this date.</p>
-        <form action={async (formData: FormData) => {
-          const id = String(formData.get("templateId") ?? "");
-          if (!id) return;
-          formData.set("date", currentDateISO);
-          await applyTemplateAction(id, formData);
-        }} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>Template</label>
-            <select name="templateId" className="inp" value={selected} onChange={(e) => setSelected(e.target.value)} required>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.blockCount} {t.blockCount === 1 ? "block" : "blocks"})</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="btn btn-outline flex-1 justify-center">Cancel</button>
-            <button type="submit" className="btn btn-primary flex-1 justify-center">Apply</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+  const [, startTx] = useTransition();
+  const [showNote, setShowNote] = useState(!!task.note);
+  const [noteText, setNoteText] = useState(task.note ?? "");
+  const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null);
+  const isDone = optimisticDone ?? task.status === "DONE";
+  const isSkipped = task.status === "SKIPPED";
 
-function BlockCard({ block, onEdit, nowHHMM, isPastDate }: {
-  block: Block; onEdit: () => void; nowHHMM: string | null; isPastDate: boolean;
-}) {
-  const tagClass = block.tag ? tagClassFor(block.tag.name) : "tag-personal";
-  const addInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
-  const [addingText, setAddingText] = useState<string | null>(null);
-  const pillClass = computeBadge(block.status, block.startTime, block.endTime, nowHHMM, isPastDate);
-  const pillText = badgeText(pillClass);
+  const pill = computeBadge(task.status, task.startTime, task.endTime, nowHHMM, isPastDate);
 
-  const bgStyle =
-    block.status === "DONE"
-      ? { background: "rgba(22,163,74,.05)", border: "1px solid rgba(22,163,74,.15)" }
-      : block.status === "PARTIAL"
-        ? { background: "var(--accent-bg)", border: "1px solid rgba(94,106,210,.15)" }
-        : { background: "var(--surface-2)", border: "1px solid var(--border)" };
+  const bgStyle = isDone
+    ? { background: "rgba(22,163,74,.05)", border: "1px solid rgba(22,163,74,.15)" }
+    : isSkipped
+      ? { background: "var(--surface-2)", border: "1px solid var(--border)", opacity: 0.6 }
+      : { background: "var(--surface-2)", border: "1px solid var(--border)" };
 
-  const borderLeft =
-    block.status === "DONE" ? "2px solid var(--success)"
-      : block.status === "PARTIAL" ? "2px solid var(--accent)"
+  const borderLeft = isDone ? "2px solid var(--success)"
+    : isSkipped ? "2px solid var(--warning)"
+      : pill.cls === "pill-now" ? "2px solid var(--accent)"
         : "2px solid var(--border-2)";
+
+  function handleToggle() {
+    const newDone = !isDone;
+    setOptimisticDone(newDone);
+    startTx(async () => {
+      await toggleTaskAction(task.id);
+      setOptimisticDone(null);
+    });
+  }
+
+  function handleSkip() {
+    startTx(() => setTaskStatusAction(task.id, "SKIPPED"));
+  }
+
+  function handleSaveNote() {
+    if (noteText !== (task.note ?? "")) {
+      startTx(async () => {
+        await updateTaskNoteAction(task.id, noteText);
+        toast("Note saved");
+      });
+    }
+  }
 
   return (
     <div className="rounded-lg p-3.5" style={{ ...bgStyle, borderLeft }}>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-2.5">
-        <div>
+      <div className="flex items-start gap-3">
+        {/* Checkbox */}
+        <button type="button" onClick={handleToggle}
+          className={`cb mt-0.5 flex-shrink-0 ${isDone ? "cb-done" : ""}`}
+          title={isDone ? "Mark pending" : "Mark done"}>
+          {isDone && <i className="fa-solid fa-check text-white" style={{ fontSize: 9 }} />}
+        </button>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-sm" style={{ color: "var(--text)" }}>
-              {block.tag?.emoji ?? "📌"} {block.title}
+            <span className={`font-semibold text-sm ${isDone ? "line-through" : ""}`}
+              style={{ color: isDone ? "var(--text-3)" : "var(--text)" }}>
+              {task.tag?.emoji ?? "📌"} {task.title}
             </span>
-            {block.tag && <span className={`tag ${tagClass}`}>{block.tag.name}</span>}
+            {task.tag && <span className={`tag ${tagClassFor(task.tag.name)}`}>{task.tag.name}</span>}
           </div>
           <div className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-            {block.startTime} – {block.endTime}
+            {task.startTime} – {task.endTime}
+            {task.recurrence !== "NONE" && (
+              <span className="ml-2">
+                <i className="fa-solid fa-repeat" style={{ fontSize: 9 }}></i> {task.recurrence.toLowerCase()}
+              </span>
+            )}
           </div>
         </div>
+
+        {/* Actions */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <span className={`pill ${pillClass}`}>{pillText}</span>
-
-          {(() => {
-            const noTodos = block.todos.length === 0;
-            const allDone = !noTodos && block.todos.every((t) => t.status === "DONE");
-            if (allDone) return null;
-            if (noTodos) {
-              const isDone = block.status === "DONE";
-              return (
-                <form action={setBlockStatusAction.bind(null, block.id, isDone ? "PLANNED" : "DONE")}>
-                  <button type="submit"
-                    className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-                    style={{ background: isDone ? "rgba(22,163,74,.1)" : "var(--surface-2)", border: "1px solid var(--border)" }}
-                    title={isDone ? "Mark as not done" : "Mark as done"}>
-                    <i className={`fa-solid ${isDone ? "fa-rotate-left" : "fa-check"} text-xs`}
-                      style={{ color: isDone ? "var(--success)" : "var(--text-3)" }}></i>
-                  </button>
-                </form>
-              );
-            }
-            return (
-              <form action={markAllTodosAction.bind(null, block.id, true)}>
-                <button type="submit"
-                  className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-                  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
-                  title="Mark all todos as done">
-                  <i className="fa-solid fa-check text-xs" style={{ color: "var(--text-3)" }}></i>
-                </button>
-              </form>
-            );
-          })()}
-
-          <button type="button" onClick={onEdit}
-            className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+          <span className={`pill ${pill.cls}`}>{pill.text}</span>
+          {!isDone && !isSkipped && (
+            <button type="button" onClick={handleSkip}
+              className="w-7 h-7 rounded flex items-center justify-center"
+              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+              title="Skip">
+              <i className="fa-solid fa-ban text-xs" style={{ color: "var(--text-3)" }}></i>
+            </button>
+          )}
+          <button type="button" onClick={() => setShowNote((s) => !s)}
+            className="w-7 h-7 rounded flex items-center justify-center"
             style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
-            title="Edit / Delete">
+            title="Note">
+            <i className="fa-solid fa-comment text-xs" style={{ color: task.note ? "var(--accent)" : "var(--text-3)" }}></i>
+          </button>
+          <button type="button" onClick={onEdit}
+            className="w-7 h-7 rounded flex items-center justify-center"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+            title="Edit">
             <i className="fa-solid fa-pen text-xs" style={{ color: "var(--text-3)" }}></i>
           </button>
         </div>
       </div>
 
-      {/* Per-block progress bar */}
-      {block.todos.length > 0 && (() => {
-        const total = block.todos.length;
-        const done = block.todos.filter((t) => t.status === "DONE").length;
-        const pct = Math.round((done / total) * 100);
-        return (
-          <div className="flex items-center gap-2 mb-2.5">
-            <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--surface-2)" }}>
-              <div className="h-full rounded-full"
-                style={{ width: `${pct}%`, background: pct === 100 ? "var(--success)" : "var(--accent)", transition: "width .35s cubic-bezier(0.2,0,0,1)" }} />
-            </div>
-            <span className="text-[10px] font-semibold tabular" style={{ color: "var(--text-3)" }}>{done}/{total}</span>
-          </div>
-        );
-      })()}
-
-      {/* Todos — new component handles simple + trackable rendering, menu, edit, notes */}
-      {(block.todos.length > 0 || addingText) && (
-        <div style={{ marginBottom: "8px" }}>
-          {block.todos.map((todo) => (
-            <TodoItem key={todo.id} todo={todo} />
-          ))}
-          {/* Optimistic ghost row while the new todo saves */}
-          {addingText && (
-            <div className="todo-row" style={{ opacity: 0.55 }}>
-              <span className="cb" aria-hidden />
-              <span className="todo-text-display">{addingText}</span>
-              <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 11, color: "var(--text-3)" }}></i>
-            </div>
-          )}
+      {/* Note */}
+      {showNote && (
+        <div className="flex items-center gap-2 mt-2 pl-8">
+          <i className="fa-solid fa-comment" style={{ fontSize: 10, color: "var(--text-3)" }}></i>
+          <input value={noteText} onChange={(e) => setNoteText(e.target.value)}
+            onBlur={handleSaveNote}
+            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+            placeholder="Add a note..." maxLength={500}
+            className="flex-1 bg-transparent text-xs outline-none"
+            style={{ color: "var(--text-2)", minWidth: 0 }} />
         </div>
       )}
-
-      {/* Block-level tracker (timer / target) */}
-      {block.metricType ? (
-        <div className="relative">
-          <BlockTracker block={{ ...block, metricType: block.metricType }} />
-          <button
-            type="button"
-            title="Remove tracking"
-            onClick={async () => { await clearBlockMetricAction(block.id); router.refresh(); }}
-            className="absolute top-1 right-1 w-6 h-6 rounded flex items-center justify-center"
-            style={{ background: "transparent", color: "var(--text-3)" }}
-          >
-            <i className="fa-solid fa-xmark" style={{ fontSize: 10 }}></i>
-          </button>
-        </div>
-      ) : (
-        block.todos.length === 0 && !addingText && (
-          <button
-            type="button"
-            onClick={async () => {
-              await setBlockMetricAction(block.id, "TIME", durationHours(block.startTime, block.endTime), "hrs");
-              router.refresh();
-            }}
-            className="flex items-center gap-2 text-xs font-semibold px-2.5 py-2 rounded-lg mb-1 transition-colors"
-            style={{ color: "var(--accent)", background: "var(--accent-bg)" }}
-          >
-            <i className="fa-solid fa-stopwatch" style={{ fontSize: 11 }}></i>
-            Track this block with a timer
-          </button>
-        )
-      )}
-
-      {/* Add todo */}
-      <form
-        action={async (formData) => {
-          const text = String(formData.get("text") ?? "").trim();
-          if (!text) return;
-          setAddingText(text);
-          if (addInputRef.current) addInputRef.current.value = "";
-          await addTodoAction(block.id, formData);
-          router.refresh();
-          setAddingText(null);
-        }}
-        className="mt-2 flex items-center gap-2"
-      >
-        <i className="fa-solid fa-plus" style={{ fontSize: "10px", color: "var(--accent)" }}></i>
-        <input ref={addInputRef} name="text"
-          className="flex-1 bg-transparent text-xs outline-none"
-          style={{ color: "var(--text)" }}
-          placeholder="Add a todo..."
-          required maxLength={300} />
-      </form>
     </div>
   );
 }
 
+// ── Carry Banner ─────────────────────────────────────
+function CarryBanner({ carried, currentDateISO }: {
+  carried: CarriedTask[]; currentDateISO: string;
+}) {
+  const router = useRouter();
+  const [, startTx] = useTransition();
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+
+  async function carryTask(ct: CarriedTask) {
+    startTx(async () => {
+      await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: ct.title,
+          tagId: ct.tagId,
+          date: currentDateISO,
+          startTime: ct.startTime,
+          endTime: ct.endTime,
+          carriedFromId: ct.id,
+        }),
+      });
+      setDismissed((prev) => new Set(prev).add(ct.id));
+      router.refresh();
+      toast("Task added to today");
+    });
+  }
+
+  function skipTask(id: string) {
+    setDismissed((prev) => new Set(prev).add(id));
+  }
+
+  const visible = carried.filter((ct) => !dismissed.has(ct.id));
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="card p-4 mb-4" style={{ background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.2)" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <i className="fa-solid fa-rotate-right" style={{ fontSize: 11, color: "var(--warning)" }}></i>
+        <span className="text-xs font-semibold" style={{ color: "var(--warning)" }}>
+          Incomplete from yesterday ({visible.length})
+        </span>
+      </div>
+      <div className="space-y-1.5">
+        {visible.map((ct) => (
+          <div key={ct.id} className="flex items-center justify-between p-2 rounded"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <span className="text-xs" style={{ color: "var(--text)" }}>
+              {ct.tagEmoji ?? "📌"} {ct.title}
+              <span className="ml-1" style={{ color: "var(--text-3)" }}>({ct.startTime}–{ct.endTime})</span>
+            </span>
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={() => skipTask(ct.id)}
+                className="text-[10px] font-medium px-2 py-1 rounded"
+                style={{ background: "var(--surface-2)", color: "var(--text-3)", border: "1px solid var(--border)", cursor: "pointer" }}>
+                Skip
+              </button>
+              <button type="button" onClick={() => carryTask(ct)}
+                className="text-[10px] font-semibold px-2 py-1 rounded"
+                style={{ background: "var(--warning)", color: "white", border: "none", cursor: "pointer" }}>
+                Add to today
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Plan vs Reality ──────────────────────────────────
+function PlanVsReality({ tasks }: { tasks: TaskView[] }) {
+  function durationMin(s: string, e: string): number {
+    const [sh, sm] = s.split(":").map(Number);
+    const [eh, em] = e.split(":").map(Number);
+    const d = eh * 60 + em - (sh * 60 + sm);
+    return d > 0 ? d : 0;
+  }
+
+  const fmtH = (m: number) => {
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return h > 0 ? `${h}h ${mm > 0 ? `${mm}m` : ""}`.trim() : `${mm}m`;
+  };
+
+  const doneTasks = tasks.filter((t) => t.status === "DONE");
+  const skippedTasks = tasks.filter((t) => t.status === "SKIPPED");
+  const pendingTasks = tasks.filter((t) => t.status === "PENDING");
+
+  const totalPlannedMin = tasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
+  const doneMin = doneTasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
+  const pct = totalPlannedMin > 0 ? Math.round((doneMin / totalPlannedMin) * 100) : 0;
+
+  const statusConfig: Record<string, { icon: string; color: string; label: string }> = {
+    DONE: { icon: "fa-check", color: "var(--success)", label: "Done" },
+    SKIPPED: { icon: "fa-ban", color: "var(--warning)", label: "Skipped" },
+    PENDING: { icon: "fa-clock", color: "var(--text-3)", label: "Pending" },
+  };
+
+  return (
+    <div className="card p-5">
+      <h3 className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>
+        <i className="fa-solid fa-scale-balanced mr-1.5" style={{ fontSize: 11, color: "var(--accent)" }}></i>
+        Plan vs Reality
+      </h3>
+
+      {/* Progress bar */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="flex-1 h-2.5 rounded-full overflow-hidden flex" style={{ background: "var(--border)" }}>
+          {doneMin > 0 && (
+            <div className="h-full" style={{ width: `${(doneMin / totalPlannedMin) * 100}%`, background: "var(--success)" }} />
+          )}
+          {skippedTasks.length > 0 && (
+            <div className="h-full" style={{
+              width: `${(skippedTasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0) / totalPlannedMin) * 100}%`,
+              background: "var(--warning)",
+            }} />
+          )}
+        </div>
+        <span className="text-sm font-bold" style={{ color: pct >= 80 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--danger)" }}>
+          {pct}%
+        </span>
+      </div>
+
+      {/* Per-task breakdown */}
+      <div className="space-y-1.5">
+        {tasks.map((t) => {
+          const cfg = statusConfig[t.status];
+          return (
+            <div key={t.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs"
+              style={{ background: "var(--surface-2)" }}>
+              <i className={`fa-solid ${cfg.icon}`} style={{ fontSize: 10, color: cfg.color, width: 14, textAlign: "center" as const }}></i>
+              <span className="flex-1 min-w-0 truncate" style={{
+                color: t.status === "DONE" ? "var(--text-2)" : "var(--text)",
+                textDecoration: t.status === "DONE" ? "line-through" : "none",
+              }}>
+                {t.tag?.emoji ?? "📌"} {t.title}
+              </span>
+              <span className="text-[10px] flex-shrink-0" style={{ color: "var(--text-3)" }}>
+                {fmtH(durationMin(t.startTime, t.endTime))}
+              </span>
+              <span className="text-[10px] font-semibold flex-shrink-0 w-12 text-right" style={{ color: cfg.color }}>
+                {cfg.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary */}
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+        <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+          Plan <strong style={{ color: "var(--text-2)" }}>{fmtH(totalPlannedMin)}</strong>
+        </span>
+        <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+          Done <strong style={{ color: "var(--success)" }}>{fmtH(doneMin)}</strong>
+        </span>
+        {skippedTasks.length > 0 && (
+          <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+            Skipped <strong style={{ color: "var(--warning)" }}>{skippedTasks.length}</strong>
+          </span>
+        )}
+        {pendingTasks.length > 0 && (
+          <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
+            Pending <strong style={{ color: "var(--text-2)" }}>{pendingTasks.length}</strong>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Helpers ─────────────────────────────────────────
 function ProgressRow({ label, value, total, color }: {
   label: string; value: number; total: number; color: string;
 }) {
@@ -459,34 +485,16 @@ function ProgressRow({ label, value, total, color }: {
   );
 }
 
-function computeBadge(status: string, startTime: string, endTime: string, nowHHMM: string | null, isPastDate: boolean): string {
-  if (status === "DONE") return "pill-done";
-  if (status === "SKIPPED") return "pill-skipped";
-  if (isPastDate && status === "PLANNED") return "pill-missed";
-  if (isPastDate && status === "PARTIAL") return "pill-partial";
+function computeBadge(status: string, startTime: string, endTime: string, nowHHMM: string | null, isPastDate: boolean) {
+  if (status === "DONE") return { cls: "pill-done", text: "Done" };
+  if (status === "SKIPPED") return { cls: "pill-skipped", text: "Skipped" };
+  if (isPastDate) return { cls: "pill-missed", text: "Missed" };
   if (nowHHMM !== null) {
-    if (status === "PARTIAL") return nowHHMM > endTime ? "pill-partial" : "pill-now";
-    if (nowHHMM > endTime) return "pill-missed";
-    if (nowHHMM >= startTime) return "pill-now";
-    return "pill-upcoming";
+    if (nowHHMM > endTime) return { cls: "pill-missed", text: "Missed" };
+    if (nowHHMM >= startTime) return { cls: "pill-now", text: "Now" };
+    return { cls: "pill-upcoming", text: "Upcoming" };
   }
-  if (status === "PARTIAL") return "pill-now";
-  return "pill-upcoming";
-}
-
-function durationHours(start: string, end: string): number {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  const mins = eh * 60 + em - (sh * 60 + sm);
-  return mins > 0 ? Math.round((mins / 60) * 4) / 4 : 1; // round to 0.25h
-}
-
-function badgeText(pillClass: string): string {
-  const map: Record<string, string> = {
-    "pill-done": "✓ Done", "pill-skipped": "Skipped", "pill-partial": "Partial",
-    "pill-now": "In progress", "pill-missed": "Missed", "pill-upcoming": "Upcoming",
-  };
-  return map[pillClass] ?? "—";
+  return { cls: "pill-upcoming", text: "Upcoming" };
 }
 
 function tagClassFor(name: string): string {

@@ -1,19 +1,11 @@
-// Rendering: SSR (per-request).
-// Uses the auth cookie + per-user data, so Next.js can't cache this page.
-// Every visit runs the Server Component fresh against the DB.
-
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
-  parseISODate,
-  todayInZone,
-  nowHHMMInZone,
-  toISODate,
-  addDays,
-  formatPrettyDateWithLabel,
+  parseISODate, todayInZone, nowHHMMInZone, toISODate,
+  addDays, formatPrettyDateWithLabel,
 } from "@/lib/dates";
-import { materializeRecurringRules } from "@/actions/recurring";
+import { materializeRecurringTasks } from "@/lib/task-recurrence";
 import TodayClient from "./TodayClient";
 
 export default async function TodayPage({
@@ -24,22 +16,17 @@ export default async function TodayPage({
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
-  // Resolve which date to display from the URL (?date=YYYY-MM-DD)
   const params = await searchParams;
   const today = todayInZone(user.timeZone);
   const date = (params.date && parseISODate(params.date)) || today;
 
-  // Materialize any recurring rules due on this date (idempotent).
-  await materializeRecurringRules(user.id, date, today);
+  // Materialize recurring tasks for the viewed date
+  await materializeRecurringTasks(user.id, date);
 
-  // Fetch blocks, tags, and templates in parallel
-  const [blocks, tags, templates] = await Promise.all([
-    prisma.block.findMany({
+  const [tasks, tags, templates] = await Promise.all([
+    prisma.task.findMany({
       where: { userId: user.id, date },
-      include: {
-        tag: true,
-        todos: { orderBy: { createdAt: "asc" } },
-      },
+      include: { tag: true },
       orderBy: { startTime: "asc" },
     }),
     prisma.tag.findMany({
@@ -48,63 +35,61 @@ export default async function TodayPage({
     }),
     prisma.template.findMany({
       where: { userId: user.id },
-      select: {
-        id: true,
-        name: true,
-        _count: { select: { blocks: true } },
-      },
+      select: { id: true, name: true, _count: { select: { blocks: true } } },
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
-  const templatesView = templates.map((t) => ({
+  const tasksView = tasks.map((t) => ({
     id: t.id,
-    name: t.name,
-    blockCount: t._count.blocks,
+    title: t.title,
+    startTime: t.startTime,
+    endTime: t.endTime,
+    status: t.status,
+    note: t.note,
+    tagId: t.tagId,
+    tag: t.tag ? { id: t.tag.id, name: t.tag.name, emoji: t.tag.emoji } : null,
+    recurrence: t.recurrence,
+    recurringRuleId: t.recurringRuleId,
+    carriedFromId: t.carriedFromId,
   }));
 
-  // Serialize Date fields so client deps stay primitive.
-  const blocksView = blocks.map((b) => ({
-    ...b,
-    timerStartedAt: b.timerStartedAt ? b.timerStartedAt.toISOString() : null,
-    todos: b.todos.map((t) => ({
-      ...t,
-      timerStartedAt: t.timerStartedAt ? t.timerStartedAt.toISOString() : null,
-    })),
+  const templatesView = templates.map((t) => ({
+    id: t.id, name: t.name, blockCount: t._count.blocks,
   }));
 
-  // ── Carry-forward: unfinished todos from the previous day ──
+  // Carry-forward: unfinished tasks from previous day
   const prevDate = addDays(date, -1);
-  const prevBlocks = await prisma.block.findMany({
-    where: { userId: user.id, date: prevDate },
-    include: { todos: { orderBy: { createdAt: "asc" } } },
+  const prevTasks = await prisma.task.findMany({
+    where: { userId: user.id, date: prevDate, status: "PENDING" },
+    include: { tag: true },
   });
-  // Sources that have already been carried into the current day.
   const alreadyCarried = new Set(
-    blocks
-      .flatMap((b) => b.todos)
-      .map((t) => t.carriedFromId)
-      .filter(Boolean) as string[],
+    tasks.map((t) => t.carriedFromId).filter(Boolean) as string[],
   );
-  const carriedTodos = prevBlocks.flatMap((b) =>
-    b.todos
-      .filter(
-        (t) => t.status !== "DONE" && !alreadyCarried.has(t.id),
-      )
-      .map((t) => ({ id: t.id, text: t.text, blockTitle: b.title })),
+  const existingKeys = new Set(
+    tasks.map((t) => `${t.title}|${t.startTime}|${t.endTime}`),
   );
+  const carriedTasks = prevTasks
+    .filter((t) => !alreadyCarried.has(t.id) && !existingKeys.has(`${t.title}|${t.startTime}|${t.endTime}`))
+    .map((t) => ({
+      id: t.id,
+      title: t.title,
+      tagId: t.tagId,
+      tagEmoji: t.tag?.emoji ?? null,
+      startTime: t.startTime,
+      endTime: t.endTime,
+    }));
 
-  // For time-aware badges: only meaningful when viewing TODAY
   const todayISO = toISODate(today);
   const currentDateISO = toISODate(date);
-  const nowHHMM =
-    currentDateISO === todayISO ? nowHHMMInZone(user.timeZone) : null;
+  const nowHHMM = currentDateISO === todayISO ? nowHHMMInZone(user.timeZone) : null;
   const isPastDate = currentDateISO < todayISO;
 
   return (
     <TodayClient
-      blocks={blocksView}
-      carried={carriedTodos}
+      tasks={tasksView}
+      carried={carriedTasks}
       tags={tags}
       templates={templatesView}
       currentDateISO={currentDateISO}
