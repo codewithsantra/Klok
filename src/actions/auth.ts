@@ -9,6 +9,7 @@ import {
   clearSession,
 } from "@/lib/auth";
 import { DEFAULT_TAGS } from "@/lib/constants";
+import { sendVerificationEmail } from "./email-verification";
 
 export type AuthState = {
   error?: string;
@@ -60,6 +61,9 @@ export async function signUpAction(
       },
     },
   });
+
+  // ── Send verification email (soft enforcement — doesn't block signup) ──
+  await sendVerificationEmail(user.id, email);
 
   // ── Sign them in ──
   await createSession(user.id);

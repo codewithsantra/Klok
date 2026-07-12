@@ -21,7 +21,7 @@ type RepeatKind = "NONE" | "DAILY" | "WEEKDAYS" | "WEEKLY" | "CUSTOM";
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function TaskModal({
-  open, onClose, mode, initial, tags, currentDateISO,
+  open, onClose, mode, initial, tags, currentDateISO, todayISO,
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,6 +29,7 @@ export default function TaskModal({
   initial?: TaskInitial;
   tags: Tag[];
   currentDateISO: string;
+  todayISO?: string;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -116,6 +117,7 @@ export default function TaskModal({
           body: JSON.stringify({
             title, startTime, endTime, tagId: tagId || null, note: note || null,
             recurrence: repeat,
+            ...(date !== currentDateISO ? { date } : {}),
             ...(repeat === "WEEKLY" || repeat === "CUSTOM" ? { daysOfWeek } : {}),
             ...(repeat === "CUSTOM" ? {
               repeatEvery, repeatUnit,
@@ -127,8 +129,13 @@ export default function TaskModal({
         });
         const json = await res.json();
         if (!res.ok) { setError(json.error ?? "Could not update task"); setSubmitting(false); return; }
-        toast("Task updated");
-        router.refresh();
+        if (date !== currentDateISO) {
+          toast("Task moved");
+          router.push(`/today?date=${date}`);
+        } else {
+          toast("Task updated");
+          router.refresh();
+        }
       }
       onClose();
     } catch {
@@ -185,12 +192,19 @@ export default function TaskModal({
             )}
 
             {/* Date */}
-            {mode === "create" && (
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>Date</label>
-                <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-              </div>
-            )}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>Date</label>
+              <input className="inp" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              {mode === "edit" && date !== currentDateISO && todayISO && currentDateISO < todayISO && (
+                <p className="text-[11px] mt-1.5 flex items-start gap-1.5" style={{ color: "var(--warning)" }}>
+                  <i className="fa-solid fa-triangle-exclamation mt-0.5" style={{ fontSize: 10 }}></i>
+                  <span>
+                    This <strong>moves</strong>{" "}the task and erases it from that day&apos;s log.{" "}
+                    If you missed it, use &quot;Carry to today&quot; on the task instead.
+                  </span>
+                </p>
+              )}
+            </div>
 
             {/* Time */}
             <div className="grid grid-cols-2 gap-3">
@@ -224,23 +238,33 @@ export default function TaskModal({
 
                 {/* Weekly day picker */}
                 {(repeat === "WEEKLY" || repeat === "CUSTOM") && (
-                  <div className="flex gap-1 mt-2">
-                    {DAY_LABELS.map((label, i) => (
-                      <button key={i} type="button"
-                        onClick={() => setDaysOfWeek((prev) =>
-                          prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i]
-                        )}
-                        className="w-8 h-8 rounded-full text-[10px] font-semibold transition-colors"
-                        style={{
-                          background: daysOfWeek.includes(i) ? "var(--accent)" : "var(--surface-2)",
-                          color: daysOfWeek.includes(i) ? "white" : "var(--text-3)",
-                          border: "1px solid " + (daysOfWeek.includes(i) ? "var(--accent)" : "var(--border)"),
-                          cursor: "pointer",
-                        }}>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="flex gap-1 mt-2">
+                      {DAY_LABELS.map((label, i) => (
+                        <button key={i} type="button"
+                          onClick={() => setDaysOfWeek((prev) =>
+                            prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i]
+                          )}
+                          className="w-8 h-8 rounded-full text-[10px] font-semibold transition-colors"
+                          style={{
+                            background: daysOfWeek.includes(i) ? "var(--accent)" : "var(--surface-2)",
+                            color: daysOfWeek.includes(i) ? "white" : "var(--text-3)",
+                            border: "1px solid " + (daysOfWeek.includes(i) ? "var(--accent)" : "var(--border)"),
+                            cursor: "pointer",
+                          }}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {daysOfWeek.length > 0 && !daysOfWeek.includes(new Date(date + "T00:00:00").getDay()) && (
+                      <p className="text-[11px] mt-2 flex items-start gap-1.5" style={{ color: "var(--warning)" }}>
+                        <i className="fa-solid fa-circle-info mt-0.5" style={{ fontSize: 10 }}></i>
+                        <span>
+                          {`${new Date(date + "T00:00:00").toLocaleDateString("en", { weekday: "long" })} isn't a selected day — the first task will be created on the next selected day instead.`}
+                        </span>
+                      </p>
+                    )}
+                  </>
                 )}
 
                 {/* Custom repeat options */}

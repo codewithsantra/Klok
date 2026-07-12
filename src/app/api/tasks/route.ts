@@ -28,6 +28,17 @@ export async function POST(request: NextRequest) {
       if (!tag) return NextResponse.json({ error: "Tag not found" }, { status: 404 });
     }
 
+    // Carry-forward: link the copy back to the missed source task
+    let carriedFromId: string | null = null;
+    if (body.carriedFromId) {
+      const source = await prisma.task.findFirst({
+        where: { id: String(body.carriedFromId), userId: user.id },
+        select: { id: true },
+      });
+      if (!source) return NextResponse.json({ error: "Source task not found" }, { status: 404 });
+      carriedFromId = source.id;
+    }
+
     // Recurrence
     const REPEAT_KINDS = ["DAILY", "WEEKDAYS", "WEEKLY", "CUSTOM"] as const;
     const recurrence = REPEAT_KINDS.includes(body.recurrence) ? body.recurrence : "NONE";
@@ -39,12 +50,24 @@ export async function POST(request: NextRequest) {
     const repeatEndDate = body.repeatEndDate ? parseISODate(body.repeatEndDate) : null;
     const repeatEndCount = body.repeatEndCount ? Math.max(1, Number(body.repeatEndCount)) : null;
 
+    // If the start date's weekday isn't among the selected repeat days,
+    // shift the first task to the next selected day so the off-pattern
+    // date doesn't get a stray instance.
+    let taskDate = date;
+    const weekBased = recurrence === "WEEKLY" || (recurrence === "CUSTOM" && repeatUnit === "week");
+    if (weekBased && daysOfWeek.length > 0 && !daysOfWeek.includes(taskDate.getUTCDay())) {
+      for (let i = 0; i < 7; i++) {
+        taskDate = new Date(taskDate.getTime() + 86_400_000);
+        if (daysOfWeek.includes(taskDate.getUTCDay())) break;
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         userId: user.id,
         title,
         tagId,
-        date,
+        date: taskDate,
         startTime,
         endTime,
         note,
@@ -54,6 +77,7 @@ export async function POST(request: NextRequest) {
         repeatUnit,
         repeatEndDate,
         repeatEndCount,
+        carriedFromId,
       },
       include: { tag: true },
     });

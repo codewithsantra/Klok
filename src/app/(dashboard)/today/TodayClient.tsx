@@ -22,24 +22,16 @@ type TaskView = {
   recurrence: string;
   recurringRuleId: string | null;
   carriedFromId: string | null;
-};
-
-type CarriedTask = {
-  id: string;
-  title: string;
-  tagId: string | null;
-  tagEmoji: string | null;
-  startTime: string;
-  endTime: string;
+  alreadyCarried: boolean;
 };
 
 export default function TodayClient({
-  tasks, carried, tags, templates,
+  tasks, todayISO, tags, templates,
   currentDateISO, currentDateLabel, prevDateISO, nextDateISO,
   nowHHMM, isPastDate,
 }: {
   tasks: TaskView[];
-  carried: CarriedTask[];
+  todayISO: string;
   tags: Tag[];
   templates: TemplateView[];
   currentDateISO: string;
@@ -79,7 +71,6 @@ export default function TodayClient({
   const doneTasks = tasks.filter((t) => t.status === "DONE").length;
   const skippedTasks = tasks.filter((t) => t.status === "SKIPPED").length;
   const pendingTasks = totalTasks - doneTasks - skippedTasks;
-  const pct = (n: number) => (totalTasks ? Math.round((n / totalTasks) * 100) : 0);
 
   return (
     <div className="animate-fade-in">
@@ -114,11 +105,6 @@ export default function TodayClient({
         </button>
       </div>
 
-      {/* Carry-forward banner */}
-      {carried.length > 0 && (
-        <CarryBanner carried={carried} currentDateISO={currentDateISO} />
-      )}
-
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* Timeline */}
@@ -141,53 +127,53 @@ export default function TodayClient({
             <div className="space-y-3 stagger">
               {tasks.map((task) => (
                 <TaskCard key={task.id} task={task} onEdit={() => openEdit(task)}
-                  nowHHMM={nowHHMM} isPastDate={isPastDate} />
+                  nowHHMM={nowHHMM} isPastDate={isPastDate} todayISO={todayISO} />
               ))}
             </div>
           )}
         </div>
 
-        {/* Right panel */}
+        {/* Right panel — one merged summary card */}
         <div className="space-y-4">
-          <div className="card p-5">
-            <h3 className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>Day Summary</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span style={{ color: "var(--text-2)" }}>Total tasks</span>
-                <span className="font-semibold" style={{ color: "var(--text)" }}>{totalTasks}</span>
-              </div>
-              <ProgressRow label="Completed" value={doneTasks} total={totalTasks} color="var(--success)" />
-              <ProgressRow label="Skipped" value={skippedTasks} total={totalTasks} color="var(--warning)" />
-              <ProgressRow label="Pending" value={pendingTasks} total={totalTasks} color="var(--text-3)" />
-              {totalTasks > 0 && (
-                <p className="text-[10px] text-right pt-1" style={{ color: "var(--text-3)" }}>
-                  {pct(doneTasks)}% complete
-                </p>
-              )}
+          {totalTasks === 0 ? (
+            <div className="card p-5">
+              <h3 className="font-semibold text-sm mb-2" style={{ color: "var(--text)" }}>Day Summary</h3>
+              <p className="text-xs" style={{ color: "var(--text-3)" }}>No tasks yet — add one to see your day at a glance.</p>
             </div>
-          </div>
-
-          {/* Plan vs Reality */}
-          {totalTasks > 0 && <PlanVsReality tasks={tasks} />}
+          ) : (
+            <PlanVsReality tasks={tasks} doneTasks={doneTasks} skippedTasks={skippedTasks}
+              pendingTasks={pendingTasks} totalTasks={totalTasks} />
+          )}
         </div>
       </div>
 
       <TaskModal open={modalOpen} onClose={() => setModalOpen(false)}
-        mode={modalMode} initial={editing} tags={tags} currentDateISO={currentDateISO} />
+        mode={modalMode} initial={editing} tags={tags} currentDateISO={currentDateISO} todayISO={todayISO} />
     </div>
   );
 }
 
 // ── Task Card ─────────────────────────────────────────
-function TaskCard({ task, onEdit, nowHHMM, isPastDate }: {
-  task: TaskView; onEdit: () => void; nowHHMM: string | null; isPastDate: boolean;
+function TaskCard({ task, onEdit, nowHHMM, isPastDate, todayISO }: {
+  task: TaskView; onEdit: () => void; nowHHMM: string | null; isPastDate: boolean; todayISO: string;
 }) {
+  const router = useRouter();
   const [, startTx] = useTransition();
   const [showNote, setShowNote] = useState(!!task.note);
   const [noteText, setNoteText] = useState(task.note ?? "");
   const [optimisticDone, setOptimisticDone] = useState<boolean | null>(null);
+  const [carried, setCarried] = useState(task.alreadyCarried);
   const isDone = optimisticDone ?? task.status === "DONE";
   const isSkipped = task.status === "SKIPPED";
+  // A task is "missed" when it's still pending and its time has passed —
+  // either the whole day is over, or it's today and the end time went by.
+  const missedToday = !isPastDate && nowHHMM !== null && nowHHMM > task.endTime;
+  const isMissed = !isDone && !isSkipped && (isPastDate || missedToday);
+  // Past-day misses carry to today; today's misses carry to tomorrow.
+  const carryTargetISO = isPastDate
+    ? todayISO
+    : new Intl.DateTimeFormat("en-CA").format(new Date(new Date(todayISO + "T00:00:00").getTime() + 86_400_000));
+  const carryLabel = isPastDate ? "Carry to today" : "Carry to tomorrow";
 
   const pill = computeBadge(task.status, task.startTime, task.endTime, nowHHMM, isPastDate);
 
@@ -224,6 +210,30 @@ function TaskCard({ task, onEdit, nowHHMM, isPastDate }: {
     }
   }
 
+  function handleCarry() {
+    startTx(async () => {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: task.title,
+          tagId: task.tagId,
+          date: carryTargetISO,
+          startTime: task.startTime,
+          endTime: task.endTime,
+          carriedFromId: task.id,
+        }),
+      });
+      if (res.ok) {
+        setCarried(true);
+        toast(isPastDate ? "Task carried to today" : "Task carried to tomorrow");
+        router.refresh();
+      } else {
+        toast("Could not carry task");
+      }
+    });
+  }
+
   return (
     <div className="rounded-lg p-3.5" style={{ ...bgStyle, borderLeft }}>
       <div className="flex items-start gap-3">
@@ -256,6 +266,21 @@ function TaskCard({ task, onEdit, nowHHMM, isPastDate }: {
         {/* Actions */}
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <span className={`pill ${pill.cls}`}>{pill.text}</span>
+          {isMissed && (
+            carried ? (
+              <span className="text-[10px] font-semibold px-2 py-1 rounded"
+                style={{ background: "var(--success)", color: "white" }}>
+                <i className="fa-solid fa-check" style={{ fontSize: 9 }}></i> Carried
+              </span>
+            ) : (
+              <button type="button" onClick={handleCarry}
+                className="text-[10px] font-semibold px-2 py-1 rounded whitespace-nowrap"
+                style={{ background: "var(--warning)", color: "white", border: "none", cursor: "pointer" }}
+                title="Copy this task forward; the miss stays on record here">
+                <i className="fa-solid fa-arrow-right" style={{ fontSize: 9 }}></i> {carryLabel}
+              </button>
+            )
+          )}
           {!isDone && !isSkipped && (
             <button type="button" onClick={handleSkip}
               className="w-7 h-7 rounded flex items-center justify-center"
@@ -281,92 +306,32 @@ function TaskCard({ task, onEdit, nowHHMM, isPastDate }: {
 
       {/* Note */}
       {showNote && (
-        <div className="flex items-center gap-2 mt-2 pl-8">
-          <i className="fa-solid fa-comment" style={{ fontSize: 10, color: "var(--text-3)" }}></i>
-          <input value={noteText} onChange={(e) => setNoteText(e.target.value)}
+        <div className="flex items-start gap-2 mt-2 pl-8">
+          <i className="fa-solid fa-comment mt-1" style={{ fontSize: 10, color: "var(--text-3)" }}></i>
+          <textarea value={noteText}
+            onChange={(e) => {
+              setNoteText(e.target.value);
+              e.currentTarget.style.height = "auto";
+              e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+            }}
+            ref={(el) => {
+              if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; }
+            }}
             onBlur={handleSaveNote}
-            onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-            placeholder="Add a note..." maxLength={500}
-            className="flex-1 bg-transparent text-xs outline-none"
-            style={{ color: "var(--text-2)", minWidth: 0 }} />
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.blur(); } }}
+            placeholder="Add a note..." maxLength={500} rows={1}
+            className="flex-1 bg-transparent text-xs outline-none resize-none leading-relaxed"
+            style={{ color: "var(--text-2)", minWidth: 0, overflow: "hidden" }} />
         </div>
       )}
     </div>
   );
 }
 
-// ── Carry Banner ─────────────────────────────────────
-function CarryBanner({ carried, currentDateISO }: {
-  carried: CarriedTask[]; currentDateISO: string;
-}) {
-  const router = useRouter();
-  const [, startTx] = useTransition();
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-
-  async function carryTask(ct: CarriedTask) {
-    startTx(async () => {
-      await fetch("/api/tasks", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: ct.title,
-          tagId: ct.tagId,
-          date: currentDateISO,
-          startTime: ct.startTime,
-          endTime: ct.endTime,
-          carriedFromId: ct.id,
-        }),
-      });
-      setDismissed((prev) => new Set(prev).add(ct.id));
-      router.refresh();
-      toast("Task added to today");
-    });
-  }
-
-  function skipTask(id: string) {
-    setDismissed((prev) => new Set(prev).add(id));
-  }
-
-  const visible = carried.filter((ct) => !dismissed.has(ct.id));
-  if (visible.length === 0) return null;
-
-  return (
-    <div className="card p-4 mb-4" style={{ background: "rgba(245,158,11,.06)", border: "1px solid rgba(245,158,11,.2)" }}>
-      <div className="flex items-center gap-2 mb-2">
-        <i className="fa-solid fa-rotate-right" style={{ fontSize: 11, color: "var(--warning)" }}></i>
-        <span className="text-xs font-semibold" style={{ color: "var(--warning)" }}>
-          Incomplete from yesterday ({visible.length})
-        </span>
-      </div>
-      <div className="space-y-1.5">
-        {visible.map((ct) => (
-          <div key={ct.id} className="flex items-center justify-between p-2 rounded"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <span className="text-xs" style={{ color: "var(--text)" }}>
-              {ct.tagEmoji ?? "📌"} {ct.title}
-              <span className="ml-1" style={{ color: "var(--text-3)" }}>({ct.startTime}–{ct.endTime})</span>
-            </span>
-            <div className="flex items-center gap-1.5">
-              <button type="button" onClick={() => skipTask(ct.id)}
-                className="text-[10px] font-medium px-2 py-1 rounded"
-                style={{ background: "var(--surface-2)", color: "var(--text-3)", border: "1px solid var(--border)", cursor: "pointer" }}>
-                Skip
-              </button>
-              <button type="button" onClick={() => carryTask(ct)}
-                className="text-[10px] font-semibold px-2 py-1 rounded"
-                style={{ background: "var(--warning)", color: "white", border: "none", cursor: "pointer" }}>
-                Add to today
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── Plan vs Reality ──────────────────────────────────
-function PlanVsReality({ tasks }: { tasks: TaskView[] }) {
+function PlanVsReality({ tasks, doneTasks, skippedTasks, pendingTasks, totalTasks }: {
+  tasks: TaskView[]; doneTasks: number; skippedTasks: number; pendingTasks: number; totalTasks: number;
+}) {
   function durationMin(s: string, e: string): number {
     const [sh, sm] = s.split(":").map(Number);
     const [eh, em] = e.split(":").map(Number);
@@ -380,86 +345,58 @@ function PlanVsReality({ tasks }: { tasks: TaskView[] }) {
     return h > 0 ? `${h}h ${mm > 0 ? `${mm}m` : ""}`.trim() : `${mm}m`;
   };
 
-  const doneTasks = tasks.filter((t) => t.status === "DONE");
-  const skippedTasks = tasks.filter((t) => t.status === "SKIPPED");
-  const pendingTasks = tasks.filter((t) => t.status === "PENDING");
-
   const totalPlannedMin = tasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
-  const doneMin = doneTasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
+  const doneMin = tasks.filter((t) => t.status === "DONE")
+    .reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
+  const skippedMin = tasks.filter((t) => t.status === "SKIPPED")
+    .reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
   const pct = totalPlannedMin > 0 ? Math.round((doneMin / totalPlannedMin) * 100) : 0;
-
-  const statusConfig: Record<string, { icon: string; color: string; label: string }> = {
-    DONE: { icon: "fa-check", color: "var(--success)", label: "Done" },
-    SKIPPED: { icon: "fa-ban", color: "var(--warning)", label: "Skipped" },
-    PENDING: { icon: "fa-clock", color: "var(--text-3)", label: "Pending" },
-  };
 
   return (
     <div className="card p-5">
-      <h3 className="font-semibold text-sm mb-3" style={{ color: "var(--text)" }}>
-        <i className="fa-solid fa-scale-balanced mr-1.5" style={{ fontSize: 11, color: "var(--accent)" }}></i>
-        Plan vs Reality
-      </h3>
-
-      {/* Progress bar */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex-1 h-2.5 rounded-full overflow-hidden flex" style={{ background: "var(--border)" }}>
-          {doneMin > 0 && (
-            <div className="h-full" style={{ width: `${(doneMin / totalPlannedMin) * 100}%`, background: "var(--success)" }} />
-          )}
-          {skippedTasks.length > 0 && (
-            <div className="h-full" style={{
-              width: `${(skippedTasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0) / totalPlannedMin) * 100}%`,
-              background: "var(--warning)",
-            }} />
-          )}
+      {/* Header: title + big % */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+          <i className="fa-solid fa-scale-balanced mr-1.5" style={{ fontSize: 11, color: "var(--accent)" }}></i>
+          Day Summary
+        </h3>
+        <div className="text-right">
+          <span className="text-lg font-extrabold" style={{ color: pct >= 80 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--danger)" }}>
+            {pct}%
+          </span>
+          <span className="text-[10px] ml-1" style={{ color: "var(--text-3)" }}>of plan done</span>
         </div>
-        <span className="text-sm font-bold" style={{ color: pct >= 80 ? "var(--success)" : pct >= 40 ? "var(--warning)" : "var(--danger)" }}>
-          {pct}%
-        </span>
       </div>
 
-      {/* Per-task breakdown */}
-      <div className="space-y-1.5">
-        {tasks.map((t) => {
-          const cfg = statusConfig[t.status];
-          return (
-            <div key={t.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg text-xs"
-              style={{ background: "var(--surface-2)" }}>
-              <i className={`fa-solid ${cfg.icon}`} style={{ fontSize: 10, color: cfg.color, width: 14, textAlign: "center" as const }}></i>
-              <span className="flex-1 min-w-0 truncate" style={{
-                color: t.status === "DONE" ? "var(--text-2)" : "var(--text)",
-                textDecoration: t.status === "DONE" ? "line-through" : "none",
-              }}>
-                {t.tag?.emoji ?? "📌"} {t.title}
-              </span>
-              <span className="text-[10px] flex-shrink-0" style={{ color: "var(--text-3)" }}>
-                {fmtH(durationMin(t.startTime, t.endTime))}
-              </span>
-              <span className="text-[10px] font-semibold flex-shrink-0 w-12 text-right" style={{ color: cfg.color }}>
-                {cfg.label}
-              </span>
-            </div>
-          );
-        })}
+      {/* Counts strip */}
+      <div className="flex items-center gap-3 mb-3 text-[11px]">
+        <span style={{ color: "var(--success)" }}><strong>{doneTasks}</strong> done</span>
+        <span style={{ color: "var(--warning)" }}><strong>{skippedTasks}</strong> skipped</span>
+        <span style={{ color: "var(--text-3)" }}><strong>{pendingTasks}</strong> pending</span>
+        <span className="ml-auto" style={{ color: "var(--text-3)" }}>{totalTasks} total</span>
       </div>
 
-      {/* Summary */}
+      {/* Stacked time bar */}
+      <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: "var(--border)" }}>
+        {doneMin > 0 && (
+          <div className="h-full" style={{ width: `${(doneMin / totalPlannedMin) * 100}%`, background: "var(--success)" }} />
+        )}
+        {skippedMin > 0 && (
+          <div className="h-full" style={{ width: `${(skippedMin / totalPlannedMin) * 100}%`, background: "var(--warning)" }} />
+        )}
+      </div>
+
+      {/* Time footer */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
         <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
-          Plan <strong style={{ color: "var(--text-2)" }}>{fmtH(totalPlannedMin)}</strong>
+          Planned <strong style={{ color: "var(--text-2)" }}>{fmtH(totalPlannedMin)}</strong>
         </span>
         <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
           Done <strong style={{ color: "var(--success)" }}>{fmtH(doneMin)}</strong>
         </span>
-        {skippedTasks.length > 0 && (
+        {skippedMin > 0 && (
           <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
-            Skipped <strong style={{ color: "var(--warning)" }}>{skippedTasks.length}</strong>
-          </span>
-        )}
-        {pendingTasks.length > 0 && (
-          <span className="text-[10px]" style={{ color: "var(--text-3)" }}>
-            Pending <strong style={{ color: "var(--text-2)" }}>{pendingTasks.length}</strong>
+            Skipped <strong style={{ color: "var(--warning)" }}>{fmtH(skippedMin)}</strong>
           </span>
         )}
       </div>
@@ -468,23 +405,6 @@ function PlanVsReality({ tasks }: { tasks: TaskView[] }) {
 }
 
 // ── Helpers ─────────────────────────────────────────
-function ProgressRow({ label, value, total, color }: {
-  label: string; value: number; total: number; color: string;
-}) {
-  const width = total ? (value / total) * 100 : 0;
-  return (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span style={{ color: "var(--text-2)" }}>{label}</span>
-        <span className="font-semibold" style={{ color }}>{value} / {total}</span>
-      </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-        <div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} />
-      </div>
-    </div>
-  );
-}
-
 function computeBadge(status: string, startTime: string, endTime: string, nowHHMM: string | null, isPastDate: boolean) {
   if (status === "DONE") return { cls: "pill-done", text: "Done" };
   if (status === "SKIPPED") return { cls: "pill-skipped", text: "Skipped" };

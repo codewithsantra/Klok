@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { parseISODate } from "@/lib/dates";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       data.tagId = tagId;
     }
     if (typeof body.note === "string") data.note = body.note.trim() || null;
+    if (typeof body.date === "string") {
+      const newDate = parseISODate(body.date);
+      if (!newDate) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+      data.date = newDate;
+    }
     if (typeof body.status === "string" && ["PENDING", "DONE", "SKIPPED"].includes(body.status)) {
       data.status = body.status;
     }
@@ -52,29 +58,32 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       if (task) {
         const ruleId = task.recurringRuleId;
         const isTemplate = !ruleId && task.recurrence !== "NONE";
+        // Never bulk-apply a date change — that would collapse every
+        // instance onto the same day. Date moves are per-task only.
+        const { date: _date, ...bulkData } = data;
 
         if (ruleId) {
-          await prisma.task.update({ where: { id: ruleId }, data });
+          await prisma.task.update({ where: { id: ruleId }, data: bulkData });
           await prisma.task.updateMany({
             where: {
               userId: user.id,
               recurringRuleId: ruleId,
               date: { gte: task.date },
             },
-            data,
+            data: bulkData,
           });
           return NextResponse.json({ data: { id } });
         }
 
         if (isTemplate) {
-          await prisma.task.update({ where: { id }, data });
+          await prisma.task.update({ where: { id }, data: bulkData });
           await prisma.task.updateMany({
             where: {
               userId: user.id,
               recurringRuleId: id,
               date: { gte: task.date },
             },
-            data,
+            data: bulkData,
           });
           return NextResponse.json({ data: { id } });
         }

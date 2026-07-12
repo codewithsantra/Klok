@@ -106,20 +106,6 @@ export default async function AnalyticsPage({
   // Time spent per tag across the selected period (scheduled task durations).
   const tagTime = computeTagTimeStats(tasks);
 
-  // Tasks for kanban/bar views (only for week view)
-  const kanbanTasks = view === "week"
-    ? tasks.map((t) => ({
-        id: t.id,
-        title: t.title,
-        date: toISODate(t.date),
-        status: t.status,
-        startTime: t.startTime,
-        endTime: t.endTime,
-        tagName: t.tag?.name ?? null,
-        tagEmoji: t.tag?.emoji ?? null,
-      }))
-    : [];
-
   // ── Compute stats for the active view ──
   const week =
     view === "week" ? computeWeekStats(tasks, referenceDate) : null;
@@ -197,7 +183,6 @@ export default async function AnalyticsPage({
       nextPeriod={nextPeriod}
       periodLabel={periodLabel}
       disableNext={isAtFutureEdge}
-      kanbanTasks={kanbanTasks}
       timerSessions={timerSessionsView}
     />
   );

@@ -25,15 +25,6 @@ const METHODS = [
     action: "support@klok.app",
     href: "mailto:support@klok.app",
   },
-  {
-    icon: "fa-x-twitter",
-    color: M.PINK,
-    title: "Social",
-    body: "Follow along and DM us with quick questions.",
-    action: "@klokapp",
-    href: "https://x.com",
-    brand: true,
-  },
 ];
 
 export default function ContactPage() {
@@ -42,7 +33,7 @@ export default function ContactPage() {
       title="Get in touch"
       intro="Questions, feedback, or partnership ideas? We'd love to hear from you."
     >
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
         {METHODS.map((m) => (
           <a
             key={m.title}
@@ -53,7 +44,7 @@ export default function ContactPage() {
             style={{ background: M.SURFACE, border: `1px solid ${M.BORDER}`, boxShadow: "var(--shadow-sm)" }}
           >
             <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: `${m.color}22` }}>
-              <i className={`${m.brand ? "fa-brands" : "fa-solid"} ${m.icon}`} style={{ color: m.color, fontSize: 17 }}></i>
+              <i className={`fa-solid ${m.icon}`} style={{ color: m.color, fontSize: 17 }}></i>
             </div>
             <h2 className="font-display text-base font-bold mb-1" style={{ color: M.INK }}>{m.title}</h2>
             <p className="text-sm mb-3 leading-relaxed" style={{ color: M.INK2 }}>{m.body}</p>

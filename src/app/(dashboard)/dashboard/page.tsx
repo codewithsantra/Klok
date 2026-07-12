@@ -43,7 +43,6 @@ export default async function DashboardPage() {
 
   const tasksTotal = todayTasks.length;
   const tasksDone = todayTasks.filter((t) => t.status === "DONE").length;
-  const tasksSkipped = todayTasks.filter((t) => t.status === "SKIPPED").length;
   const productivityScore =
     tasksTotal === 0 ? null : Math.round((tasksDone / tasksTotal) * 100);
 
@@ -73,29 +72,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 stagger">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 stagger">
         <Link href="/today" className="card p-5 stat-card flex items-center gap-4">
-          <div
-            className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
-            style={{ background: "var(--success-bg)" }}
-          >
-            <i className="fa-solid fa-check" style={{ color: "var(--success)", fontSize: "16px" }}></i>
-          </div>
-          <div className="flex-1">
-            <div className="text-2xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.03em" }}>
-              {tasksDone}{" "}
-              <span className="text-sm font-medium" style={{ color: "var(--text-3)" }}>
-                / {tasksTotal}
-              </span>
-            </div>
-            <div className="text-xs font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
-              Tasks Completed
-            </div>
-          </div>
-          <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
-        </Link>
-
-        <Link href="/analytics" className="card p-5 stat-card flex items-center gap-4">
           <div
             className="flex-shrink-0"
             style={{
@@ -110,9 +88,14 @@ export default async function DashboardPage() {
             </span>
           </div>
           <div className="flex-1">
-            <div className="text-sm font-bold" style={{ color: "var(--text)" }}>Productivity Score</div>
-            <div className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-              {tasksDone} of {tasksTotal} tasks done
+            <div className="text-2xl font-bold" style={{ color: "var(--text)", letterSpacing: "-0.03em" }}>
+              {tasksDone}{" "}
+              <span className="text-sm font-medium" style={{ color: "var(--text-3)" }}>
+                / {tasksTotal}
+              </span>
+            </div>
+            <div className="text-xs font-medium mt-0.5" style={{ color: "var(--text-2)" }}>
+              Tasks Completed
             </div>
           </div>
           <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
@@ -307,46 +290,6 @@ export default async function DashboardPage() {
             <TagTimeDonut tagTime={todayTagTime} layout="stack" />
           )}
 
-          {timerSessions.length > 0 && (
-            <Link href="/timer" className="card p-5 stat-card block">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
-                  <i className="fa-solid fa-stopwatch mr-1.5" style={{ color: "var(--accent)" }}></i>
-                  Focus Timer
-                </h2>
-                <i className="fa-solid fa-arrow-right text-xs" style={{ color: "var(--text-3)" }}></i>
-              </div>
-              <div className="space-y-2">
-                {timerSessions.map((s) => {
-                  const elapsedMs = s.subItems.reduce((sum, i) => {
-                    let ms = i.timerAccumMs;
-                    if (i.timerStartedAt) ms += Date.now() - i.timerStartedAt.getTime();
-                    return sum + ms;
-                  }, 0);
-                  const targetMs = s.targetMinutes * 60000;
-                  const pct = Math.min(Math.round((elapsedMs / targetMs) * 100), 100);
-                  return (
-                    <div key={s.id}>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="font-medium truncate" style={{ color: "var(--text)" }}>
-                          {s.tag?.emoji ?? "🎯"} {s.title}
-                        </span>
-                        <span className="font-semibold tabular ml-2" style={{ color: pct >= 100 ? "var(--success)" : "var(--accent)" }}>
-                          {pct}%
-                        </span>
-                      </div>
-                      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-                        <div className="h-full rounded-full" style={{
-                          width: `${pct}%`,
-                          background: pct >= 100 ? "var(--success)" : "var(--accent)",
-                        }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Link>
-          )}
         </div>
       </div>
     </div>

@@ -174,6 +174,7 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
   const [subTaskId, setSubTaskId] = useState("");
   const [subError, setSubError] = useState("");
   const [pendingSubs, setPendingSubs] = useState<PendingSub[]>([]);
+  const [removedSubIds, setRemovedSubIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -186,12 +187,14 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
     }
     setSubTitle(""); setSubHours(""); setSubSource("new"); setSubTaskId("");
     setPendingSubs([]); setConfirmDelete(false); setSubError("");
+    setRemovedSubIds(new Set());
   }, [open, session]);
 
   if (!open) return null;
 
   const currentTotalMin = Math.round(parseFloat(hours || "0") * 60) || 0;
-  const existingUsedMin = session ? session.subItems.reduce((s, i) => s + i.targetMinutes, 0) : 0;
+  const visibleSubItems = session ? session.subItems.filter((i) => !removedSubIds.has(i.id)) : [];
+  const existingUsedMin = visibleSubItems.reduce((s, i) => s + i.targetMinutes, 0);
   const pendingUsedMin = pendingSubs.reduce((s, p) => s + p.minutes, 0);
   const usedMin = existingUsedMin + pendingUsedMin;
   const remainingMin = Math.max(currentTotalMin - usedMin, 0);
@@ -250,6 +253,7 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
   }
 
   async function handleDeleteSub(subId: string) {
+    setRemovedSubIds((prev) => new Set(prev).add(subId));
     startTx(async () => {
       await deleteTimerSubItemAction(subId);
       router.refresh();
@@ -322,9 +326,9 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
               </div>
 
                 {/* Existing sub-items (edit mode) */}
-                {session && session.subItems.length > 0 && (
+                {session && visibleSubItems.length > 0 && (
                   <div className="space-y-1.5 mb-2">
-                    {session.subItems.map((item) => (
+                    {visibleSubItems.map((item) => (
                       <div key={item.id} className="flex items-center justify-between p-2 rounded-md"
                         style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
                         <div>
@@ -579,7 +583,7 @@ function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<ty
           <span className="text-[10px] font-semibold tabular ml-2 flex-shrink-0"
             style={{ color: running ? "var(--accent)" : "var(--text-3)" }}
             suppressHydrationWarning>
-            {fmt(elapsed)}
+            {fmt(elapsed)} <span style={{ fontWeight: 400, opacity: 0.7 }}>/ {fmtMin(item.targetMinutes)}</span>
           </span>
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>

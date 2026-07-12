@@ -98,7 +98,7 @@ export function MarketingFooter() {
   const cols = [
     { title: "Product", links: [["Features", "/#features"], ["Pricing", "/#pricing"], ["How it works", "/#how"], ["Sign in", "/sign-in"]] },
     { title: "Company", links: [["About", "/about"], ["Roadmap", "/about#roadmap"], ["Contact", "/contact"]] },
-    { title: "Resources", links: [["FAQ", "/#faq"], ["Get started", "/sign-up"], ["Templates", "/sign-up"]] },
+    { title: "Resources", links: [["FAQ", "/#faq"], ["Get started", "/sign-up"]] },
     { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]] },
   ];
   return (
@@ -113,14 +113,6 @@ export function MarketingFooter() {
             <p className="text-sm leading-relaxed mb-4" style={{ color: M.INK2, maxWidth: 260 }}>
               The honest daily tracker. Plan in blocks, track reality, reflect without guilt.
             </p>
-            <div className="flex items-center gap-2">
-              {[["fa-x-twitter", "https://x.com"], ["fa-github", "https://github.com"], ["fa-linkedin-in", "https://linkedin.com"]].map(([icon, href]) => (
-                <a key={icon} href={href} aria-label={icon} target="_blank" rel="noopener noreferrer" className="w-9 h-9 rounded-lg flex items-center justify-center lift"
-                  style={{ background: M.BG, border: `1px solid ${M.BORDER}`, color: M.INK2 }}>
-                  <i className={`fa-brands ${icon} text-sm`}></i>
-                </a>
-              ))}
-            </div>
           </div>
           {cols.map((c) => (
             <div key={c.title}>

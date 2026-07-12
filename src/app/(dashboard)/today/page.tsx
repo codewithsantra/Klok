@@ -40,6 +40,15 @@ export default async function TodayPage({
     }),
   ]);
 
+  // Which of this day's tasks already have a carried copy elsewhere?
+  const carriedCopies = tasks.length
+    ? await prisma.task.findMany({
+        where: { userId: user.id, carriedFromId: { in: tasks.map((t) => t.id) } },
+        select: { carriedFromId: true },
+      })
+    : [];
+  const carriedIds = new Set(carriedCopies.map((c) => c.carriedFromId));
+
   const tasksView = tasks.map((t) => ({
     id: t.id,
     title: t.title,
@@ -52,34 +61,12 @@ export default async function TodayPage({
     recurrence: t.recurrence,
     recurringRuleId: t.recurringRuleId,
     carriedFromId: t.carriedFromId,
+    alreadyCarried: carriedIds.has(t.id),
   }));
 
   const templatesView = templates.map((t) => ({
     id: t.id, name: t.name, blockCount: t._count.blocks,
   }));
-
-  // Carry-forward: unfinished tasks from previous day
-  const prevDate = addDays(date, -1);
-  const prevTasks = await prisma.task.findMany({
-    where: { userId: user.id, date: prevDate, status: "PENDING" },
-    include: { tag: true },
-  });
-  const alreadyCarried = new Set(
-    tasks.map((t) => t.carriedFromId).filter(Boolean) as string[],
-  );
-  const existingKeys = new Set(
-    tasks.map((t) => `${t.title}|${t.startTime}|${t.endTime}`),
-  );
-  const carriedTasks = prevTasks
-    .filter((t) => !alreadyCarried.has(t.id) && !existingKeys.has(`${t.title}|${t.startTime}|${t.endTime}`))
-    .map((t) => ({
-      id: t.id,
-      title: t.title,
-      tagId: t.tagId,
-      tagEmoji: t.tag?.emoji ?? null,
-      startTime: t.startTime,
-      endTime: t.endTime,
-    }));
 
   const todayISO = toISODate(today);
   const currentDateISO = toISODate(date);
@@ -89,7 +76,7 @@ export default async function TodayPage({
   return (
     <TodayClient
       tasks={tasksView}
-      carried={carriedTasks}
+      todayISO={todayISO}
       tags={tags}
       templates={templatesView}
       currentDateISO={currentDateISO}

@@ -9,24 +9,6 @@ import type {
   TagTimeStats,
 } from "@/lib/analytics-stats";
 
-const TAG_COLORS: Record<string, string> = {
-  Study: "#6366F1", Work: "#3B82F6", Sleep: "#8B5CF6",
-  Exercise: "#10B981", Personal: "#EC4899",
-  Breakfast: "#F59E0B", Lunch: "#F59E0B", Dinner: "#F59E0B", Break: "#06B6D4",
-};
-const DEFAULT_TAG_COLOR = "#94A3B8";
-
-type KanbanTask = {
-  id: string;
-  title: string;
-  date: string;
-  status: string;
-  startTime: string;
-  endTime: string;
-  tagName: string | null;
-  tagEmoji: string | null;
-};
-
 type TimerSessionView = {
   id: string;
   title: string;
@@ -39,14 +21,13 @@ type TimerSessionView = {
 
 export default function AnalyticsClient({
   view, week, month, year, year_number, monthName, tagTime,
-  prevPeriod, nextPeriod, periodLabel, disableNext, kanbanTasks,
+  prevPeriod, nextPeriod, periodLabel, disableNext,
   timerSessions,
 }: {
   view: "week" | "month" | "year";
   week: WeekStats | null; month: MonthStats | null; year: YearStats | null;
   year_number: number; monthName: string; tagTime: TagTimeStats;
   prevPeriod: string; nextPeriod: string; periodLabel: string; disableNext: boolean;
-  kanbanTasks: KanbanTask[];
   timerSessions: TimerSessionView[];
 }) {
   const prevHref = `/analytics?view=${view}&period=${prevPeriod}`;
@@ -103,11 +84,8 @@ export default function AnalyticsClient({
           <EmptyMessage text="No tasks logged this week yet." />
         )}
 
-        {/* ── Time by Tag (stacked bar for week + donut for all) ── */}
+        {/* ── Time by Tag ── */}
         <SectionLabel icon="fa-tags" label="Time by Tag" />
-        {view === "week" && week && kanbanTasks.length > 0 && (
-          <StackedBarChart tasks={kanbanTasks} days={week.days} />
-        )}
         <TagTimeDonut tagTime={tagTime} subtitle={periodLabel} />
 
         {/* ── Focus Timer ── */}
@@ -115,7 +93,6 @@ export default function AnalyticsClient({
           <>
             <SectionLabel icon="fa-stopwatch" label="Focus Timer" />
             <TimerProgressView sessions={timerSessions} view={view} week={week} />
-            <TimerListView sessions={timerSessions} />
           </>
         )}
       </div>
@@ -200,65 +177,6 @@ function TimerProgressView({ sessions, view, week }: {
   );
 }
 
-// ── Timer List View ─────────────────────────────────
-function TimerListView({ sessions }: { sessions: TimerSessionView[] }) {
-  const grouped = sessions.reduce<Record<string, TimerSessionView[]>>((acc, s) => {
-    (acc[s.date] ??= []).push(s);
-    return acc;
-  }, {});
-  const dates = Object.keys(grouped).sort().reverse();
-
-  return (
-    <div className="card p-6">
-      <div className="space-y-4">
-        {dates.map((date) => {
-          const daySessions = grouped[date];
-          const dayLabel = new Date(date + "T00:00:00Z").toLocaleDateString("en", {
-            weekday: "short", month: "short", day: "numeric",
-          });
-          return (
-            <div key={date}>
-              <div className="text-[11px] font-semibold mb-2 py-1 px-2 rounded"
-                style={{ background: "var(--surface-2)", color: "var(--text-2)", display: "inline-block" }}>
-                {dayLabel}
-              </div>
-              <div className="space-y-1.5">
-                {daySessions.map((s) => {
-                  const pct = Math.min(Math.round((s.elapsedMs / (s.targetMinutes * 60000)) * 100), 100);
-                  return (
-                    <div key={s.id} className="flex items-center gap-3 p-2.5 rounded-lg"
-                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                      <span className="text-sm">{s.tagEmoji ?? "🎯"}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate" style={{ color: "var(--text)" }}>
-                          {s.title}
-                        </div>
-                        <div className="h-1 rounded-full overflow-hidden mt-1" style={{ background: "var(--border)" }}>
-                          <div className="h-full rounded-full" style={{
-                            width: `${pct}%`,
-                            background: pct >= 100 ? "var(--success)" : "var(--accent)",
-                          }} />
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-[10px] font-semibold" style={{ color: pct >= 100 ? "var(--success)" : "var(--accent)" }}>
-                          {pct}%
-                        </div>
-                        <div className="text-[10px]" style={{ color: "var(--text-3)" }}>
-                          {fmtMin(s.elapsedMs / 60000)} / {fmtMin(s.targetMinutes)}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Completion Chart ──
 function CompletionChart({ week }: { week: WeekStats }) {
@@ -316,130 +234,6 @@ function StatChip({ label, value, color }: { label: string; value: string; color
   );
 }
 
-// ── Stacked Bar Chart ─────────────────────────────────
-function StackedBarChart({ tasks, days }: { tasks: KanbanTask[]; days: { date: string; label: string; isToday: boolean }[] }) {
-  const allTags = [...new Set(tasks.map((t) => t.tagName ?? "Untagged"))];
-
-  function durationMin(s: string, e: string): number {
-    const [sh, sm] = s.split(":").map(Number);
-    const [eh, em] = e.split(":").map(Number);
-    const d = eh * 60 + em - (sh * 60 + sm);
-    return d > 0 ? d : 0;
-  }
-
-  const dayData = days.map((day) => {
-    const dayTasks = tasks.filter((t) => t.date === day.date);
-    const segments: { tag: string; minutes: number; color: string }[] = [];
-    for (const tag of allTags) {
-      const tagTasks = dayTasks.filter((t) => (t.tagName ?? "Untagged") === tag);
-      const minutes = tagTasks.reduce((s, t) => s + durationMin(t.startTime, t.endTime), 0);
-      if (minutes > 0) {
-        segments.push({ tag, minutes, color: TAG_COLORS[tag] ?? DEFAULT_TAG_COLOR });
-      }
-    }
-    return { ...day, segments, totalMinutes: segments.reduce((s, seg) => s + seg.minutes, 0) };
-  });
-
-  const maxMinutes = Math.max(...dayData.map((d) => d.totalMinutes), 60);
-
-  return (
-    <div className="card p-6">
-      <h3 className="font-semibold text-sm mb-4" style={{ color: "var(--text)" }}>
-        Time by Tag per Day
-      </h3>
-      <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
-        {dayData.map((day) => (
-          <div key={day.date} className="flex-1 flex flex-col items-center gap-1.5" style={{ height: "100%" }}>
-            <span className="text-[10px] font-semibold" style={{ color: "var(--text-2)", lineHeight: 1 }}>
-              {day.totalMinutes > 0 ? fmtMin(day.totalMinutes) : "—"}
-            </span>
-            <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
-              style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-              {day.segments.map((seg, i) => (
-                <div key={i} className="w-full"
-                  style={{
-                    height: `${(seg.minutes / maxMinutes) * 100}%`,
-                    background: seg.color,
-                    minHeight: seg.minutes > 0 ? "3px" : 0,
-                  }}
-                  title={`${seg.tag}: ${fmtMin(seg.minutes)}`} />
-              ))}
-            </div>
-            <span className="text-[10px] font-semibold"
-              style={{ color: day.isToday ? "var(--accent)" : "var(--text-2)", lineHeight: 1 }}>
-              {day.isToday ? "Today" : day.label}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div className="flex flex-wrap gap-3 mt-4">
-        {allTags.map((tag) => (
-          <div key={tag} className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-sm" style={{ background: TAG_COLORS[tag] ?? DEFAULT_TAG_COLOR }} />
-            <span className="text-[11px]" style={{ color: "var(--text-2)" }}>{tag}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Kanban View ───────────────────────────────────────
-function KanbanView({ tasks, days }: { tasks: KanbanTask[]; days: { date: string; label: string; isToday: boolean }[] }) {
-  const statusColor: Record<string, string> = {
-    DONE: "var(--success)",
-    SKIPPED: "var(--warning)",
-    PENDING: "var(--text-3)",
-  };
-
-  return (
-    <div className="card p-6">
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {days.map((day) => {
-          const dayTasks = tasks.filter((t) => t.date === day.date);
-          return (
-            <div key={day.date} className="flex-1 min-w-[120px]">
-              <div className="text-[11px] font-semibold text-center mb-2 py-1.5 rounded-md"
-                style={{
-                  background: day.isToday ? "var(--accent)" : "var(--surface-2)",
-                  color: day.isToday ? "white" : "var(--text-2)",
-                  border: day.isToday ? "none" : "1px solid var(--border)",
-                }}>
-                {day.isToday ? "Today" : day.label}
-                {dayTasks.length > 0 && (
-                  <span className="ml-1 opacity-75">({dayTasks.length})</span>
-                )}
-              </div>
-              <div className="space-y-1.5" style={{ minHeight: "80px" }}>
-                {dayTasks.length === 0 ? (
-                  <div className="text-center py-4">
-                    <span className="text-[10px]" style={{ color: "var(--text-3)" }}>—</span>
-                  </div>
-                ) : (
-                  dayTasks.map((task) => (
-                    <div key={task.id} className="rounded-md p-2"
-                      style={{
-                        background: "var(--surface-2)",
-                        border: "1px solid var(--border)",
-                        borderLeft: `3px solid ${statusColor[task.status] ?? "var(--text-3)"}`,
-                      }}>
-                      <div className="text-[11px] font-medium truncate" style={{ color: "var(--text)" }}>
-                        {task.tagEmoji ?? "📌"} {task.title}
-                      </div>
-                      <div className="text-[10px] mt-0.5" style={{ color: "var(--text-3)" }}>
-                        {task.startTime}–{task.endTime}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 // ── Month View ──
 function MonthView({ month, monthName, year }: { month: MonthStats; monthName: string; year: number }) {

@@ -38,6 +38,30 @@ export async function sendEmail(mail: Mail): Promise<void> {
   }
 }
 
+/** Branded HTML for the email-verification email. */
+export function verificationEmail(verifyUrl: string): { subject: string; html: string } {
+  return {
+    subject: "Verify your Klok email",
+    html: `
+      <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #15152B;">
+        <div style="font-size: 20px; font-weight: 800; color: #6C6FDF; margin-bottom: 16px;">Klok</div>
+        <h1 style="font-size: 20px; margin: 0 0 12px;">Verify your email</h1>
+        <p style="color: #5B5B73; line-height: 1.6; margin: 0 0 24px;">
+          Welcome to Klok! Click the button below to confirm this email address belongs to you.
+          This link expires in 24 hours. If you didn't create a Klok account, you can safely ignore this email.
+        </p>
+        <a href="${verifyUrl}" style="display: inline-block; background: #6C6FDF; color: #fff; text-decoration: none; font-weight: 700; padding: 12px 22px; border-radius: 10px;">
+          Verify email
+        </a>
+        <p style="color: #9494AE; font-size: 12px; line-height: 1.6; margin: 24px 0 0;">
+          Or paste this link into your browser:<br/>
+          <span style="color: #6C6FDF; word-break: break-all;">${verifyUrl}</span>
+        </p>
+      </div>
+    `,
+  };
+}
+
 /** Branded HTML for the password-reset email. */
 export function passwordResetEmail(resetUrl: string): { subject: string; html: string } {
   return {

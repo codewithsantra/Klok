@@ -1,3 +1,4 @@
+import { cache } from "react";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
@@ -55,12 +56,15 @@ export async function clearSession() {
 
 // ── Current user ──────────────────────────────────
 
-export async function getCurrentUser() {
+// cache() dedupes the user lookup per request — the dashboard layout and
+// the page it renders both call this, which would otherwise be two
+// identical DB round trips on every navigation.
+export const getCurrentUser = cache(async () => {
   const session = await getSession();
   if (!session) return null;
 
   return prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, name: true, timeZone: true },
+    select: { id: true, email: true, name: true, timeZone: true, emailVerifiedAt: true },
   });
-}
+});

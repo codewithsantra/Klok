@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { signOutAction } from "@/actions/auth";
 import TimezoneSync from "./TimezoneSync";
 import Toaster from "./Toaster";
+import VerifyEmailBanner from "./VerifyEmailBanner";
 
 const NAV_ITEMS = [
   { name: "Dashboard",   icon: "fa-house",        href: "/dashboard" },
@@ -27,6 +28,7 @@ export type UserSummary = {
   email: string;
   name: string | null;
   timeZone: string;
+  emailVerifiedAt?: Date | null;
 };
 
 export default function DashboardShell({
@@ -303,6 +305,9 @@ export default function DashboardShell({
             <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} style={{ fontSize: "13px" }}></i>
           </button>
         </header>
+
+        {/* Email verification nudge */}
+        {!user.emailVerifiedAt && <VerifyEmailBanner email={user.email} />}
 
         {/* Page content */}
         <div className="app-canvas flex-1 overflow-y-auto p-5">
