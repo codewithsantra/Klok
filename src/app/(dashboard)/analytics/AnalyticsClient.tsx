@@ -22,93 +22,167 @@ type TimerSessionView = {
 export default function AnalyticsClient({
   view, week, month, year, year_number, monthName, tagTime,
   prevPeriod, nextPeriod, periodLabel, disableNext,
-  timerSessions,
+  timerSessions, tab,
 }: {
   view: "week" | "month" | "year";
   week: WeekStats | null; month: MonthStats | null; year: YearStats | null;
   year_number: number; monthName: string; tagTime: TagTimeStats;
   prevPeriod: string; nextPeriod: string; periodLabel: string; disableNext: boolean;
   timerSessions: TimerSessionView[];
+  tab: "tasks" | "timer";
 }) {
-  const prevHref = `/analytics?view=${view}&period=${prevPeriod}`;
-  const nextHref = `/analytics?view=${view}&period=${nextPeriod}`;
+  const prevHref = `/analytics?view=${view}&period=${prevPeriod}&tab=${tab}`;
+  const nextHref = `/analytics?view=${view}&period=${nextPeriod}&tab=${tab}`;
+
+  // ── Task stats (from the Today's Log module) ──
+  const avgPct =
+    view === "week" ? week?.avgPct ?? null
+    : view === "month" ? month?.avgPct ?? null
+    : (() => {
+        const pcts = year?.months.map((m) => m.avgPct).filter((p): p is number => p !== null) ?? [];
+        return pcts.length ? Math.round(pcts.reduce((s, p) => s + p, 0) / pcts.length) : null;
+      })();
+  const tasksLogged =
+    view === "week" ? week?.totalBlocks ?? 0
+    : view === "year" ? year?.totalBlocks ?? 0
+    : null; // month stats track days, not task counts
+
+  // ── Focus Timer stats (from the Timer module) ──
+  const focusElapsedMin = timerSessions.reduce((s, sess) => s + sess.elapsedMs / 60000, 0);
+  const focusTargetMin = timerSessions.reduce((s, sess) => s + sess.targetMinutes, 0);
+  const focusPct = focusTargetMin > 0
+    ? Math.min(Math.round((focusElapsedMin / focusTargetMin) * 100), 100)
+    : null;
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+      {/* Header row: title + period nav + view switcher */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
         <h1 className="font-display text-2xl font-extrabold" style={{ color: "var(--text)" }}>
           Analytics
         </h1>
-        <div className="flex items-center gap-1 rounded-lg p-1 flex-shrink-0"
-          style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-          <Link href="/analytics?view=week" className={`a-tab ${view === "week" ? "a-tab-active" : ""}`}>Week</Link>
-          <Link href="/analytics?view=month" className={`a-tab ${view === "month" ? "a-tab-active" : ""}`}>Month</Link>
-          <Link href="/analytics?view=year" className={`a-tab ${view === "year" ? "a-tab-active" : ""}`}>Year</Link>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Link href={prevHref}
+              className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+              style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <i className="fa-solid fa-chevron-left" style={{ fontSize: "10px", color: "var(--text-2)" }}></i>
+            </Link>
+            <span className="text-sm font-semibold whitespace-nowrap tabular" style={{ color: "var(--text)" }}>
+              {periodLabel}
+            </span>
+            {disableNext ? (
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                <i className="fa-solid fa-chevron-right" style={{ fontSize: "10px", color: "var(--text-3)" }}></i>
+              </span>
+            ) : (
+              <Link href={nextHref}
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <i className="fa-solid fa-chevron-right" style={{ fontSize: "10px", color: "var(--text-2)" }}></i>
+              </Link>
+            )}
+          </div>
+          <div className="flex items-center gap-1 rounded-xl p-1 flex-shrink-0"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            <Link href={`/analytics?view=week&tab=${tab}`} className={`a-tab ${view === "week" ? "a-tab-active" : ""}`}>Week</Link>
+            <Link href={`/analytics?view=month&tab=${tab}`} className={`a-tab ${view === "month" ? "a-tab-active" : ""}`}>Month</Link>
+            <Link href={`/analytics?view=year&tab=${tab}`} className={`a-tab ${view === "year" ? "a-tab-active" : ""}`}>Year</Link>
+          </div>
         </div>
       </div>
 
-      {/* Period nav */}
-      <div className="flex items-center gap-2 mb-6">
-        <Link href={prevHref}
-          className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-          style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <i className="fa-solid fa-chevron-left" style={{ fontSize: "10px", color: "var(--text-2)" }}></i>
-        </Link>
-        <span className="text-sm font-semibold flex-1 sm:flex-none" style={{ color: "var(--text)" }}>
-          {periodLabel}
-        </span>
-        {disableNext ? (
-          <span className="w-7 h-7 rounded flex items-center justify-center"
-            style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-            <i className="fa-solid fa-chevron-right" style={{ fontSize: "10px", color: "var(--text-3)" }}></i>
-          </span>
-        ) : (
-          <Link href={nextHref}
-            className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <i className="fa-solid fa-chevron-right" style={{ fontSize: "10px", color: "var(--text-2)" }}></i>
+      {/* ── Module tabs: Tasks | Focus Timer ── */}
+      <div className="flex items-center gap-2 mb-5" role="tablist"
+        style={{ borderBottom: "1px solid var(--border)" }}>
+        {([
+          { key: "tasks", icon: "fa-list-check", label: "Tasks" },
+          { key: "timer", icon: "fa-stopwatch", label: "Focus Timer" },
+        ] as const).map((t) => (
+          <Link key={t.key} role="tab" aria-selected={tab === t.key}
+            href={`/analytics?view=${view}&tab=${t.key}`}
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-colors"
+            style={{
+              color: tab === t.key ? "var(--accent)" : "var(--text-3)",
+              borderBottom: tab === t.key ? "2px solid var(--accent)" : "2px solid transparent",
+              marginBottom: -1,
+            }}>
+            <i className={`fa-solid ${t.icon}`} style={{ fontSize: 12 }}></i>
+            {t.label}
           </Link>
-        )}
+        ))}
       </div>
 
-      {/* ── All sections flow vertically ── */}
-      <div className="space-y-5">
+      {/* ════ TASKS tab — everything from Today's Log ════ */}
+      {tab === "tasks" && (
+        <>
+          <div className="grid grid-cols-3 gap-4 mb-5 stagger">
+            <StatTile icon="fa-check" iconBg="var(--success-bg)" iconColor="var(--success)"
+              value={avgPct !== null ? `${avgPct}%` : "—"} label="Avg Completion" />
+            <StatTile icon="fa-list-check" iconBg="var(--accent-bg)" iconColor="var(--accent)"
+              value={tasksLogged !== null ? String(tasksLogged) : month ? `${month.daysLogged}/${month.totalDays}` : "—"}
+              label={tasksLogged !== null ? "Tasks Logged" : "Days Logged"} />
+            <StatTile icon="fa-clock" iconBg="var(--accent-bg)" iconColor="var(--accent)"
+              value={tagTime.totalMinutes > 0 ? fmtMin(tagTime.totalMinutes) : "—"} label="Time Planned" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            {view === "week" && week && week.totalBlocks > 0 && <CompletionChart week={week} />}
+            {view === "month" && month && <MonthView month={month} monthName={monthName} year={year_number} />}
+            {view === "year" && year && <YearView year={year} yearNum={year_number} />}
+            {view === "week" && (!week || week.totalBlocks === 0) && (
+              <EmptyMessage text="No tasks logged this week yet." />
+            )}
+            <TagTimeDonut tagTime={tagTime} subtitle={periodLabel} />
+          </div>
+        </>
+      )}
 
-        {/* ── Task Completion ── */}
-        <SectionLabel icon="fa-chart-column" label="Task Completion" />
-        {view === "week" && week && <CompletionChart week={week} />}
-        {view === "month" && month && <MonthView month={month} monthName={monthName} year={year_number} />}
-        {view === "year" && year && <YearView year={year} yearNum={year_number} />}
-        {view === "week" && (!week || week.totalBlocks === 0) && (
-          <EmptyMessage text="No tasks logged this week yet." />
-        )}
-
-        {/* ── Time by Tag ── */}
-        <SectionLabel icon="fa-tags" label="Time by Tag" />
-        <TagTimeDonut tagTime={tagTime} subtitle={periodLabel} />
-
-        {/* ── Focus Timer ── */}
-        {timerSessions.length > 0 && (
+      {/* ════ FOCUS TIMER tab — everything from the Timer module ════ */}
+      {tab === "timer" && (
+        timerSessions.length === 0 ? (
+          <div className="card p-6 text-center">
+            <p className="text-sm" style={{ color: "var(--text-3)" }}>
+              No focus sessions in this period.
+            </p>
+          </div>
+        ) : (
           <>
-            <SectionLabel icon="fa-stopwatch" label="Focus Timer" />
+            <div className="grid grid-cols-3 gap-4 mb-5 stagger">
+              <StatTile icon="fa-stopwatch" iconBg="var(--warning-bg)" iconColor="var(--warning)"
+                value={fmtMin(focusElapsedMin)} label="Focus Time"
+                sub={focusTargetMin > 0 ? `of ${fmtMin(focusTargetMin)} goal` : undefined} />
+              <StatTile icon="fa-bullseye" iconBg="var(--accent-bg)" iconColor="var(--accent)"
+                value={focusPct !== null ? `${focusPct}%` : "—"} label="Goal Progress" />
+              <StatTile icon="fa-layer-group" iconBg="var(--accent-bg)" iconColor="var(--accent)"
+                value={String(timerSessions.length)} label="Sessions" />
+            </div>
             <TimerProgressView sessions={timerSessions} view={view} week={week} />
           </>
-        )}
-      </div>
+        )
+      )}
     </div>
   );
 }
 
-// ── Section Label ────────────────────────────────────
-function SectionLabel({ icon, label }: { icon: string; label: string }) {
+// ── Stat Tile ────────────────────────────────────────
+function StatTile({ icon, iconBg, iconColor, value, label, sub }: {
+  icon: string; iconBg: string; iconColor: string; value: string; label: string; sub?: string;
+}) {
   return (
-    <div className="flex items-center gap-2 pt-2">
-      <i className={`fa-solid ${icon}`} style={{ fontSize: 11, color: "var(--accent)" }}></i>
-      <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-3)" }}>
-        {label}
-      </span>
-      <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+    <div className="card p-4 flex items-center gap-3">
+      <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ background: iconBg }}>
+        <i className={`fa-solid ${icon}`} style={{ color: iconColor, fontSize: 14 }}></i>
+      </div>
+      <div className="min-w-0">
+        <div className="text-xl font-bold tabular truncate" style={{ color: "var(--text)", letterSpacing: "-0.02em" }}>
+          {value}
+        </div>
+        <div className="text-[11px] font-medium truncate" style={{ color: "var(--text-3)" }}>
+          {label}{sub ? <span style={{ color: "var(--text-3)", opacity: 0.8 }}> · {sub}</span> : null}
+        </div>
+      </div>
     </div>
   );
 }
@@ -119,10 +193,6 @@ function TimerProgressView({ sessions, view, week }: {
   view: string;
   week: WeekStats | null;
 }) {
-  const totalTargetMin = sessions.reduce((s, sess) => s + sess.targetMinutes, 0);
-  const totalElapsedMin = sessions.reduce((s, sess) => s + sess.elapsedMs / 60000, 0);
-  const overallPct = totalTargetMin > 0 ? Math.min(Math.round((totalElapsedMin / totalTargetMin) * 100), 100) : 0;
-
   const dates = [...new Set(sessions.map((s) => s.date))].sort();
 
   const dayData = (view === "week" && week ? week.days.map((d) => d.date) : dates).map((date) => {
@@ -139,11 +209,8 @@ function TimerProgressView({ sessions, view, week }: {
 
   return (
     <div className="card p-6">
-      <div className="flex flex-wrap gap-3 mb-5">
-        <StatChip label="Total" value={fmtMin(totalElapsedMin)} color="var(--accent)" />
-        <StatChip label="Goal" value={fmtMin(totalTargetMin)} color="var(--text)" />
-        <StatChip label="Progress" value={`${overallPct}%`} color={overallPct >= 80 ? "var(--success)" : "var(--accent)"} />
-        <StatChip label="Sessions" value={String(sessions.length)} color="var(--text)" />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Progress by Day</h3>
       </div>
 
       <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>
@@ -187,11 +254,13 @@ function CompletionChart({ week }: { week: WeekStats }) {
 
   return (
     <div className="card p-6">
-      <div className="flex flex-wrap gap-3 mb-5">
-        <StatChip label="Avg" value={week.avgPct !== null ? `${week.avgPct}%` : "—"} color="var(--accent)" />
-        {bestDay && <StatChip label="Best" value={`${bestDay.label} ${bestDay.pct}%`} color="var(--success)" />}
-        {worstDay && <StatChip label="Worst" value={`${worstDay.label} ${worstDay.pct}%`} color="var(--danger)" />}
-        <StatChip label="Tasks" value={String(week.totalBlocks)} color="var(--text)" />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>Completion by Day</h3>
+        <div className="flex flex-wrap gap-3">
+          {bestDay && <StatChip label="Best" value={`${bestDay.label} ${bestDay.pct}%`} color="var(--success)" />}
+          {worstDay && <StatChip label="Worst" value={`${worstDay.label} ${worstDay.pct}%`} color="var(--danger)" />}
+          <StatChip label="Tasks" value={String(week.totalBlocks)} color="var(--text)" />
+        </div>
       </div>
 
       <div className="flex items-end justify-between gap-2" style={{ height: "160px" }}>

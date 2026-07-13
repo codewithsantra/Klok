@@ -11,12 +11,13 @@ import TodayClient from "./TodayClient";
 export default async function TodayPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; new?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
 
   const params = await searchParams;
+  const openNew = params.new === "1";
   const today = todayInZone(user.timeZone);
   const date = (params.date && parseISODate(params.date)) || today;
 

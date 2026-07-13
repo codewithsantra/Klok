@@ -26,7 +26,7 @@ const DAY_SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; period?: string }>;
+  searchParams: Promise<{ view?: string; period?: string; tab?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
@@ -34,6 +34,7 @@ export default async function AnalyticsPage({
   const params = await searchParams;
   const view: ViewKey =
     params.view === "month" || params.view === "year" ? params.view : "week";
+  const tab: "tasks" | "timer" = params.tab === "timer" ? "timer" : "tasks";
 
   const today = todayInZone(user.timeZone);
 
@@ -184,6 +185,7 @@ export default async function AnalyticsPage({
       periodLabel={periodLabel}
       disableNext={isAtFutureEdge}
       timerSessions={timerSessionsView}
+      tab={tab}
     />
   );
 }
