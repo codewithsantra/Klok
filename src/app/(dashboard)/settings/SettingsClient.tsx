@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { addTagAction, toggleTagAction, deleteTagAction, type TagActionState } from "@/actions/tags";
-import { updateProfileAction, updatePasswordAction, deleteAccountAction, type ProfileState, type PasswordState } from "@/actions/account";
+import { useClerk } from "@clerk/nextjs";
+import { updateProfileAction, deleteAccountAction, type ProfileState } from "@/actions/account";
+import { useModalEscape } from "@/lib/use-modal-escape";
 import { toast } from "@/lib/toast";
 
 const EMOJI_OPTIONS = [
@@ -16,8 +18,8 @@ type Tag = { id: string; name: string; emoji: string; active: boolean };
 type User = { id: string; email: string; name: string | null; timeZone: string };
 
 export default function SettingsClient({ user, tags }: { user: User; tags: Tag[] }) {
+  const { openUserProfile } = useClerk();
   const [profileState, profileAction, profilePending] = useActionState<ProfileState | undefined, FormData>(updateProfileAction, undefined);
-  const [passwordState, passwordAction, passwordPending] = useActionState<PasswordState | undefined, FormData>(updatePasswordAction, undefined);
   const [addState, addFormAction, addPending] = useActionState<TagActionState | undefined, FormData>(addTagAction, undefined);
   const [selectedEmoji, setSelectedEmoji] = useState("🏷️");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -33,12 +35,12 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
   }, [pickerOpen]);
 
   useEffect(() => { if (profileState?.success) toast("Profile saved"); }, [profileState]);
-  useEffect(() => { if (passwordState?.success) toast("Password changed"); }, [passwordState]);
 
   const displayName = user.name?.trim() || user.email.split("@")[0];
   const initial = (user.name?.trim() || user.email).charAt(0).toUpperCase();
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  useModalEscape(confirmDelete, () => setConfirmDelete(false));
 
   return (
     <div className="animate-fade-in">
@@ -91,30 +93,25 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
           </form>
         </div>
 
-        {/* Password + Tags */}
+        {/* Security + Tags */}
         <div className="space-y-5">
-          {/* Password */}
+          {/* Security (handled by Clerk) */}
           <div className="card p-6">
-            <h2 className="font-semibold mb-4" style={{ color: "var(--text)" }}>Change Password</h2>
-            <form action={passwordAction} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>Current Password</label>
-                <input name="currentPassword" type="password" className="inp" required autoComplete="current-password" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>New Password</label>
-                <input name="newPassword" type="password" className="inp" placeholder="Min. 8 characters" minLength={8} required autoComplete="new-password" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>Confirm New Password</label>
-                <input name="confirmPassword" type="password" className="inp" placeholder="••••••••" minLength={8} required autoComplete="new-password" />
-              </div>
-              {passwordState?.error && <p className="text-[10px] font-medium" style={{ color: "var(--danger)" }}>{passwordState.error}</p>}
-              {passwordState?.success && <p className="text-[10px] font-medium" style={{ color: "var(--success)" }}>✓ Password updated.</p>}
-              <button type="submit" disabled={passwordPending} className="btn btn-primary disabled:opacity-50" style={{ fontSize: "12px" }}>
-                {passwordPending ? "Updating..." : "Update Password"}
+            <h2 className="font-semibold mb-2" style={{ color: "var(--text)" }}>Account &amp; Security</h2>
+            <p className="text-sm mb-4" style={{ color: "var(--text-2)" }}>
+              Password, email address, and connected sign-in methods are managed
+              through your secure account panel.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => openUserProfile()}
+                className="btn btn-primary" style={{ fontSize: "12px" }}>
+                <i className="fa-solid fa-shield-halved"></i> Manage account &amp; security
               </button>
-            </form>
+              <a href="/api/export" download
+                className="btn btn-outline" style={{ fontSize: "12px" }}>
+                <i className="fa-solid fa-download"></i> Export my data (JSON)
+              </a>
+            </div>
           </div>
 
           {/* Tags */}
@@ -196,7 +193,8 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="modal-backdrop" onClick={() => setConfirmDelete(false)}>
-          <div className="card modal-card w-full max-w-sm animate-fade-in" onClick={(e) => e.stopPropagation()}>
+          <div role="dialog" aria-modal="true" aria-label="Confirm account deletion"
+            className="card modal-card w-full max-w-sm animate-fade-in" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
                 style={{ background: "var(--danger-bg)" }}>

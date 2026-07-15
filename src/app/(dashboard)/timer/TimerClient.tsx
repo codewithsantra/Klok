@@ -9,6 +9,7 @@ import {
   updateTimerSessionAction, updateTimerSubItemAction,
 } from "@/actions/timer-sessions";
 import { toast } from "@/lib/toast";
+import { useModalEscape } from "@/lib/use-modal-escape";
 
 type SubItemView = {
   id: string;
@@ -57,14 +58,15 @@ function fmtMin(m: number): string {
 }
 
 export default function TimerClient({
-  sessions, tasks, tags,
+  sessions, tasks, tags, openCreateOnLoad,
 }: {
   sessions: SessionView[];
   tasks: TaskOption[];
   tags: Tag[];
+  openCreateOnLoad?: boolean;
 }) {
   const router = useRouter();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(!!openCreateOnLoad);
   const [editSession, setEditSession] = useState<SessionView | null>(null);
   const [, setTick] = useState(0);
 
@@ -190,6 +192,9 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
     setRemovedSubIds(new Set());
   }, [open, session]);
 
+  // Escape closes the modal (a11y — matches the backdrop click)
+  useModalEscape(open, onClose);
+
   if (!open) return null;
 
   const currentTotalMin = Math.round(parseFloat(hours || "0") * 60) || 0;
@@ -273,7 +278,8 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="card modal-card w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}
+      <div role="dialog" aria-modal="true" aria-label={isEdit ? "Edit session" : "New timer session"}
+        className="card modal-card w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}
         style={{ maxHeight: "85vh", display: "flex", flexDirection: "column" }}>
         <div className="modal-head flex items-center justify-between p-5 flex-shrink-0">
           <h2 className="font-semibold" style={{ color: "var(--text)" }}>
@@ -291,7 +297,7 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
             <div>
               <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text)" }}>Title</label>
               <input className="inp" value={title} onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Study, Deep Work..." required maxLength={100} />
+                placeholder="e.g. Study, Deep Work..." required maxLength={100} autoFocus />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -500,6 +506,12 @@ function SessionCard({ session, router, onEdit }: {
               {session.tagName}
             </span>
           )}
+          {totalElapsedMs >= session.targetMinutes * 60000 && session.targetMinutes > 0 && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded flex-shrink-0"
+              style={{ background: "rgba(22,163,74,.1)", color: "var(--success)" }}>
+              <i className="fa-solid fa-check" style={{ fontSize: 8 }}></i> Goal met
+            </span>
+          )}
         </div>
         <button type="button" onClick={onEdit}
           className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0"
@@ -548,6 +560,7 @@ function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<ty
   const elapsed = item.timerAccumMs + (running && item.timerStartedAt ? Date.now() - new Date(item.timerStartedAt).getTime() : 0);
   const targetMs = item.targetMinutes * 60000;
   const pct = Math.min(Math.round((elapsed / targetMs) * 100), 100);
+  const reached = elapsed >= targetMs;
 
   function handleStart() {
     startTx(async () => { await startSubItemTimerAction(item.id); router.refresh(); });
@@ -555,6 +568,24 @@ function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<ty
   function handlePause() {
     startTx(async () => { await pauseSubItemTimerAction(item.id); router.refresh(); });
   }
+
+  // Auto-pause when the sub-item hits its allocated time. Overtime is still
+  // possible — pressing play again keeps counting — but it becomes a conscious
+  // choice instead of a timer silently running forever. The 5s window means a
+  // deliberate overtime resume (already past target) won't be re-paused.
+  const autoPausedRef = useRef(false);
+  useEffect(() => {
+    const justReached = elapsed - targetMs >= 0 && elapsed - targetMs < 5000;
+    if (running && justReached && !autoPausedRef.current) {
+      autoPausedRef.current = true;
+      startTx(async () => {
+        await pauseSubItemTimerAction(item.id);
+        router.refresh();
+      });
+      toast(`"${item.title}" reached its ${fmtMin(item.targetMinutes)} target 🎉`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [running, reached, elapsed]);
 
   return (
     <div className="flex items-center gap-2.5 p-2 rounded-lg"
@@ -581,9 +612,12 @@ function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<ty
             {item.title}
           </span>
           <span className="text-[10px] font-semibold tabular ml-2 flex-shrink-0"
-            style={{ color: running ? "var(--accent)" : "var(--text-3)" }}
+            style={{ color: reached ? "var(--success)" : running ? "var(--accent)" : "var(--text-3)" }}
             suppressHydrationWarning>
             {fmt(elapsed)} <span style={{ fontWeight: 400, opacity: 0.7 }}>/ {fmtMin(item.targetMinutes)}</span>
+            {reached && elapsed - targetMs >= 60000 && (
+              <span className="ml-1" style={{ fontWeight: 600 }}>+{fmtMin((elapsed - targetMs) / 60000)} over</span>
+            )}
           </span>
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>

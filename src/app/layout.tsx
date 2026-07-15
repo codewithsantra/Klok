@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
@@ -54,16 +55,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
-      <head>
-        {/* Default to light mode; user can opt in to dark via toggle. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('klok-theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})()`,
-          }}
-        />
-      </head>
-      <body className="min-h-full antialiased">{children}</body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${inter.variable} h-full`} suppressHydrationWarning>
+        <head>
+          {/* Default to light mode; user can opt in to dark via toggle. */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem('klok-theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}})()`,
+            }}
+          />
+        </head>
+        <body className="min-h-full antialiased">{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

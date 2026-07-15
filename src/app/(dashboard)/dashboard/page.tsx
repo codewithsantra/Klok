@@ -84,22 +84,37 @@ export default async function DashboardPage() {
   return (
     <div className="animate-fade-in">
       {/* ── Greeting + quick actions ── */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
-        <div className="min-w-0">
-          <h1 className="font-display text-2xl font-extrabold" style={{ color: "var(--text)", textWrap: "balance" }}>
-            {greeting}{user.name ? `, ${user.name}` : ""}!
-          </h1>
-          <p className="text-sm mt-1.5 italic" style={{ color: "var(--text-2)", textWrap: "pretty" }}>
-            &ldquo;{quote}&rdquo;
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <h1 className="font-display text-2xl font-extrabold min-w-0" style={{ color: "var(--text)", textWrap: "balance" }}>
+          {greeting}{user.name ? `, ${user.name}` : ""}!
+        </h1>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Link href="/today" className="btn btn-primary text-xs">
+          {/* Land with the create modal already open — a shortcut, not a redirect */}
+          <Link href="/today?new=1" className="btn btn-primary text-xs">
             <i className="fa-solid fa-plus"></i> Add Task
           </Link>
-          <Link href="/timer" className="btn btn-outline text-xs">
+          <Link href="/timer?new=1" className="btn btn-outline text-xs">
             <i className="fa-solid fa-play"></i> Start Focus
           </Link>
+        </div>
+      </div>
+
+      {/* ── Daily motivation ── */}
+      <div className="card p-5 mb-5 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(120deg, var(--accent) 0%, #8B5CF6 100%)",
+          border: "none",
+        }}>
+        <i className="fa-solid fa-quote-left absolute"
+          style={{ fontSize: 44, color: "rgba(255,255,255,.25)", top: 14, left: 18 }}></i>
+        <div className="relative" style={{ paddingLeft: 76 }}>
+          <p className="font-display text-base sm:text-lg font-bold leading-snug"
+            style={{ color: "white", textWrap: "pretty" }}>
+            {quote}
+          </p>
+          <p className="text-[11px] mt-1.5 font-medium uppercase tracking-wider" style={{ color: "rgba(255,255,255,.75)" }}>
+            Quote of the day
+          </p>
         </div>
       </div>
 
@@ -110,8 +125,17 @@ export default async function DashboardPage() {
           border: "1px solid rgba(94,106,210,.2)",
         }}>
         <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: "var(--accent)", color: "white" }}>
-          <i className={`fa-solid ${runningSession ? "fa-stopwatch" : currentTask ? "fa-bolt" : nextTask ? "fa-forward" : "fa-mug-hot"}`}
+          style={{
+            background: !runningSession && !currentTask && !nextTask && missedCount > 0
+              ? "var(--warning)" : "var(--accent)",
+            color: "white",
+          }}>
+          <i className={`fa-solid ${
+            runningSession ? "fa-stopwatch"
+            : currentTask ? "fa-bolt"
+            : nextTask ? "fa-forward"
+            : missedCount > 0 ? "fa-triangle-exclamation"
+            : "fa-mug-hot"}`}
             style={{ fontSize: 16 }}></i>
         </div>
         <div className="flex-1 min-w-0">

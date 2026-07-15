@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 const VALUE_PROPS = [
-  { icon: "fa-clock", text: "Plan your day in honest hourly blocks" },
+  { icon: "fa-calendar-day", text: "Plan your day as honest, time-boxed tasks" },
+  { icon: "fa-stopwatch", text: "Run focus timers against real goals" },
   { icon: "fa-chart-simple", text: "See plan vs reality — and actually improve" },
-  { icon: "fa-rotate", text: "Recurring routines that build your day for you" },
 ];
 
 export default function AuthLayout({

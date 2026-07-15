@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { signOutAction } from "@/actions/auth";
+import { SignOutButton } from "@clerk/nextjs";
 import TimezoneSync from "./TimezoneSync";
 import Toaster from "./Toaster";
-import VerifyEmailBanner from "./VerifyEmailBanner";
 
 const NAV_ITEMS = [
   { name: "Dashboard",   icon: "fa-house",        href: "/dashboard" },
@@ -28,7 +27,6 @@ export type UserSummary = {
   email: string;
   name: string | null;
   timeZone: string;
-  emailVerifiedAt?: Date | null;
 };
 
 export default function DashboardShell({
@@ -183,16 +181,16 @@ export default function DashboardShell({
             <i className="fa-solid fa-gear"></i>
             Settings
           </Link>
-          <form action={signOutAction}>
+          <SignOutButton redirectUrl="/">
             <button
-              type="submit"
+              type="button"
               className="nav-item w-full text-left"
               style={{ background: "transparent", border: "none" }}
             >
               <i className="fa-solid fa-arrow-right-from-bracket"></i>
               Sign out
             </button>
-          </form>
+          </SignOutButton>
         </nav>
 
         {/* Bottom */}
@@ -305,9 +303,6 @@ export default function DashboardShell({
             <i className={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} style={{ fontSize: "13px" }}></i>
           </button>
         </header>
-
-        {/* Email verification nudge */}
-        {!user.emailVerifiedAt && <VerifyEmailBanner email={user.email} />}
 
         {/* Page content */}
         <div className="app-canvas flex-1 overflow-y-auto p-5">

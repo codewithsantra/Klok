@@ -117,7 +117,7 @@ export default function AnalyticsClient({
       {/* ════ TASKS tab — everything from Today's Log ════ */}
       {tab === "tasks" && (
         <>
-          <div className="grid grid-cols-3 gap-4 mb-5 stagger">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 stagger">
             <StatTile icon="fa-check" iconBg="var(--success-bg)" iconColor="var(--success)"
               value={avgPct !== null ? `${avgPct}%` : "—"} label="Avg Completion" />
             <StatTile icon="fa-list-check" iconBg="var(--accent-bg)" iconColor="var(--accent)"
@@ -148,7 +148,7 @@ export default function AnalyticsClient({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-3 gap-4 mb-5 stagger">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 stagger">
               <StatTile icon="fa-stopwatch" iconBg="var(--warning-bg)" iconColor="var(--warning)"
                 value={fmtMin(focusElapsedMin)} label="Focus Time"
                 sub={focusTargetMin > 0 ? `of ${fmtMin(focusTargetMin)} goal` : undefined} />

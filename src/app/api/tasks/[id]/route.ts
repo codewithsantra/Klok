@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
+import { rateLimit } from "@/lib/rate-limit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -9,6 +10,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!rateLimit(`tasks:write:${user.id}`))
+      return NextResponse.json({ error: "Too many requests — slow down a little." }, { status: 429 });
 
     const { id } = await context.params;
     const body = await request.json();
@@ -102,6 +105,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!rateLimit(`tasks:write:${user.id}`))
+      return NextResponse.json({ error: "Too many requests — slow down a little." }, { status: 429 });
 
     const { id } = await context.params;
     const existing = await prisma.task.findFirst({ where: { id, userId: user.id }, select: { id: true } });

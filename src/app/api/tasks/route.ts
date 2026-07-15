@@ -2,11 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { parseISODate } from "@/lib/dates";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!rateLimit(`tasks:write:${user.id}`))
+      return NextResponse.json({ error: "Too many requests — slow down a little." }, { status: 429 });
 
     const body = await request.json();
     const title = String(body.title ?? "").trim();

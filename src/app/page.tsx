@@ -25,10 +25,10 @@ const VIOLET = "#8B6FE0";
 const GRAD = "#6C6FDF"; // solid brand fill — no gradients
 
 export default async function LandingPage() {
-  const [userCount, blockCount, doneTodoCount] = await Promise.all([
+  const [userCount, taskCount, doneTaskCount] = await Promise.all([
     prisma.user.count(),
-    prisma.block.count(),
-    prisma.todo.count({ where: { status: "DONE" } }),
+    prisma.task.count(),
+    prisma.task.count({ where: { status: "DONE" } }),
   ]);
 
   return (
@@ -113,8 +113,8 @@ export default async function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               { value: userCount.toLocaleString(), label: "People planning", color: LAV },
-              { value: blockCount.toLocaleString(), label: "Time blocks scheduled", color: TEAL },
-              { value: doneTodoCount.toLocaleString(), label: "Todos completed", color: AMBER },
+              { value: taskCount.toLocaleString(), label: "Tasks planned", color: TEAL },
+              { value: doneTaskCount.toLocaleString(), label: "Tasks completed", color: AMBER },
               { value: "Free", label: "While in beta", color: PINK },
             ].map((s) => (
               <div key={s.label} className="text-center">
@@ -133,23 +133,23 @@ export default async function LandingPage() {
         <SectionHead eyebrow="Features" title="Everything you need. Nothing you don't." sub="Built for honest reflection, not productivity theatre." />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* big tile */}
-          <BentoCard className="md:col-span-2" color={LAV} icon="fa-clock"
-            title="Hourly time blocks"
-            body="Lay out your day hour by hour. Each block has a title, time range, tag, and its own checklist — drag through your day with total clarity.">
+          <BentoCard className="md:col-span-2" color={LAV} icon="fa-calendar-day"
+            title="Time-boxed daily tasks"
+            body="Plan your day as scheduled tasks — each with a time range, tag, and notes. Mark them done, skipped, or missed, and your day tells its honest story.">
             <MiniBlocks />
           </BentoCard>
-          <BentoCard color={TEAL} icon="fa-list-check"
-            title="Trackable todos"
-            body="Go beyond checkboxes — track time, distance, or counts with targets and a built-in timer." />
-          <BentoCard color={AMBER} icon="fa-layer-group"
-            title="Day templates"
-            body="Save a good day as a template, apply it to any future date in one tap." />
-          <BentoCard color={PINK} icon="fa-rotate"
-            title="Recurring blocks"
-            body="Set a routine once — Klok auto-creates it every day, weekday, or on the days you choose." />
+          <BentoCard color={TEAL} icon="fa-stopwatch"
+            title="Focus timer"
+            body="Set a focus goal, break it into sub-items, and run live timers against each. Overtime counts too — no fake numbers." />
+          <BentoCard color={AMBER} icon="fa-rotate"
+            title="Recurring tasks"
+            body="Set a routine once — Klok auto-creates it daily, weekly, or on exactly the days you pick." />
+          <BentoCard color={PINK} icon="fa-arrow-right"
+            title="Honest carry-forward"
+            body="Missed something? Carry it to today with one tap — the miss stays on record, so your history stays true." />
           <BentoCard color={VIOLET} icon="fa-chart-line"
-            title="Plan vs Reality"
-            body="See exactly where your plan met your day — and where it didn't. The data that actually changes habits." />
+            title="Analytics that teach"
+            body="Task completion, time by tag, and focus progress — split by week, month, and year. See the gap, then close it." />
         </div>
       </section>
 
@@ -159,9 +159,9 @@ export default async function LandingPage() {
           <SectionHead eyebrow="How it works" title="Three steps. That's the whole app." sub="No bloated onboarding. No 14-day trial countdown." />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
-              { num: "01", icon: "fa-pen-to-square", color: LAV, title: "Plan your day", body: "Add time blocks and nest todos inside each one. Takes a minute." },
-              { num: "02", icon: "fa-check-double", color: TEAL, title: "Track as you go", body: "Tick things off, run timers, mark what slipped. Status updates itself." },
-              { num: "03", icon: "fa-chart-simple", color: AMBER, title: "Reflect & repeat", body: "Review your week, spot your patterns, and keep your best days as templates." },
+              { num: "01", icon: "fa-pen-to-square", color: LAV, title: "Plan your day", body: "Add time-boxed tasks for the day and set a focus goal. Takes a minute." },
+              { num: "02", icon: "fa-check-double", color: TEAL, title: "Track as you go", body: "Tick tasks off, run focus timers, mark what slipped. Status updates itself." },
+              { num: "03", icon: "fa-chart-simple", color: AMBER, title: "Reflect & repeat", body: "Review your week in Analytics, spot your patterns, and carry what matters forward." },
             ].map((s) => (
               <div key={s.num} className="rounded-2xl p-7 lift" style={{ background: BG, border: `1px solid ${BORDER}` }}>
                 <div className="flex items-center gap-3 mb-5">
@@ -186,13 +186,13 @@ export default async function LandingPage() {
             name="Free" price="$0" cadence="forever"
             note="The core planner, always free."
             blurb="Everything you need to plan and track an honest day."
-            features={["Unlimited time blocks & todos", "Week, month & year analytics", "Day templates", "Carry-forward & streaks"]}
+            features={["Unlimited daily tasks", "Week, month & year analytics", "Recurring tasks", "Carry-forward & streaks"]}
             cta="Start free" ctaHref="/sign-up" />
           <PriceCard
             highlight badge="Free in beta" name="Pro" price="$0" cadence="during beta"
             note="Paid later (~$5/mo) — beta users keep a discount."
             blurb="For people who run their whole life in Klok."
-            features={["Everything in Free", "Trackable metrics & timers", "Unlimited recurring rules", "Plan vs Reality insights", "Priority support"]}
+            features={["Everything in Free", "Focus timer with sub-items", "Goal tracking & overtime insights", "Data export", "Priority support"]}
             cta="Start free" ctaHref="/sign-up" />
           <PriceCard
             name="Team" price="Coming soon" cadence=""
@@ -239,9 +239,9 @@ export default async function LandingPage() {
         <div className="space-y-3">
           {[
             { q: "Is Klok really free?", a: "Yes — every feature is free while we're in public beta. When we introduce paid plans, early users keep a permanent discount." },
-            { q: "Do I need a credit card to start?", a: "No. Sign up with an email and you're in. No card, no trial countdown." },
+            { q: "Do I need a credit card to start?", a: "No. Sign up with an email or your Google account and you're in. No card, no trial countdown." },
             { q: "What makes Klok different from other planners?", a: "Most apps assume you'll complete everything. Klok is built around the gap between plan and reality, so you can reflect honestly and actually improve — without the guilt." },
-            { q: "Can I plan recurring routines?", a: "Yes. Create a recurring rule once and Klok automatically generates the block every day, every weekday, or on the specific days you pick." },
+            { q: "Can I plan recurring routines?", a: "Yes. Set a task to repeat once and Klok automatically creates it every day, every week, or on the specific days you pick." },
             { q: "Is my data private?", a: "Your data is yours. It's stored securely and never sold. You can export or permanently delete your account at any time from Settings." },
             { q: "Does it work on mobile?", a: "Klok is fully responsive and works in any mobile browser, with a dedicated bottom navigation. Native apps are on the roadmap." },
           ].map((f) => (
@@ -393,22 +393,22 @@ function AppMockup() {
                 <div className="font-display text-base font-bold mb-0.5" style={{ color: INK }}>Today&apos;s Log</div>
                 <div className="text-xs" style={{ color: INK3 }}>Wednesday, 17 June 2026</div>
               </div>
-              <div className="px-3 py-1.5 rounded-md text-xs font-semibold text-white" style={{ background: GRAD, boxShadow: "0 4px 12px rgba(108,111,223,0.3)" }}>+ New Block</div>
+              <div className="px-3 py-1.5 rounded-md text-xs font-semibold text-white" style={{ background: GRAD, boxShadow: "0 4px 12px rgba(108,111,223,0.3)" }}>+ Add Task</div>
             </div>
             <div className="space-y-2.5">
-              <MockRow emoji="☀️" title="Morning Routine" meta="07:00 – 08:00 · 3/3 todos" badge="Done" accent={TEAL} />
+              <MockRow emoji="☀️" title="Morning Routine" meta="07:00 – 08:00 · Personal" badge="Done" accent={TEAL} />
               <div className="rounded-lg p-3 flex items-center justify-between" style={{ background: "rgba(108,111,223,0.08)", border: "1px solid rgba(108,111,223,0.25)", borderLeft: `3px solid ${LAV}` }}>
                 <div>
                   <div className="text-xs font-semibold mb-0.5 flex items-center gap-1.5" style={{ color: INK }}>
                     📚 Deep Work
                     <span className="w-1.5 h-1.5 rounded-full pulse" style={{ background: LAV }}></span>
                   </div>
-                  <div className="text-[10px]" style={{ color: INK3 }}>09:00 – 11:00 · 2/4 todos</div>
+                  <div className="text-[10px]" style={{ color: INK3 }}>09:00 – 11:00 · Focus timer running</div>
                 </div>
                 <span className="text-[10px] font-medium px-2 py-0.5 rounded" style={{ background: "rgba(108,111,223,0.16)", color: LAV }}>Now</span>
               </div>
-              <MockRow emoji="🏃" title="Run · 5km" meta="11:30 – 12:30" badge="Missed" accent={PINK} />
-              <MockRow emoji="🎯" title="Project Review" meta="14:00 – 16:00 · 0/2 todos" accent="rgba(21,21,43,0.25)" badge="Upcoming" muted />
+              <MockRow emoji="🏃" title="Workout" meta="11:30 – 12:30 · Exercise" badge="Missed" accent={PINK} />
+              <MockRow emoji="🎯" title="Project Review" meta="14:00 – 16:00 · Work" accent="rgba(21,21,43,0.25)" badge="Upcoming" muted />
             </div>
           </div>
         </div>

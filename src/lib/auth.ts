@@ -1,70 +1,62 @@
 import { cache } from "react";
-import bcrypt from "bcryptjs";
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
+import { DEFAULT_TAGS } from "@/lib/constants";
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
-const COOKIE_NAME = "klok_session";
-const ONE_WEEK_IN_SECONDS = 60 * 60 * 24 * 7;
-
-export async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 10);
-}
-
-export async function verifyPassword(
-  plain: string,
-  hash: string,
-): Promise<boolean> {
-  return bcrypt.compare(plain, hash);
-}
-
-export async function createSession(userId: string) {
-  const token = await new SignJWT({ userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(SECRET);
-
-  const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: ONE_WEEK_IN_SECONDS,
-    path: "/",
-  });
-}
-
-export async function getSession(): Promise<{ userId: string } | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, SECRET);
-    return { userId: payload.userId as string };
-  } catch {
-    return null;
-  }
-}
-
-export async function clearSession() {
-  const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
-}
+const USER_SELECT = { id: true, email: true, name: true, timeZone: true } as const;
 
 // ── Current user ──────────────────────────────────
-
-// cache() dedupes the user lookup per request — the dashboard layout and
-// the page it renders both call this, which would otherwise be two
-// identical DB round trips on every navigation.
+//
+// Clerk owns identity (sessions, passwords, verification). This resolves the
+// Clerk user to our local User row, which holds all app data and relations.
+//
+// First sign-in mapping:
+//   1. Look up by clerkId (normal case).
+//   2. Else match by email — re-attaches accounts that existed before the
+//      Clerk migration to their data.
+//   3. Else create a fresh user with the default tag set.
+//
+// cache() dedupes the lookup per request — the dashboard layout and the page
+// it renders both call this, which would otherwise be repeat DB round trips.
 export const getCurrentUser = cache(async () => {
-  const session = await getSession();
-  if (!session) return null;
+  const { userId: clerkId } = await auth();
+  if (!clerkId) return null;
 
-  return prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { id: true, email: true, name: true, timeZone: true, emailVerifiedAt: true },
+  const existing = await prisma.user.findUnique({
+    where: { clerkId },
+    select: USER_SELECT,
+  });
+  if (existing) return existing;
+
+  // First request after sign-up/sign-in with this Clerk account.
+  const cu = await currentUser();
+  if (!cu) return null;
+
+  const email = cu.emailAddresses[0]?.emailAddress?.trim().toLowerCase();
+  if (!email) return null;
+  const name = [cu.firstName, cu.lastName].filter(Boolean).join(" ") || null;
+
+  const byEmail = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (byEmail) {
+    return prisma.user.update({
+      where: { id: byEmail.id },
+      data: { clerkId, ...(name ? { name } : {}) },
+      select: USER_SELECT,
+    });
+  }
+
+  return prisma.user.create({
+    data: {
+      clerkId,
+      email,
+      name,
+      tags: {
+        create: DEFAULT_TAGS.filter((t) => t.on).map((t) => ({
+          name: t.name,
+          emoji: t.emoji,
+        })),
+      },
+    },
+    select: USER_SELECT,
   });
 });

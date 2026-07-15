@@ -2,26 +2,18 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/db";
-import {
-  getCurrentUser,
-  hashPassword,
-  verifyPassword,
-  clearSession,
-} from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 export type ProfileState = {
   error?: string;
   success?: boolean;
 };
 
-export type PasswordState = {
-  error?: string;
-  success?: boolean;
-};
-
 /**
  * Update the current user's display name.
+ * (Password changes live in Clerk's account UI, not here.)
  */
 export async function updateProfileAction(
   _prev: ProfileState | undefined,
@@ -45,60 +37,27 @@ export async function updateProfileAction(
 }
 
 /**
- * Change the current user's password.
- * Requires the current password to be verified first.
- */
-export async function updatePasswordAction(
-  _prev: PasswordState | undefined,
-  formData: FormData,
-): Promise<PasswordState> {
-  const user = await getCurrentUser();
-  if (!user) return { error: "Not signed in." };
-
-  const currentPassword = String(formData.get("currentPassword") ?? "");
-  const newPassword = String(formData.get("newPassword") ?? "");
-  const confirmPassword = String(formData.get("confirmPassword") ?? "");
-
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    return { error: "All password fields are required." };
-  }
-  if (newPassword.length < 8) {
-    return { error: "New password must be at least 8 characters." };
-  }
-  if (newPassword !== confirmPassword) {
-    return { error: "New passwords don't match." };
-  }
-
-  // Fetch user WITH the password hash (getCurrentUser strips it out)
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { id: true, password: true },
-  });
-  if (!dbUser) return { error: "User not found." };
-
-  const valid = await verifyPassword(currentPassword, dbUser.password);
-  if (!valid) {
-    return { error: "Current password is incorrect." };
-  }
-
-  const newHash = await hashPassword(newPassword);
-  await prisma.user.update({
-    where: { id: dbUser.id },
-    data: { password: newHash },
-  });
-
-  return { success: true };
-}
-
-/**
- * Permanently delete the current user's account.
- * Cascade-deletes blocks, todos, tags, templates.
+ * Permanently delete the current user's account — both the local data row
+ * (cascade-deletes tasks, timers, tags, templates) and the Clerk identity.
  */
 export async function deleteAccountAction() {
   const user = await getCurrentUser();
   if (!user) return;
 
+  const { userId: clerkId } = await auth();
+
   await prisma.user.delete({ where: { id: user.id } });
-  await clearSession();
+
+  if (clerkId) {
+    try {
+      const client = await clerkClient();
+      await client.users.deleteUser(clerkId);
+    } catch (err) {
+      console.error("Clerk user deletion failed:", err);
+      // Local data is gone either way; the orphaned Clerk identity can be
+      // removed from the Clerk dashboard if this ever fails.
+    }
+  }
+
   redirect("/");
 }

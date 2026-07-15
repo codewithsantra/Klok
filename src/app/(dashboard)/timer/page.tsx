@@ -4,9 +4,14 @@ import { prisma } from "@/lib/db";
 import { todayInZone } from "@/lib/dates";
 import TimerClient from "./TimerClient";
 
-export default async function TimerPage() {
+export default async function TimerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ new?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/sign-in");
+  const openCreateOnLoad = (await searchParams).new === "1";
 
   const today = todayInZone(user.timeZone);
 
@@ -64,6 +69,7 @@ export default async function TimerPage() {
       sessions={sessionsView}
       tasks={tasksView}
       tags={tags}
+      openCreateOnLoad={openCreateOnLoad}
     />
   );
 }

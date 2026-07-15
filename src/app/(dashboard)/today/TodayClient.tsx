@@ -26,12 +26,13 @@ type TaskView = {
 };
 
 export default function TodayClient({
-  tasks, todayISO, tags, templates,
+  tasks, todayISO, openCreateOnLoad, tags, templates,
   currentDateISO, currentDateLabel, prevDateISO, nextDateISO,
   nowHHMM, isPastDate,
 }: {
   tasks: TaskView[];
   todayISO: string;
+  openCreateOnLoad?: boolean;
   tags: Tag[];
   templates: TemplateView[];
   currentDateISO: string;
@@ -42,7 +43,7 @@ export default function TodayClient({
   isPastDate: boolean;
 }) {
   const router = useRouter();
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(!!openCreateOnLoad);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editing, setEditing] = useState<TaskInitial | undefined>();
 

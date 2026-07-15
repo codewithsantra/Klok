@@ -78,6 +78,7 @@ export default async function TodayPage({
     <TodayClient
       tasks={tasksView}
       todayISO={todayISO}
+      openCreateOnLoad={openNew}
       tags={tags}
       templates={templatesView}
       currentDateISO={currentDateISO}

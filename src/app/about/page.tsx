@@ -57,16 +57,16 @@ export default function AboutPage() {
           <div className="space-y-4">
             {[
               {
-                status: "Shipping now",
+                status: "Shipped",
                 color: "var(--success)",
-                title: "Trackable todos & timers",
-                body: "Track time, distance, and counts against targets — with a built-in timer.",
+                title: "Focus timer with sub-items",
+                body: "Set a focus goal, split it into sub-items, and run live timers — overtime tracked honestly.",
               },
               {
-                status: "In progress",
-                color: "var(--accent)",
-                title: "Recurring blocks & smarter carry-forward",
-                body: "Set routines once and let Klok build your day automatically.",
+                status: "Shipped",
+                color: "var(--success)",
+                title: "Recurring tasks & honest carry-forward",
+                body: "Set routines once and Klok builds your day; carry misses forward without rewriting history.",
               },
               {
                 status: "Planned",

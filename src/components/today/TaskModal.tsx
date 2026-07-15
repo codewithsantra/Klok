@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
+import { useModalEscape } from "@/lib/use-modal-escape";
 
 type Tag = { id: string; name: string; emoji: string };
 
@@ -79,6 +80,9 @@ export default function TaskModal({
       setRepeatEndDate("");
     }
   }, [open, mode, initial, currentDateISO, tags]);
+
+  // Escape closes the modal (a11y — matches the backdrop click)
+  useModalEscape(open, onClose);
 
   if (!open) return null;
 
@@ -159,7 +163,10 @@ export default function TaskModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="card modal-card w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true"
+        aria-label={mode === "create" ? "Add task" : "Edit task"}
+        className="card modal-card w-full max-w-md animate-fade-in"
+        onClick={(e) => e.stopPropagation()}>
         <div className="modal-head flex items-center justify-between p-5 md:p-6">
           <h2 className="font-semibold" style={{ color: "var(--text)" }}>
             {mode === "create" ? "Add Task" : "Edit Task"}
@@ -177,7 +184,7 @@ export default function TaskModal({
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>Task Name</label>
               <input className="inp" value={title} onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Study JavaScript, Morning Run..." required maxLength={200} />
+                placeholder="e.g. Study JavaScript, Morning Run..." required maxLength={200} autoFocus />
             </div>
 
             {/* Tag */}
