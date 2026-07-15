@@ -4,7 +4,7 @@ const SITE_URL = "https://klok.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const routes = ["", "/about", "/contact", "/privacy", "/terms", "/cookies", "/sign-in", "/sign-up"];
+  const routes = ["", "/about", "/privacy", "/terms", "/cookies", "/sign-in", "/sign-up"];
   return routes.map((path) => ({
     url: `${SITE_URL}${path}`,
     lastModified: now,

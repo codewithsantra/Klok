@@ -42,7 +42,7 @@ export async function GET() {
       where: { userId: user.id },
       select: {
         name: true, icon: true, createdAt: true,
-        blocks: { select: { title: true, startTime: true, endTime: true } },
+        items: { select: { title: true, startTime: true, endTime: true } },
       },
     }),
   ]);

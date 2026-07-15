@@ -64,7 +64,7 @@ export function TagTimeDonut({
 
       {tagTime.totalMinutes === 0 ? (
         <p className="text-sm text-center py-8" style={{ color: "var(--text-3)" }}>
-          No time blocks to break down yet.
+          No tagged time to break down yet.
         </p>
       ) : (
         <div

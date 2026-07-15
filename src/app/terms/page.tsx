@@ -78,8 +78,8 @@ export default function TermsPage() {
 
       <LegalSection heading="9. Contact">
         <p>
-          Questions about these terms? Email{" "}
-          <a href="mailto:hello@klok.app" style={{ color: "#6C6FDF", fontWeight: 600 }}>hello@klok.app</a>.
+          Klok is in public beta. A contact address for questions about these
+          terms will be published here as we exit beta.
         </p>
       </LegalSection>
     </LegalShell>

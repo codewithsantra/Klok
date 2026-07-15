@@ -8,7 +8,6 @@ import { toggleTaskAction, setTaskStatusAction, updateTaskNoteAction } from "@/a
 import { toast } from "@/lib/toast";
 
 type Tag = { id: string; name: string; emoji: string };
-type TemplateView = { id: string; name: string; blockCount: number };
 
 type TaskView = {
   id: string;
@@ -26,7 +25,7 @@ type TaskView = {
 };
 
 export default function TodayClient({
-  tasks, todayISO, openCreateOnLoad, tags, templates,
+  tasks, todayISO, openCreateOnLoad, tags,
   currentDateISO, currentDateLabel, prevDateISO, nextDateISO,
   nowHHMM, isPastDate,
 }: {
@@ -34,7 +33,6 @@ export default function TodayClient({
   todayISO: string;
   openCreateOnLoad?: boolean;
   tags: Tag[];
-  templates: TemplateView[];
   currentDateISO: string;
   currentDateLabel: string;
   prevDateISO: string;

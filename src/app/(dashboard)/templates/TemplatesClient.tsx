@@ -5,8 +5,9 @@ import {
   saveTodayAsTemplateAction, applyTemplateAction, deleteTemplateAction,
   type SaveTemplateState,
 } from "@/actions/templates";
+import { useModalEscape } from "@/lib/use-modal-escape";
 
-type TemplateView = { id: string; name: string; createdAt: string; blockCount: number; tagNames: string[] };
+type TemplateView = { id: string; name: string; createdAt: string; taskCount: number; tagNames: string[] };
 
 const TAG_CLASS_MAP: Record<string, string> = {
   Study: "tag-study", Work: "tag-work", Sleep: "tag-sleep",
@@ -14,8 +15,8 @@ const TAG_CLASS_MAP: Record<string, string> = {
   Breakfast: "tag-meal", Lunch: "tag-meal", Dinner: "tag-meal", Break: "tag-break",
 };
 
-export default function TemplatesClient({ templates, defaultApplyDate, todayBlockCount }: {
-  templates: TemplateView[]; defaultApplyDate: string; todayBlockCount: number;
+export default function TemplatesClient({ templates, defaultApplyDate, todayTaskCount }: {
+  templates: TemplateView[]; defaultApplyDate: string; todayTaskCount: number;
 }) {
   const [saveState, saveFormAction, savePending] = useActionState<SaveTemplateState | undefined, FormData>(
     saveTodayAsTemplateAction, undefined,
@@ -31,17 +32,17 @@ export default function TemplatesClient({ templates, defaultApplyDate, todayBloc
       </div>
 
       {/* Save Today */}
-      {todayBlockCount === 0 ? (
+      {todayTaskCount === 0 ? (
         <div className="card p-4 mb-5 flex items-start gap-3"
           style={{ background: "var(--warning-bg)", border: "1px solid rgba(217,119,6,.2)" }}>
           <i className="fa-solid fa-circle-info mt-0.5" style={{ color: "var(--warning)" }}></i>
           <div className="flex-1">
             <h2 className="font-semibold text-sm mb-1" style={{ color: "var(--text)" }}>
-              Add blocks to today first
+              Add tasks to today first
             </h2>
             <p className="text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
-              Templates are saved from the blocks you have planned today. Go to Today&apos;s Log,
-              add some blocks, then come back here to save them as a reusable template.
+              Templates are saved from the tasks you have planned today. Go to Today&apos;s Log,
+              add some tasks, then come back here to save them as a reusable template.
             </p>
             <a href="/today" className="btn btn-primary mt-3" style={{ fontSize: "11px" }}>
               <i className="fa-solid fa-plus"></i> Go to Today&apos;s Log
@@ -55,7 +56,7 @@ export default function TemplatesClient({ templates, defaultApplyDate, todayBloc
             Save Today as Template
           </h2>
           <p className="text-xs mb-3" style={{ color: "var(--text-3)" }}>
-            Save today&apos;s {todayBlockCount} {todayBlockCount === 1 ? "block" : "blocks"} as a reusable structure.
+            Save today&apos;s {todayTaskCount} {todayTaskCount === 1 ? "task" : "tasks"} as a reusable day plan.
           </p>
           <form action={saveFormAction} className="flex flex-col sm:flex-row gap-2">
             <input name="name" className="inp flex-1" placeholder="e.g. My Typical Weekday" maxLength={80} required />
@@ -77,7 +78,7 @@ export default function TemplatesClient({ templates, defaultApplyDate, todayBloc
           </div>
           <p className="text-base font-semibold" style={{ color: "var(--text)" }}>No templates yet</p>
           <p className="text-sm mt-1 max-w-md mx-auto" style={{ color: "var(--text-3)" }}>
-            Save a day&apos;s structure above to create your first template.
+            Save a day&apos;s plan above to create your first template.
           </p>
         </div>
       ) : (
@@ -100,7 +101,7 @@ export default function TemplatesClient({ templates, defaultApplyDate, todayBloc
               </div>
               <h3 className="font-semibold mb-0.5" style={{ color: "var(--text)" }}>{tpl.name}</h3>
               <p className="text-xs mb-1" style={{ color: "var(--text-3)" }}>
-                {tpl.blockCount} {tpl.blockCount === 1 ? "block" : "blocks"}
+                {tpl.taskCount} {tpl.taskCount === 1 ? "task" : "tasks"}
               </p>
               <p className="text-[10px] mb-3" style={{ color: "var(--text-3)" }}>
                 Created {formatRelative(tpl.createdAt)}
@@ -136,9 +137,11 @@ export default function TemplatesClient({ templates, defaultApplyDate, todayBloc
 function ApplyModal({ templateId, templateName, defaultDate, onClose }: {
   templateId: string; templateName: string; defaultDate: string; onClose: () => void;
 }) {
+  useModalEscape(true, onClose);
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="card p-5 md:p-6 w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-modal="true" aria-label="Apply template"
+        className="card p-5 md:p-6 w-full max-w-md animate-fade-in" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-semibold" style={{ color: "var(--text)" }}>Apply Template</h2>
           <button type="button" onClick={onClose}
@@ -148,7 +151,7 @@ function ApplyModal({ templateId, templateName, defaultDate, onClose }: {
           </button>
         </div>
         <p className="text-sm mb-4" style={{ color: "var(--text-2)" }}>
-          Apply <strong>{templateName}</strong> to which date?
+          Apply <strong>{templateName}</strong> to which date? This adds its tasks to that day.
         </p>
         <form action={applyTemplateAction.bind(null, templateId)} className="space-y-4">
           <div>

@@ -96,22 +96,22 @@ export default function OnboardingPage() {
             You&apos;re all set!
           </h1>
           <p className="text-sm text-[#6B7280] mb-6 leading-relaxed">
-            Your Klok is ready. Start by planning today&apos;s blocks — or
-            apply a template to get going fast.
+            Your Klok is ready. Start by planning today&apos;s tasks — or
+            kick off a focus session.
           </p>
           <div className="grid grid-cols-3 gap-3 mb-6 text-left">
             <div className="bg-[#EEEEFF] rounded-2xl p-4">
-              <i className="fa-solid fa-clock text-[#6C6FDF] mb-2 block"></i>
-              <div className="text-xs font-bold text-[#1A1A2E]">Time Blocks</div>
+              <i className="fa-solid fa-calendar-day text-[#6C6FDF] mb-2 block"></i>
+              <div className="text-xs font-bold text-[#1A1A2E]">Daily Tasks</div>
               <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                Plan hour by hour
+                Plan time-boxed tasks
               </div>
             </div>
             <div className="bg-[#DCFCE7] rounded-2xl p-4">
-              <i className="fa-solid fa-layer-group text-[#15803D] mb-2 block"></i>
-              <div className="text-xs font-bold text-[#1A1A2E]">Templates</div>
+              <i className="fa-solid fa-stopwatch text-[#15803D] mb-2 block"></i>
+              <div className="text-xs font-bold text-[#1A1A2E]">Focus Timer</div>
               <div className="text-[10px] text-[#9CA3AF] mt-0.5">
-                Save and reuse days
+                Time your deep work
               </div>
             </div>
             <div className="bg-[#FEF3C7] rounded-2xl p-4">

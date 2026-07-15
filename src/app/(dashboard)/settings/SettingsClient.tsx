@@ -204,7 +204,7 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
                 Delete your account?
               </h2>
               <p className="text-sm mb-5" style={{ color: "var(--text-2)" }}>
-                This permanently removes all your blocks, todos, tags, and templates.
+                This permanently removes all your tasks, timer sessions, tags, and templates.
                 This <strong>cannot be undone</strong>.
               </p>
               <div className="flex gap-3">

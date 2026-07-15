@@ -197,9 +197,9 @@ export default async function LandingPage() {
           <PriceCard
             name="Team" price="Coming soon" cadence=""
             note="Shared planning for small teams."
-            blurb="Want Klok for your team or studio? Tell us what you need."
+            blurb="Team planning is on the roadmap. Start solo and you'll be first to know."
             features={["Everything in Pro", "Shared templates", "Team analytics", "Admin & billing controls"]}
-            cta="Get notified" ctaHref="/contact" />
+            cta="Start free" ctaHref="/sign-up" />
         </div>
       </section>
 
@@ -210,8 +210,8 @@ export default async function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               { q: "I finally stopped feeling like a failure for not finishing my to-do list. Seeing the gap instead of hiding it changed how I plan.", name: "Sana K.", role: "Designer", color: LAV },
-              { q: "The Plan vs Reality view is genuinely the first productivity feature that taught me something about myself.", name: "Arjun M.", role: "Founder", color: TEAL },
-              { q: "Time blocks + recurring routines replaced three apps for me. It's fast and it gets out of the way.", name: "Maya R.", role: "PhD student", color: PINK },
+              { q: "The analytics genuinely taught me something about myself — the honest gap between what I plan and what I do.", name: "Arjun M.", role: "Founder", color: TEAL },
+              { q: "Time-boxed tasks plus the focus timer replaced three apps for me. It's fast and it gets out of the way.", name: "Maya R.", role: "PhD student", color: PINK },
             ].map((t) => (
               <figure key={t.name} className="rounded-2xl p-6 lift" style={{ background: BG, border: `1px solid ${BORDER}` }}>
                 <div className="flex gap-0.5 mb-4" style={{ color: AMBER }}>
@@ -241,7 +241,7 @@ export default async function LandingPage() {
             { q: "Is Klok really free?", a: "Yes — every feature is free while we're in public beta. When we introduce paid plans, early users keep a permanent discount." },
             { q: "Do I need a credit card to start?", a: "No. Sign up with an email or your Google account and you're in. No card, no trial countdown." },
             { q: "What makes Klok different from other planners?", a: "Most apps assume you'll complete everything. Klok is built around the gap between plan and reality, so you can reflect honestly and actually improve — without the guilt." },
-            { q: "Can I plan recurring routines?", a: "Yes. Set a task to repeat once and Klok automatically creates it every day, every week, or on the specific days you pick." },
+            { q: "Can I plan recurring tasks?", a: "Yes. Set a task to repeat once and Klok automatically creates it every day, every week, or on the specific days you pick." },
             { q: "Is my data private?", a: "Your data is yours. It's stored securely and never sold. You can export or permanently delete your account at any time from Settings." },
             { q: "Does it work on mobile?", a: "Klok is fully responsive and works in any mobile browser, with a dedicated bottom navigation. Native apps are on the roadmap." },
           ].map((f) => (

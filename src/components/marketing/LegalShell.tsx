@@ -1,6 +1,6 @@
-// Shared shell for legal / simple content pages (Privacy, Terms, Cookies,
-// Contact). Wraps content in the marketing nav + footer with a consistent
-// header and readable prose column.
+// Shared shell for legal / simple content pages (Privacy, Terms, Cookies).
+// Wraps content in the marketing nav + footer with a consistent header and
+// readable prose column.
 
 import { MarketingNav, MarketingFooter, M } from "./MarketingChrome";
 

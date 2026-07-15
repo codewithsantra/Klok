@@ -16,9 +16,13 @@ export default function PrivacyPage() {
     >
       <LegalSection heading="1. Information we collect">
         <p>
-          When you create a Klok account we collect your <strong>email address</strong> and a
-          securely hashed password. As you use the product we store the content you create —
-          time blocks, todos, tags, templates, and recurring rules — so we can show it back to you.
+          Klok accounts are managed by our authentication provider,{" "}
+          <strong>Clerk</strong>, which securely handles your sign-in credentials
+          (email and password, or Google sign-in) — Klok never sees or stores your
+          password. We keep your <strong>email address</strong> and display name to
+          identify your account. As you use the product we store the content you
+          create — tasks, focus timer sessions, tags, and templates — so we can show
+          it back to you.
         </p>
         <p>
           We also collect basic technical data (such as browser type and approximate region from
@@ -45,18 +49,18 @@ export default function PrivacyPage() {
 
       <LegalSection heading="4. Data storage & security">
         <p>
-          Your data is stored in a managed PostgreSQL database. Passwords are hashed with bcrypt and
-          are never stored in plain text. We use HTTPS for all traffic and httpOnly cookies for
-          sessions.
+          Your planning data is stored in a managed PostgreSQL database. Authentication and
+          credential storage are handled by Clerk under their own security practices — Klok
+          does not store passwords. We use HTTPS for all traffic.
         </p>
       </LegalSection>
 
       <LegalSection heading="5. Your rights">
         <p>
           You can view and edit your data at any time inside the app. From <strong>Settings</strong>
-          you can permanently delete your account, which cascade-deletes all of your blocks, todos,
-          tags, and templates. Depending on your region you may also have rights to access or export
-          your data — contact us and we&apos;ll help.
+          you can export all of your data as JSON, or permanently delete your account — which
+          removes all of your tasks, timer sessions, tags, and templates, and deletes your
+          identity from our authentication provider.
         </p>
       </LegalSection>
 
@@ -74,10 +78,11 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
-      <LegalSection heading="8. Contact">
+      <LegalSection heading="8. Your controls &amp; contact">
         <p>
-          Questions about your privacy? Reach us at{" "}
-          <a href="mailto:hello@klok.app" style={{ color: "#6C6FDF", fontWeight: 600 }}>hello@klok.app</a>.
+          You can export or permanently delete all of your data at any time from
+          your account Settings — no request needed. Klok is in public beta; a
+          dedicated privacy contact will be published here as we exit beta.
         </p>
       </LegalSection>
     </LegalShell>

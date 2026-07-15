@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · Klok",
   },
   description:
-    "Klok is the honest daily tracker. Plan your day in time blocks, track what actually happened, and reflect on the gap — without the guilt. Free to start.",
+    "Klok is the honest daily tracker. Plan your day as time-boxed tasks, run focus timers, and reflect on the gap between plan and reality — without the guilt. Free to start.",
   keywords: [
     "daily planner",
     "time blocking",
@@ -38,13 +38,13 @@ export const metadata: Metadata = {
     siteName: "Klok",
     title: "Klok — Plan Your Day. Own Your Reality.",
     description:
-      "The honest daily tracker. Plan in time blocks, track reality, reflect without guilt.",
+      "The honest daily tracker. Plan time-boxed tasks, track reality, reflect without guilt.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Klok — Plan Your Day. Own Your Reality.",
     description:
-      "The honest daily tracker. Plan in time blocks, track reality, reflect without guilt.",
+      "The honest daily tracker. Plan time-boxed tasks, track reality, reflect without guilt.",
   },
   robots: { index: true, follow: true },
 };

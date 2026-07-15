@@ -12,7 +12,8 @@ export type SaveTemplateState = {
 };
 
 /**
- * Save today's blocks (and their todos) as a reusable template.
+ * Save today's tasks as a reusable template (title, tag, and time range of
+ * each — statuses and notes are not carried, since a template is a plan shape).
  */
 export async function saveTodayAsTemplateAction(
   _prev: SaveTemplateState | undefined,
@@ -25,32 +26,27 @@ export async function saveTodayAsTemplateAction(
   if (!name) return { error: "Template name is required." };
   if (name.length > 80) return { error: "Name too long." };
 
-  // Fetch today's blocks with their todos and tag
   const today = todayInZone(user.timeZone);
-  const blocks = await prisma.block.findMany({
+  const tasks = await prisma.task.findMany({
     where: { userId: user.id, date: today },
-    include: { todos: { orderBy: { createdAt: "asc" } } },
     orderBy: { startTime: "asc" },
+    select: { title: true, tagId: true, startTime: true, endTime: true },
   });
 
-  if (blocks.length === 0) {
-    return { error: "You have no blocks today to save." };
+  if (tasks.length === 0) {
+    return { error: "You have no tasks today to save." };
   }
 
-  // Nested create: Template + TemplateBlocks + TemplateTodos in one atomic write
   await prisma.template.create({
     data: {
       userId: user.id,
       name,
-      blocks: {
-        create: blocks.map((b) => ({
-          tagId: b.tagId,
-          title: b.title,
-          startTime: b.startTime,
-          endTime: b.endTime,
-          todos: {
-            create: b.todos.map((t) => ({ text: t.text })),
-          },
+      items: {
+        create: tasks.map((t) => ({
+          tagId: t.tagId,
+          title: t.title,
+          startTime: t.startTime,
+          endTime: t.endTime,
         })),
       },
     },
@@ -61,7 +57,7 @@ export async function saveTodayAsTemplateAction(
 }
 
 /**
- * Apply a template to a target date — creates real Blocks + Todos for that date.
+ * Apply a template to a target date — creates real Tasks for that date.
  * Redirects to /today?date=<targetDate> on success.
  */
 export async function applyTemplateAction(
@@ -75,45 +71,27 @@ export async function applyTemplateAction(
   const targetDate = parseISODate(dateStr);
   if (!targetDate) return;
 
-  // Verify ownership and fetch with all nested data
   const template = await prisma.template.findFirst({
     where: { id: templateId, userId: user.id },
-    include: {
-      blocks: {
-        include: { todos: true },
-        orderBy: { startTime: "asc" },
-      },
-    },
+    include: { items: { orderBy: { startTime: "asc" } } },
   });
-  if (!template || template.blocks.length === 0) return;
+  if (!template || template.items.length === 0) return;
 
-  // Create blocks one by one (each creates its own todos via nested write)
-  // Using a transaction so partial failures rollback cleanly.
-  await prisma.$transaction(
-    template.blocks.map((tb) =>
-      prisma.block.create({
-        data: {
-          userId: user.id,
-          tagId: tb.tagId,
-          date: targetDate,
-          title: tb.title,
-          startTime: tb.startTime,
-          endTime: tb.endTime,
-          todos: {
-            create: tb.todos.map((tt) => ({ text: tt.text })),
-          },
-        },
-      }),
-    ),
-  );
+  await prisma.task.createMany({
+    data: template.items.map((it) => ({
+      userId: user.id,
+      tagId: it.tagId,
+      date: targetDate,
+      title: it.title,
+      startTime: it.startTime,
+      endTime: it.endTime,
+    })),
+  });
 
-  // Show the user the result by jumping to that day
   redirect(`/today?date=${toISODate(targetDate)}`);
 }
 
-/**
- * Delete a template (cascades to its blocks and todos).
- */
+/** Delete a template (cascades to its items). */
 export async function deleteTemplateAction(templateId: string) {
   const user = await getCurrentUser();
   if (!user) return;

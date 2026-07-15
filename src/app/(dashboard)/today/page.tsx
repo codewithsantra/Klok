@@ -24,7 +24,7 @@ export default async function TodayPage({
   // Materialize recurring tasks for the viewed date
   await materializeRecurringTasks(user.id, date);
 
-  const [tasks, tags, templates] = await Promise.all([
+  const [tasks, tags] = await Promise.all([
     prisma.task.findMany({
       where: { userId: user.id, date },
       include: { tag: true },
@@ -33,11 +33,6 @@ export default async function TodayPage({
     prisma.tag.findMany({
       where: { userId: user.id, active: true },
       orderBy: { name: "asc" },
-    }),
-    prisma.template.findMany({
-      where: { userId: user.id },
-      select: { id: true, name: true, _count: { select: { blocks: true } } },
-      orderBy: { createdAt: "desc" },
     }),
   ]);
 
@@ -65,10 +60,6 @@ export default async function TodayPage({
     alreadyCarried: carriedIds.has(t.id),
   }));
 
-  const templatesView = templates.map((t) => ({
-    id: t.id, name: t.name, blockCount: t._count.blocks,
-  }));
-
   const todayISO = toISODate(today);
   const currentDateISO = toISODate(date);
   const nowHHMM = currentDateISO === todayISO ? nowHHMMInZone(user.timeZone) : null;
@@ -80,7 +71,6 @@ export default async function TodayPage({
       todayISO={todayISO}
       openCreateOnLoad={openNew}
       tags={tags}
-      templates={templatesView}
       currentDateISO={currentDateISO}
       currentDateLabel={formatPrettyDateWithLabel(date, today)}
       prevDateISO={toISODate(addDays(date, -1))}

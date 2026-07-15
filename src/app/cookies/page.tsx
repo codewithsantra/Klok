@@ -50,8 +50,8 @@ export default function CookiesPage() {
 
       <LegalSection heading="5. Contact">
         <p>
-          Questions? Email{" "}
-          <a href="mailto:hello@klok.app" style={{ color: "#6C6FDF", fontWeight: 600 }}>hello@klok.app</a>.
+          Klok is in public beta. A contact address for policy questions will be
+          published here as we exit beta.
         </p>
       </LegalSection>
     </LegalShell>

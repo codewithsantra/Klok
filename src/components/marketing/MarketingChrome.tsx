@@ -97,7 +97,7 @@ export function MarketingNav() {
 export function MarketingFooter() {
   const cols = [
     { title: "Product", links: [["Features", "/#features"], ["Pricing", "/#pricing"], ["How it works", "/#how"], ["Sign in", "/sign-in"]] },
-    { title: "Company", links: [["About", "/about"], ["Roadmap", "/about#roadmap"], ["Contact", "/contact"]] },
+    { title: "Company", links: [["About", "/about"], ["Roadmap", "/about#roadmap"]] },
     { title: "Resources", links: [["FAQ", "/#faq"], ["Get started", "/sign-up"]] },
     { title: "Legal", links: [["Privacy", "/privacy"], ["Terms", "/terms"], ["Cookies", "/cookies"]] },
   ];
@@ -111,7 +111,7 @@ export function MarketingFooter() {
               <span className="font-display text-lg font-extrabold" style={{ color: M.INK }}>Klok</span>
             </Link>
             <p className="text-sm leading-relaxed mb-4" style={{ color: M.INK2, maxWidth: 260 }}>
-              The honest daily tracker. Plan in blocks, track reality, reflect without guilt.
+              The honest daily tracker. Plan your day, track reality, reflect without guilt.
             </p>
           </div>
           {cols.map((c) => (

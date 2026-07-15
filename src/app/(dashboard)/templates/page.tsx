@@ -13,32 +13,31 @@ export default async function TemplatesPage() {
 
   const today = todayInZone(user.timeZone);
 
-  const [templates, todayBlockCount] = await Promise.all([
+  const [templates, todayTaskCount] = await Promise.all([
     prisma.template.findMany({
       where: { userId: user.id },
       include: {
-        blocks: {
+        items: {
           include: { tag: true },
           orderBy: { startTime: "asc" },
         },
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.block.count({
+    prisma.task.count({
       where: { userId: user.id, date: today },
     }),
   ]);
 
-  // Shape data for the client (so it's plain JSON-safe)
   const view = templates.map((t) => {
     const tagNames = Array.from(
-      new Set(t.blocks.map((b) => b.tag?.name).filter((x): x is string => !!x)),
+      new Set(t.items.map((i) => i.tag?.name).filter((x): x is string => !!x)),
     );
     return {
       id: t.id,
       name: t.name,
       createdAt: t.createdAt.toISOString(),
-      blockCount: t.blocks.length,
+      taskCount: t.items.length,
       tagNames,
     };
   });
@@ -50,7 +49,7 @@ export default async function TemplatesPage() {
     <TemplatesClient
       templates={view}
       defaultApplyDate={defaultApplyDate}
-      todayBlockCount={todayBlockCount}
+      todayTaskCount={todayTaskCount}
     />
   );
 }
