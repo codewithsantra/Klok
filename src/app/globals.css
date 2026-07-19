@@ -838,8 +838,8 @@ p, li, label {
   justify-content: center;
   cursor: pointer;
   background: transparent;
-  /* Specific transitions only */
-  transition-property: background-color, border-color, scale;
+  /* Colour transitions only — no scale/animation, a plain checkbox toggle. */
+  transition-property: background-color, border-color;
   transition-duration: 120ms;
   transition-timing-function: ease-out;
   position: relative;
@@ -857,20 +857,9 @@ p, li, label {
 .cb:hover {
   border-color: var(--text-3);
 }
-.cb:active:not(:disabled) {
-  scale: 0.92;
-}
 .cb-done {
   background: var(--accent);
   border-color: var(--accent);
-}
-/* Satisfying check draw-in on the most-used action (mounts only when done). */
-.cb i {
-  animation: checkPop 0.28s cubic-bezier(0.2, 0, 0, 1);
-}
-@keyframes checkPop {
-  from { opacity: 0; transform: scale(0.25); filter: blur(4px); }
-  to   { opacity: 1; transform: scale(1); filter: blur(0); }
 }
 
 /* ── STAT CARDS ──────────────────────────────────────────── */

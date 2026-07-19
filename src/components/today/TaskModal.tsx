@@ -16,7 +16,12 @@ export type TaskInitial = {
   note: string | null;
   recurrence?: string;
   recurringRuleId?: string | null;
+  subItems?: { id: string; title: string; done: boolean }[];
 };
+
+// A sub-item draft in the modal. Existing items keep their `id` (so their
+// done-state survives an edit); new ones have no id yet.
+type SubDraft = { id?: string; title: string };
 
 type RepeatKind = "NONE" | "DAILY" | "WEEKDAYS" | "WEEKLY" | "CUSTOM";
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -47,6 +52,7 @@ export default function TaskModal({
   const [repeatEndCount, setRepeatEndCount] = useState(10);
   const [repeatEndDate, setRepeatEndDate] = useState("");
   const [editScope, setEditScope] = useState<"this" | "future">("this");
+  const [subDrafts, setSubDrafts] = useState<SubDraft[]>([{ title: "" }]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -64,6 +70,11 @@ export default function TaskModal({
       setRepeat((initial.recurrence as RepeatKind) ?? "NONE");
       setEditScope("this");
       setConfirmDelete(false);
+      setSubDrafts(
+        initial.subItems && initial.subItems.length > 0
+          ? [...initial.subItems.map((s) => ({ id: s.id, title: s.title })), { title: "" }]
+          : [{ title: "" }],
+      );
     } else {
       setTitle("");
       setDate(currentDateISO);
@@ -78,6 +89,7 @@ export default function TaskModal({
       setRepeatEndMode("never");
       setRepeatEndCount(10);
       setRepeatEndDate("");
+      setSubDrafts([{ title: "" }]);
     }
   }, [open, mode, initial, currentDateISO, tags]);
 
@@ -101,6 +113,7 @@ export default function TaskModal({
             title, startTime, endTime, tagId: tagId || null, date,
             note: note || null,
             recurrence: repeat,
+            subItems: subDrafts.map((s) => s.title.trim()).filter(Boolean),
             ...(repeat === "WEEKLY" || repeat === "CUSTOM" ? { daysOfWeek } : {}),
             ...(repeat === "CUSTOM" ? {
               repeatEvery, repeatUnit,
@@ -121,6 +134,9 @@ export default function TaskModal({
           body: JSON.stringify({
             title, startTime, endTime, tagId: tagId || null, note: note || null,
             recurrence: repeat,
+            subItems: subDrafts
+              .filter((s) => s.title.trim())
+              .map((s) => ({ ...(s.id ? { id: s.id } : {}), title: s.title.trim() })),
             ...(date !== currentDateISO ? { date } : {}),
             ...(repeat === "WEEKLY" || repeat === "CUSTOM" ? { daysOfWeek } : {}),
             ...(repeat === "CUSTOM" ? {
@@ -321,6 +337,43 @@ export default function TaskModal({
                   </div>
                 )}
               </div>
+
+            {/* Sub-items (checklist) — managed here in both create and edit.
+                The task card only ticks them off; structure lives in the modal. */}
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text)" }}>
+                Sub-items <span className="font-normal" style={{ color: "var(--text-3)" }}>(optional checklist)</span>
+              </label>
+              <div className="space-y-1.5">
+                {subDrafts.map((draft, i) => (
+                  <div key={draft.id ?? `new-${i}`} className="flex items-center gap-1.5">
+                    <input className="inp flex-1" value={draft.title} maxLength={200}
+                      placeholder={`Sub-item ${i + 1}...`}
+                      style={{ fontSize: 12, padding: "6px 10px" }}
+                      onChange={(e) => setSubDrafts((prev) => prev.map((d, j) => j === i ? { ...d, title: e.target.value } : d))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (i === subDrafts.length - 1) setSubDrafts((prev) => [...prev, { title: "" }]);
+                        }
+                      }} />
+                    {subDrafts.length > 1 && (
+                      <button type="button"
+                        onClick={() => setSubDrafts((prev) => prev.filter((_, j) => j !== i))}
+                        className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0"
+                        style={{ background: "var(--surface-2)", border: "1px solid var(--border)", cursor: "pointer" }}
+                        title="Remove sub-item">
+                        <i className="fa-solid fa-xmark text-xs" style={{ color: "var(--text-3)" }}></i>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => setSubDrafts((prev) => [...prev, { title: "" }])}
+                className="text-xs font-medium mt-1.5" style={{ color: "var(--accent)", background: "none", border: "none", cursor: "pointer" }}>
+                <i className="fa-solid fa-plus" style={{ fontSize: 10 }}></i> Add another
+              </button>
+            </div>
 
             {/* Edit scope for recurring */}
             {mode === "edit" && (initial?.recurringRuleId || repeat !== "NONE") && (

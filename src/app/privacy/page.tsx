@@ -21,8 +21,7 @@ export default function PrivacyPage() {
           (email and password, or Google sign-in) — Klok never sees or stores your
           password. We keep your <strong>email address</strong> and display name to
           identify your account. As you use the product we store the content you
-          create — tasks, focus timer sessions, tags, and templates — so we can show
-          it back to you.
+          create — tasks, focus timer sessions, and tags — so we can show it back to you.
         </p>
         <p>
           We also collect basic technical data (such as browser type and approximate region from
@@ -58,9 +57,8 @@ export default function PrivacyPage() {
       <LegalSection heading="5. Your rights">
         <p>
           You can view and edit your data at any time inside the app. From <strong>Settings</strong>
-          you can export all of your data as JSON, or permanently delete your account — which
-          removes all of your tasks, timer sessions, tags, and templates, and deletes your
-          identity from our authentication provider.
+          you can permanently delete your account — which removes all of your tasks, timer
+          sessions, and tags, and deletes your identity from our authentication provider.
         </p>
       </LegalSection>
 
@@ -80,9 +78,9 @@ export default function PrivacyPage() {
 
       <LegalSection heading="8. Your controls &amp; contact">
         <p>
-          You can export or permanently delete all of your data at any time from
-          your account Settings — no request needed. Klok is in public beta; a
-          dedicated privacy contact will be published here as we exit beta.
+          You can permanently delete all of your data at any time from your account
+          Settings — no request needed. Klok is in public beta; a dedicated privacy
+          contact will be published here as we exit beta.
         </p>
       </LegalSection>
     </LegalShell>

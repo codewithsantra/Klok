@@ -29,10 +29,11 @@ export type DefaultTag = { emoji: string; name: string; on: boolean };
 export const DEFAULT_TAGS: DefaultTag[] = [
   { emoji: "😴", name: "Sleep", on: true },
   { emoji: "📚", name: "Study", on: true },
-  { emoji: "💻", name: "Work", on: true },
+  { emoji: "💼", name: "Work", on: true },
   { emoji: "🍳", name: "Breakfast", on: true },
-  { emoji: "🍽", name: "Lunch", on: true },
-  { emoji: "🌙", name: "Dinner", on: true },
+  { emoji: "🥗", name: "Lunch", on: true },
+  // Was 🌙 — a moon doesn't read as "dinner" at a glance. A bowl does.
+  { emoji: "🍲", name: "Dinner", on: true },
   { emoji: "🏃", name: "Exercise", on: true },
   { emoji: "☕", name: "Break", on: true },
   { emoji: "🧘", name: "Personal", on: true },

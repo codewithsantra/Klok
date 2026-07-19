@@ -192,13 +192,13 @@ export default async function LandingPage() {
             highlight badge="Free in beta" name="Pro" price="$0" cadence="during beta"
             note="Paid later (~$5/mo) — beta users keep a discount."
             blurb="For people who run their whole life in Klok."
-            features={["Everything in Free", "Focus timer with sub-items", "Goal tracking & overtime insights", "Data export", "Priority support"]}
+            features={["Everything in Free", "Focus timer with sub-items", "Goal tracking & overtime insights", "Priority support"]}
             cta="Start free" ctaHref="/sign-up" />
           <PriceCard
             name="Team" price="Coming soon" cadence=""
             note="Shared planning for small teams."
             blurb="Team planning is on the roadmap. Start solo and you'll be first to know."
-            features={["Everything in Pro", "Shared templates", "Team analytics", "Admin & billing controls"]}
+            features={["Everything in Pro", "Shared workspaces", "Team analytics", "Admin & billing controls"]}
             cta="Start free" ctaHref="/sign-up" />
         </div>
       </section>
@@ -242,7 +242,7 @@ export default async function LandingPage() {
             { q: "Do I need a credit card to start?", a: "No. Sign up with an email or your Google account and you're in. No card, no trial countdown." },
             { q: "What makes Klok different from other planners?", a: "Most apps assume you'll complete everything. Klok is built around the gap between plan and reality, so you can reflect honestly and actually improve — without the guilt." },
             { q: "Can I plan recurring tasks?", a: "Yes. Set a task to repeat once and Klok automatically creates it every day, every week, or on the specific days you pick." },
-            { q: "Is my data private?", a: "Your data is yours. It's stored securely and never sold. You can export or permanently delete your account at any time from Settings." },
+            { q: "Is my data private?", a: "Your data is yours. It's stored securely and never sold. You can permanently delete your account at any time from Settings." },
             { q: "Does it work on mobile?", a: "Klok is fully responsive and works in any mobile browser, with a dedicated bottom navigation. Native apps are on the roadmap." },
           ].map((f) => (
             <details key={f.q} className="faq-item">
@@ -379,7 +379,7 @@ function AppMockup() {
               <Logo />
               <span className="font-display text-sm font-bold" style={{ color: INK }}>Klok</span>
             </div>
-            {[["Dashboard", false], ["Today's Log", true], ["Analytics", false], ["Templates", false]].map(([label, active]) => (
+            {[["Dashboard", false], ["Today's Log", true], ["Timer", false], ["Analytics", false]].map(([label, active]) => (
               <div key={label as string} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs"
                 style={{ background: active ? "rgba(108,111,223,0.12)" : "transparent", color: active ? LAV : INK3, fontWeight: active ? 600 : 400 }}>
                 <div className="w-3 h-3 rounded-sm" style={{ background: active ? LAV : "rgba(21,21,43,0.12)" }}></div>

@@ -4,10 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import TaskModal, { type TaskInitial } from "@/components/today/TaskModal";
-import { toggleTaskAction, setTaskStatusAction, updateTaskNoteAction } from "@/actions/tasks";
+import {
+  toggleTaskAction, setTaskStatusAction, updateTaskNoteAction,
+  toggleTaskSubItemAction,
+} from "@/actions/tasks";
 import { toast } from "@/lib/toast";
 
 type Tag = { id: string; name: string; emoji: string };
+type SubItem = { id: string; title: string; done: boolean };
 
 type TaskView = {
   id: string;
@@ -22,6 +26,7 @@ type TaskView = {
   recurringRuleId: string | null;
   carriedFromId: string | null;
   alreadyCarried: boolean;
+  subItems: SubItem[];
 };
 
 export default function TodayClient({
@@ -62,6 +67,7 @@ export default function TodayClient({
       note: task.note,
       recurrence: task.recurrence,
       recurringRuleId: task.recurringRuleId,
+      subItems: task.subItems,
     });
     setModalOpen(true);
   }
@@ -233,37 +239,49 @@ function TaskCard({ task, onEdit, nowHHMM, isPastDate, todayISO }: {
     });
   }
 
+  const duration = taskDurationLabel(task.startTime, task.endTime);
+  const doneSubCount = task.subItems.filter((s) => s.done).length;
+
   return (
     <div className="rounded-lg p-3.5" style={{ ...bgStyle, borderLeft }}>
-      <div className="flex items-start gap-3">
-        {/* Checkbox */}
-        <button type="button" onClick={handleToggle}
-          className={`cb mt-0.5 flex-shrink-0 ${isDone ? "cb-done" : ""}`}
-          title={isDone ? "Mark pending" : "Mark done"}>
-          {isDone && <i className="fa-solid fa-check text-white" style={{ fontSize: 9 }} />}
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          {/* Checkbox */}
+          <button type="button" onClick={handleToggle}
+            className={`cb mt-0.5 flex-shrink-0 ${isDone ? "cb-done" : ""}`}
+            title={isDone ? "Mark pending" : "Mark done"}>
+            {isDone && <i className="fa-solid fa-check text-white" style={{ fontSize: 9 }} />}
+          </button>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`font-semibold text-sm ${isDone ? "line-through" : ""}`}
-              style={{ color: isDone ? "var(--text-3)" : "var(--text)" }}>
-              {task.tag?.emoji ?? "📌"} {task.title}
-            </span>
-            {task.tag && <span className={`tag ${tagClassFor(task.tag.name)}`}>{task.tag.name}</span>}
-          </div>
-          <div className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
-            {task.startTime} – {task.endTime}
-            {task.recurrence !== "NONE" && (
-              <span className="ml-2">
-                <i className="fa-solid fa-repeat" style={{ fontSize: 9 }}></i> {task.recurrence.toLowerCase()}
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`font-semibold text-sm ${isDone ? "line-through" : ""}`}
+                style={{ color: isDone ? "var(--text-3)" : "var(--text)" }}>
+                {task.tag?.emoji ?? "📌"} {task.title}
               </span>
-            )}
+              {task.tag && <span className={`tag ${tagClassFor(task.tag.name)}`}>{task.tag.name}</span>}
+              {task.subItems.length > 0 && (
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                  style={{ background: "var(--surface)", color: "var(--text-3)", border: "1px solid var(--border)" }}>
+                  <i className="fa-solid fa-list-check" style={{ fontSize: 9 }}></i> {doneSubCount}/{task.subItems.length}
+                </span>
+              )}
+            </div>
+            <div className="text-xs mt-0.5" style={{ color: "var(--text-3)" }}>
+              {task.startTime} – {task.endTime}
+              {duration && <span className="ml-1.5 tabular">· {duration}</span>}
+              {task.recurrence !== "NONE" && (
+                <span className="ml-2">
+                  <i className="fa-solid fa-repeat" style={{ fontSize: 9 }}></i> {task.recurrence.toLowerCase()}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-wrap flex-shrink-0 pl-8 sm:pl-0">
           <span className={`pill ${pill.cls}`}>{pill.text}</span>
           {isMissed && (
             carried ? (
@@ -303,6 +321,9 @@ function TaskCard({ task, onEdit, nowHHMM, isPastDate, todayISO }: {
         </div>
       </div>
 
+      {/* Sub-items checklist — tick off only; add/remove happens in the edit modal */}
+      {task.subItems.length > 0 && <SubItemChecklist subItems={task.subItems} />}
+
       {/* Note */}
       {showNote && (
         <div className="flex items-start gap-2 mt-2 pl-8">
@@ -323,6 +344,32 @@ function TaskCard({ task, onEdit, nowHHMM, isPastDate, todayISO }: {
             style={{ color: "var(--text-2)", minWidth: 0, overflow: "hidden" }} />
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Sub-item Checklist ───────────────────────────────
+// Read + tick-off only. Adding/removing sub-items is done in the task modal.
+function SubItemChecklist({ subItems }: { subItems: SubItem[] }) {
+  const [, startTx] = useTransition();
+
+  return (
+    <div className="mt-2 pl-8 space-y-1.5">
+      {subItems.map((item) => (
+        <div key={item.id} className="flex items-center gap-2">
+          <button type="button"
+            onClick={() => startTx(() => toggleTaskSubItemAction(item.id))}
+            className={`cb flex-shrink-0 ${item.done ? "cb-done" : ""}`}
+            style={{ width: 15, height: 15 }}
+            title={item.done ? "Mark not done" : "Mark done"}>
+            {item.done && <i className="fa-solid fa-check text-white" style={{ fontSize: 8 }} />}
+          </button>
+          <span className={`text-xs flex-1 min-w-0 ${item.done ? "line-through" : ""}`}
+            style={{ color: item.done ? "var(--text-3)" : "var(--text-2)" }}>
+            {item.title}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -414,6 +461,16 @@ function computeBadge(status: string, startTime: string, endTime: string, nowHHM
     return { cls: "pill-upcoming", text: "Upcoming" };
   }
   return { cls: "pill-upcoming", text: "Upcoming" };
+}
+
+function taskDurationLabel(startTime: string, endTime: string): string {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const total = eh * 60 + em - (sh * 60 + sm);
+  if (total <= 0) return "";
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h > 0 ? `${h}h${m > 0 ? ` ${m}m` : ""}` : `${m}m`;
 }
 
 function tagClassFor(name: string): string {

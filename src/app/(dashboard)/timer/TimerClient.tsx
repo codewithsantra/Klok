@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -7,6 +8,7 @@ import {
   addTimerSubItemAction, deleteTimerSubItemAction,
   startSubItemTimerAction, pauseSubItemTimerAction,
   updateTimerSessionAction, updateTimerSubItemAction,
+  setSubItemLoggedTimeAction,
 } from "@/actions/timer-sessions";
 import { toast } from "@/lib/toast";
 import { useModalEscape } from "@/lib/use-modal-escape";
@@ -43,6 +45,13 @@ type Tag = { id: string; name: string; emoji: string };
 
 type PendingSub = { title: string; minutes: number; taskId: string | null };
 
+type HistoryDay = { date: string; label: string; totalMin: number };
+type SessionDetail = {
+  id: string; title: string; emoji: string | null; totalMin: number;
+  items: { title: string; min: number }[];
+};
+type RecentDay = { iso: string; label: string; sessions: SessionDetail[] };
+
 function fmt(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(s / 3600);
@@ -58,12 +67,15 @@ function fmtMin(m: number): string {
 }
 
 export default function TimerClient({
-  sessions, tasks, tags, openCreateOnLoad,
+  sessions, tasks, tags, openCreateOnLoad, history, recentDays, autoStopped,
 }: {
   sessions: SessionView[];
   tasks: TaskOption[];
   tags: Tag[];
   openCreateOnLoad?: boolean;
+  history: HistoryDay[];
+  recentDays: RecentDay[];
+  autoStopped: number;
 }) {
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(!!openCreateOnLoad);
@@ -85,27 +97,32 @@ export default function TimerClient({
     sum + s.subItems.reduce((si, i) => {
       let ms = i.timerAccumMs;
       if (i.timerStartedAt) ms += Date.now() - new Date(i.timerStartedAt).getTime();
-      return si + ms;
+      // Never count a sub-item past its allocated time.
+      return si + Math.min(ms, i.targetMinutes * 60000);
     }, 0), 0);
   const totalTargetMs = sessions.reduce((s, sess) => s + sess.targetMinutes * 60000, 0);
   const overallPct = totalTargetMs > 0 ? Math.min(Math.round((totalElapsedMs / totalTargetMs) * 100), 100) : 0;
 
   if (sessions.length === 0 && !modalOpen) {
     return (
-      <div className="animate-fade-in flex flex-col items-center justify-center py-20">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-          style={{ background: "var(--accent-bg)" }}>
-          <i className="fa-solid fa-stopwatch" style={{ fontSize: 24, color: "var(--accent)" }}></i>
+      <div className="animate-fade-in">
+        <AutoStoppedNotice count={autoStopped} />
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: "var(--accent-bg)" }}>
+            <i className="fa-solid fa-stopwatch" style={{ fontSize: 24, color: "var(--accent)" }}></i>
+          </div>
+          <h2 className="font-display text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
+            Focus Timer
+          </h2>
+          <p className="text-sm mb-4" style={{ color: "var(--text-3)" }}>
+            Create a timed session to track deep work.
+          </p>
+          <button onClick={openCreate} className="btn btn-primary">
+            <i className="fa-solid fa-plus"></i> New Session
+          </button>
         </div>
-        <h2 className="font-display text-xl font-bold mb-2" style={{ color: "var(--text)" }}>
-          Focus Timer
-        </h2>
-        <p className="text-sm mb-4" style={{ color: "var(--text-3)" }}>
-          Create a timed session to track deep work.
-        </p>
-        <button onClick={openCreate} className="btn btn-primary">
-          <i className="fa-solid fa-plus"></i> New Session
-        </button>
+        <TimerHistory history={history} recentDays={recentDays} />
         <SessionModal open={modalOpen} onClose={() => setModalOpen(false)}
           session={editSession} tags={tags} tasks={tasks} router={router} />
       </div>
@@ -114,6 +131,7 @@ export default function TimerClient({
 
   return (
     <div className="animate-fade-in">
+      <AutoStoppedNotice count={autoStopped} />
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-display text-xl font-extrabold" style={{ color: "var(--text)" }}>
@@ -147,8 +165,196 @@ export default function TimerClient({
         ))}
       </div>
 
+      <TimerHistory history={history} recentDays={recentDays} />
+
       <SessionModal open={modalOpen} onClose={() => setModalOpen(false)}
         session={editSession} tags={tags} tasks={tasks} router={router} />
+    </div>
+  );
+}
+
+// ── Existing sub-item row (edit modal) ────────────────
+// Shows the target and lets the logged time be corrected by hand — the timer
+// is best-effort, so there has to be a way to fix a wrong number.
+function ExistingSubItemRow({ item, router, onDelete }: {
+  item: SubItemView;
+  router: ReturnType<typeof useRouter>;
+  onDelete: () => void;
+}) {
+  const [, startTx] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const loggedMin = Math.round(item.timerAccumMs / 60000);
+  const [value, setValue] = useState(String(loggedMin));
+
+  function save() {
+    const mins = parseInt(value, 10);
+    if (!Number.isFinite(mins) || mins < 0) { toast("Enter minutes as a number"); return; }
+    setEditing(false);
+    startTx(async () => {
+      const res = await setSubItemLoggedTimeAction(item.id, mins);
+      if (res && "error" in res && res.error) { toast(res.error); return; }
+      toast("Logged time updated");
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="p-2 rounded-md"
+      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <span className="text-xs font-medium" style={{ color: "var(--text)" }}>{item.title}</span>
+          <span className="text-[10px] ml-2" style={{ color: "var(--text-3)" }}>
+            {fmtMin(item.targetMinutes)} target
+          </span>
+        </div>
+        <button type="button" onClick={onDelete}
+          className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+          style={{ background: "transparent", border: "none", cursor: "pointer" }}
+          title="Remove sub-item">
+          <i className="fa-solid fa-xmark" style={{ fontSize: 9, color: "var(--text-3)" }}></i>
+        </button>
+      </div>
+
+      {editing ? (
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <input type="number" min="0" value={value} autoFocus
+            onChange={(e) => setValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); save(); }
+              if (e.key === "Escape") { e.preventDefault(); setEditing(false); setValue(String(loggedMin)); }
+            }}
+            className="inp" style={{ fontSize: 11, padding: "3px 6px", width: 70 }} />
+          <span className="text-[10px]" style={{ color: "var(--text-3)" }}>min</span>
+          <button type="button" onClick={save}
+            className="text-[10px] font-semibold px-2 py-1 rounded"
+            style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", cursor: "pointer" }}>
+            Save
+          </button>
+          <button type="button" onClick={() => { setEditing(false); setValue(String(loggedMin)); }}
+            className="text-[10px] px-2 py-1 rounded"
+            style={{ background: "var(--surface)", color: "var(--text-2)", border: "1px solid var(--border)", cursor: "pointer" }}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button type="button" onClick={() => { setValue(String(loggedMin)); setEditing(true); }}
+          className="flex items-center gap-1.5 mt-1 text-[10px]"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--accent)" }}>
+          <i className="fa-solid fa-pen" style={{ fontSize: 8 }}></i>
+          {fmtMin(loggedMin)} logged · adjust
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Auto-stopped notice ───────────────────────────────
+// A timer left running overnight is capped at its target rather than banking
+// the whole night. Say so plainly instead of quietly changing the number.
+function AutoStoppedNotice({ count }: { count: number }) {
+  const [dismissed, setDismissed] = useState(false);
+  if (count === 0 || dismissed) return null;
+
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg mb-4"
+      style={{ background: "var(--warning-bg)", border: "1px solid rgba(217,119,6,.2)" }}>
+      <i className="fa-solid fa-circle-info mt-0.5" style={{ color: "var(--warning)", fontSize: 12 }}></i>
+      <p className="flex-1 text-xs leading-relaxed" style={{ color: "var(--text-2)" }}>
+        Stopped {count} timer{count > 1 ? "s" : ""} left running from an earlier day.
+        Time was capped at the sub-item&apos;s target — open the session to adjust it
+        if that isn&apos;t what you actually did.
+      </p>
+      <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss"
+        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0"
+        style={{ background: "transparent", border: "none", cursor: "pointer" }}>
+        <i className="fa-solid fa-xmark" style={{ fontSize: 10, color: "var(--text-3)" }}></i>
+      </button>
+    </div>
+  );
+}
+
+// ── Past 7 Days ───────────────────────────────────────
+// A "how much did I focus lately" chart, plus a per-day breakdown of what was
+// actually worked on. Full week/month/year view lives in Analytics.
+function TimerHistory({ history, recentDays }: { history: HistoryDay[]; recentDays: RecentDay[] }) {
+  const maxMin = Math.max(...history.map((d) => d.totalMin), 60);
+  const hasAny = history.some((d) => d.totalMin > 0);
+
+  return (
+    <div className="card p-5 mt-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text)" }}>
+          <i className="fa-solid fa-clock-rotate-left mr-1.5" style={{ color: "var(--accent)" }}></i>
+          Past 7 Days
+        </h3>
+        <Link href="/analytics?tab=timer" className="text-xs font-semibold hover:underline" style={{ color: "var(--accent)" }}>
+          Full history →
+        </Link>
+      </div>
+
+      {!hasAny ? (
+        <p className="text-xs" style={{ color: "var(--text-3)" }}>
+          No focus time logged in the last week yet.
+        </p>
+      ) : (
+        <>
+          <div className="flex items-end justify-between gap-2" style={{ height: 90 }}>
+            {history.map((d) => (
+              <div key={d.date} className="flex-1 flex flex-col items-center gap-1.5" style={{ height: "100%" }}>
+                <span className="text-[10px] font-semibold tabular" style={{ color: "var(--text-2)", lineHeight: 1 }}>
+                  {d.totalMin > 0 ? fmtMin(d.totalMin) : "—"}
+                </span>
+                <div className="flex-1 w-full flex flex-col justify-end rounded overflow-hidden"
+                  style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                  <div className="w-full rounded-md" style={{
+                    height: `${d.totalMin === 0 ? 0 : Math.max((d.totalMin / maxMin) * 100, 6)}%`,
+                    background: d.totalMin === 0 ? "transparent" : "var(--accent)",
+                    transition: "height .35s cubic-bezier(0.2,0,0,1)",
+                  }} title={`${d.label}: ${fmtMin(d.totalMin)}`} />
+                </div>
+                <span className="text-[10px]" style={{ color: "var(--text-3)", lineHeight: 1 }}>{d.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Per-day breakdown: what was worked on */}
+          <div className="mt-5 pt-4 space-y-4" style={{ borderTop: "1px solid var(--border)" }}>
+            {recentDays.map((day) => (
+              <div key={day.iso}>
+                <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-3)" }}>
+                  {day.label}
+                </div>
+                <div className="space-y-2">
+                  {day.sessions.map((s) => (
+                    <div key={s.id} className="rounded-lg p-2.5"
+                      style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium truncate" style={{ color: "var(--text)" }}>
+                          {s.emoji ?? "🎯"} {s.title}
+                        </span>
+                        <span className="text-xs font-semibold tabular flex-shrink-0" style={{ color: "var(--accent)" }}>
+                          {fmtMin(s.totalMin)}
+                        </span>
+                      </div>
+                      {s.items.length > 0 && (
+                        <div className="mt-1.5 pl-1 space-y-0.5">
+                          {s.items.map((it, i) => (
+                            <div key={i} className="flex items-center justify-between gap-2 text-[11px]">
+                              <span className="truncate" style={{ color: "var(--text-2)" }}>· {it.title}</span>
+                              <span className="tabular flex-shrink-0" style={{ color: "var(--text-3)" }}>{fmtMin(it.min)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -172,6 +378,7 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
 
   const [subTitle, setSubTitle] = useState("");
   const [subHours, setSubHours] = useState("");
+  const [subHoursTouched, setSubHoursTouched] = useState(false);
   const [subSource, setSubSource] = useState<"new" | "task">("new");
   const [subTaskId, setSubTaskId] = useState("");
   const [subError, setSubError] = useState("");
@@ -187,10 +394,22 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
     } else {
       setTitle(""); setTagId(""); setHours("");
     }
-    setSubTitle(""); setSubHours(""); setSubSource("new"); setSubTaskId("");
+    setSubTitle(""); setSubHours(""); setSubHoursTouched(false); setSubSource("new"); setSubTaskId("");
     setPendingSubs([]); setConfirmDelete(false); setSubError("");
     setRemovedSubIds(new Set());
   }, [open, session]);
+
+  // A task's own scheduled duration, in hours, snapped to quarter-hours to
+  // match the hours input's step — used to suggest how long a sub-item
+  // pulled from that task should take.
+  function taskDurationHours(t: TaskOption): string {
+    const [sh, sm] = t.startTime.split(":").map(Number);
+    const [eh, em] = t.endTime.split(":").map(Number);
+    const mins = eh * 60 + em - (sh * 60 + sm);
+    if (mins <= 0) return "";
+    const hours = Math.round((mins / 60) * 4) / 4;
+    return String(hours);
+  }
 
   // Escape closes the modal (a11y — matches the backdrop click)
   useModalEscape(open, onClose);
@@ -219,7 +438,7 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
       setHours(String(newTotalMin / 60));
     }
     setPendingSubs((prev) => [...prev, { title: t.trim(), minutes: mins, taskId: subSource === "task" ? subTaskId || null : null }]);
-    setSubTitle(""); setSubHours("");
+    setSubTitle(""); setSubHours(""); setSubHoursTouched(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -335,18 +554,8 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
                 {session && visibleSubItems.length > 0 && (
                   <div className="space-y-1.5 mb-2">
                     {visibleSubItems.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-2 rounded-md"
-                        style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-                        <div>
-                          <span className="text-xs font-medium" style={{ color: "var(--text)" }}>{item.title}</span>
-                          <span className="text-[10px] ml-2" style={{ color: "var(--text-3)" }}>{fmtMin(item.targetMinutes)}</span>
-                        </div>
-                        <button type="button" onClick={() => handleDeleteSub(item.id)}
-                          className="w-5 h-5 rounded flex items-center justify-center"
-                          style={{ background: "transparent", border: "none", cursor: "pointer" }}>
-                          <i className="fa-solid fa-xmark" style={{ fontSize: 9, color: "var(--text-3)" }}></i>
-                        </button>
-                      </div>
+                      <ExistingSubItemRow key={item.id} item={item} router={router}
+                        onDelete={() => handleDeleteSub(item.id)} />
                     ))}
                   </div>
                 )}
@@ -400,7 +609,12 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
                           cursor: "pointer",
                         }}>New</button>
                       {tasks.length > 0 && (
-                        <button type="button" onClick={() => { setSubSource("task"); setSubTaskId(tasks[0]?.id ?? ""); }}
+                        <button type="button" onClick={() => {
+                          setSubSource("task");
+                          const first = tasks[0];
+                          setSubTaskId(first?.id ?? "");
+                          if (!subHoursTouched && first) setSubHours(taskDurationHours(first));
+                        }}
                           className="text-[10px] px-2 py-1 rounded font-medium"
                           style={{
                             background: subSource === "task" ? "var(--accent)" : "transparent",
@@ -414,7 +628,12 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
                       <input className="inp mb-2" value={subTitle} onChange={(e) => { setSubTitle(e.target.value); setSubError(""); }}
                         placeholder="Sub-item name..." maxLength={100} style={{ fontSize: 12 }} />
                     ) : (
-                      <select className="inp mb-2" value={subTaskId} onChange={(e) => setSubTaskId(e.target.value)}
+                      <select className="inp mb-2" value={subTaskId}
+                        onChange={(e) => {
+                          setSubTaskId(e.target.value);
+                          const picked = tasks.find((t) => t.id === e.target.value);
+                          if (!subHoursTouched && picked) setSubHours(taskDurationHours(picked));
+                        }}
                         style={{ fontSize: 12 }}>
                         {tasks.map((t) => (
                           <option key={t.id} value={t.id}>{t.tagEmoji ?? "📌"} {t.title}</option>
@@ -427,9 +646,15 @@ function SessionModal({ open, onClose, session, tags, tasks, router }: {
                         {subError}
                       </p>
                     )}
+                    <label className="block text-[10px] font-medium mb-1" style={{ color: "var(--text-3)" }}>
+                      {subSource === "task"
+                        ? "Time to allocate — suggested from this task's schedule, adjust if needed"
+                        : "Time to allocate"}
+                    </label>
                     <div className="flex items-center gap-2">
                       <input type="number" step="0.25" min="0.25"
-                        value={subHours} onChange={(e) => { setSubHours(e.target.value); setSubError(""); }}
+                        value={subHours}
+                        onChange={(e) => { setSubHours(e.target.value); setSubHoursTouched(true); setSubError(""); }}
                         placeholder="hrs" className="inp flex-1" style={{ fontSize: 12 }} />
                       <button type="button" onClick={addLocalSub}
                         className="text-xs font-semibold px-3 py-1.5 rounded"
@@ -490,7 +715,8 @@ function SessionCard({ session, router, onEdit }: {
   const totalElapsedMs = session.subItems.reduce((sum, i) => {
     let ms = i.timerAccumMs;
     if (i.timerStartedAt) ms += Date.now() - new Date(i.timerStartedAt).getTime();
-    return sum + ms;
+    // Never count a sub-item past its allocated time.
+    return sum + Math.min(ms, i.targetMinutes * 60000);
   }, 0);
   const overallPct = Math.min(Math.round((totalElapsedMs / (session.targetMinutes * 60000)) * 100), 100);
 
@@ -557,10 +783,12 @@ function SessionCard({ session, router, onEdit }: {
 function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<typeof useRouter> }) {
   const [, startTx] = useTransition();
   const running = !!item.timerStartedAt;
-  const elapsed = item.timerAccumMs + (running && item.timerStartedAt ? Date.now() - new Date(item.timerStartedAt).getTime() : 0);
   const targetMs = item.targetMinutes * 60000;
+  const rawElapsed = item.timerAccumMs + (running && item.timerStartedAt ? Date.now() - new Date(item.timerStartedAt).getTime() : 0);
+  const reached = rawElapsed >= targetMs;
+  // The timer only runs for the allocated time — never display past the target.
+  const elapsed = Math.min(rawElapsed, targetMs);
   const pct = Math.min(Math.round((elapsed / targetMs) * 100), 100);
-  const reached = elapsed >= targetMs;
 
   function handleStart() {
     startTx(async () => { await startSubItemTimerAction(item.id); router.refresh(); });
@@ -569,28 +797,34 @@ function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<ty
     startTx(async () => { await pauseSubItemTimerAction(item.id); router.refresh(); });
   }
 
-  // Auto-pause when the sub-item hits its allocated time. Overtime is still
-  // possible — pressing play again keeps counting — but it becomes a conscious
-  // choice instead of a timer silently running forever. The 5s window means a
-  // deliberate overtime resume (already past target) won't be re-paused.
-  const autoPausedRef = useRef(false);
+  // Hard stop the instant the sub-item hits its allocated time — no overtime.
+  const autoStoppedRef = useRef(false);
   useEffect(() => {
-    const justReached = elapsed - targetMs >= 0 && elapsed - targetMs < 5000;
-    if (running && justReached && !autoPausedRef.current) {
-      autoPausedRef.current = true;
+    if (running && reached && !autoStoppedRef.current) {
+      autoStoppedRef.current = true;
       startTx(async () => {
         await pauseSubItemTimerAction(item.id);
         router.refresh();
       });
-      toast(`"${item.title}" reached its ${fmtMin(item.targetMinutes)} target 🎉`);
+      toast(`"${item.title}" hit its ${fmtMin(item.targetMinutes)} target — stopped ✓`);
     }
+    if (!running) autoStoppedRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, reached, elapsed]);
+  }, [running, reached]);
 
   return (
     <div className="flex items-center gap-2.5 p-2 rounded-lg"
-      style={{ background: running ? "var(--accent-bg)" : "var(--surface-2)", border: "1px solid " + (running ? "rgba(94,106,210,.2)" : "var(--border)") }}>
-      {!running ? (
+      style={{
+        background: reached ? "rgba(22,163,74,.06)" : running ? "var(--accent-bg)" : "var(--surface-2)",
+        border: "1px solid " + (reached ? "rgba(22,163,74,.2)" : running ? "rgba(94,106,210,.2)" : "var(--border)"),
+      }}>
+      {reached ? (
+        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: "var(--success)", color: "white" }}
+          title="Target reached">
+          <i className="fa-solid fa-check" style={{ fontSize: 10 }}></i>
+        </div>
+      ) : !running ? (
         <button type="button" onClick={handleStart}
           className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
           style={{ background: "var(--btn-primary-bg)", color: "var(--btn-primary-text)", border: "none", cursor: "pointer" }}
@@ -608,16 +842,16 @@ function SubItemRow({ item, router }: { item: SubItemView; router: ReturnType<ty
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-0.5">
-          <span className="text-xs font-medium truncate" style={{ color: "var(--text)" }}>
+          <span className="text-xs font-medium truncate"
+            style={{ color: "var(--text)", textDecoration: reached ? "line-through" : "none" }}>
             {item.title}
           </span>
           <span className="text-[10px] font-semibold tabular ml-2 flex-shrink-0"
             style={{ color: reached ? "var(--success)" : running ? "var(--accent)" : "var(--text-3)" }}
             suppressHydrationWarning>
-            {fmt(elapsed)} <span style={{ fontWeight: 400, opacity: 0.7 }}>/ {fmtMin(item.targetMinutes)}</span>
-            {reached && elapsed - targetMs >= 60000 && (
-              <span className="ml-1" style={{ fontWeight: 600 }}>+{fmtMin((elapsed - targetMs) / 60000)} over</span>
-            )}
+            {reached
+              ? <>Done · {fmtMin(item.targetMinutes)}</>
+              : <>{fmt(elapsed)} <span style={{ fontWeight: 400, opacity: 0.7 }}>/ {fmtMin(item.targetMinutes)}</span></>}
           </span>
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>

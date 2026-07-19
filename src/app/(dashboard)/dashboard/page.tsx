@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { todayInZone, nowHHMMInZone, toISODate } from "@/lib/dates";
 import { computeStreak, computeLongestStreak } from "@/lib/streak";
 import { getDailyQuote } from "@/lib/quotes";
+import { closeOrphanedTimerRuns } from "@/lib/timer-reconcile";
 import AgendaList from "@/components/dashboard/AgendaList";
 
 export default async function DashboardPage() {
@@ -14,6 +15,9 @@ export default async function DashboardPage() {
   const today = todayInZone(user.timeZone);
   const todayISO = toISODate(today);
   const nowHHMM = nowHHMMInZone(user.timeZone);
+
+  // Close out any run left open on a previous day before reporting focus time.
+  await closeOrphanedTimerRuns(user.id, today);
 
   const [todayTasks, doneTaskDates, timerSessions] = await Promise.all([
     prisma.task.findMany({
@@ -54,7 +58,8 @@ export default async function DashboardPage() {
     s + sess.subItems.reduce((si, i) => {
       let ms = i.timerAccumMs;
       if (i.timerStartedAt) ms += Date.now() - i.timerStartedAt.getTime();
-      return si + ms;
+      // Never count a sub-item past its allocated time.
+      return si + Math.min(ms, i.targetMinutes * 60000);
     }, 0) / 60000, 0);
   const runningSession = timerSessions.find((s) => s.subItems.some((i) => i.timerStartedAt));
   const runningSub = runningSession?.subItems.find((i) => i.timerStartedAt);

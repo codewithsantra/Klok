@@ -38,7 +38,7 @@ export async function updateProfileAction(
 
 /**
  * Permanently delete the current user's account — both the local data row
- * (cascade-deletes tasks, timers, tags, templates) and the Clerk identity.
+ * (cascade-deletes tasks, timers, and tags) and the Clerk identity.
  */
 export async function deleteAccountAction() {
   const user = await getCurrentUser();

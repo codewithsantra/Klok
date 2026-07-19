@@ -48,8 +48,40 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       data.status = body.status;
     }
 
-    if (Object.keys(data).length === 0)
+    if (Object.keys(data).length === 0 && !Array.isArray(body.subItems))
       return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+
+    // Reconcile sub-items for this specific task (never bulk — a checklist is
+    // per-instance). Incoming items with an id are kept (done-state preserved,
+    // title updated); ones without an id are created; existing items absent
+    // from the payload are deleted.
+    if (Array.isArray(body.subItems)) {
+      const incoming = (body.subItems as unknown[])
+        .map((s) => {
+          const o = s as { id?: unknown; title?: unknown };
+          const title = String(o.title ?? "").trim().slice(0, 200);
+          return { id: typeof o.id === "string" ? o.id : undefined, title };
+        })
+        .filter((s) => s.title.length > 0);
+
+      const current = await prisma.taskSubItem.findMany({
+        where: { taskId: id },
+        select: { id: true, title: true },
+      });
+      const keepIds = new Set(incoming.filter((s) => s.id).map((s) => s.id));
+
+      const toDelete = current.filter((c) => !keepIds.has(c.id)).map((c) => c.id);
+      const toCreate = incoming.filter((s) => !s.id).map((s) => ({ taskId: id, title: s.title }));
+      const toUpdate = incoming.filter(
+        (s) => s.id && current.find((c) => c.id === s.id && c.title !== s.title),
+      );
+
+      await prisma.$transaction([
+        ...(toDelete.length ? [prisma.taskSubItem.deleteMany({ where: { id: { in: toDelete } } })] : []),
+        ...(toCreate.length ? [prisma.taskSubItem.createMany({ data: toCreate })] : []),
+        ...toUpdate.map((s) => prisma.taskSubItem.update({ where: { id: s.id }, data: { title: s.title } })),
+      ]);
+    }
 
     const editScope = body.editScope as string | undefined;
 

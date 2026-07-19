@@ -36,7 +36,6 @@ model User {
   tags      Tag[]
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
-  templates Template[]
   dailyGoals DailyGoal[]
   tasks         Task[]
   timerSessions TimerSession[]
@@ -51,7 +50,6 @@ model Tag {
   active         Boolean         @default(true)
   dailyGoals     DailyGoal[]
   createdAt      DateTime        @default(now())
-  templateTasks  TemplateTask[]
   tasks          Task[]
   timerSessions  TimerSession[]
 }
@@ -94,10 +92,24 @@ model Task {
   recurringRuleId String?
   carriedFromId   String?
   timerSubItems   TimerSubItem[]
+  subItems        TaskSubItem[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
   @@index([userId, date])
+}
+
+// A simple checklist item nested inside a Task — for splitting one task into
+// trackable pieces (no time tracking; that's what the Focus Timer is for).
+model TaskSubItem {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
 }
 
 // ── Focus Timer ──────────────────────────────────────────────
@@ -130,32 +142,4 @@ model TimerSubItem {
   task           Task?         @relation(fields: [taskId], references: [id], onDelete: SetNull)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
-}
-
-// ── Day Templates ────────────────────────────────────────────
-// A named set of task "shapes" that can be applied to any date,
-// creating real Tasks for that day.
-
-model Template {
-  id        String         @id @default(cuid())
-  userId    String
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  icon      String?
-  iconColor String?
-  items     TemplateTask[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-}
-
-model TemplateTask {
-  id         String   @id @default(cuid())
-  templateId String
-  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  tagId      String?
-  tag        Tag?     @relation(fields: [tagId], references: [id], onDelete: SetNull)
-  title      String
-  startTime  String
-  endTime    String
-  createdAt  DateTime @default(now())
 }

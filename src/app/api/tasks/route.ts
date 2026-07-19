@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const subItemTitles: string[] = Array.isArray(body.subItems)
+      ? body.subItems.map((s: unknown) => String(s).trim()).filter((s: string) => s.length > 0).slice(0, 50)
+      : [];
+
     const task = await prisma.task.create({
       data: {
         userId: user.id,
@@ -81,6 +85,9 @@ export async function POST(request: NextRequest) {
         repeatEndDate,
         repeatEndCount,
         carriedFromId,
+        ...(subItemTitles.length > 0
+          ? { subItems: { create: subItemTitles.map((t) => ({ title: t.slice(0, 200) })) } }
+          : {}),
       },
       include: { tag: true },
     });

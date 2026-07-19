@@ -77,7 +77,7 @@ export default function AboutPage() {
               {
                 status: "Exploring",
                 color: "var(--text-3)",
-                title: "Shared templates & team planning",
+                title: "Team planning & shared workspaces",
                 body: "Plan together with shared structures and team analytics.",
               },
             ].map((r) => (

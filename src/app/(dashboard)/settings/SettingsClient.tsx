@@ -102,16 +102,10 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
               Password, email address, and connected sign-in methods are managed
               through your secure account panel.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => openUserProfile()}
-                className="btn btn-primary" style={{ fontSize: "12px" }}>
-                <i className="fa-solid fa-shield-halved"></i> Manage account &amp; security
-              </button>
-              <a href="/api/export" download
-                className="btn btn-outline" style={{ fontSize: "12px" }}>
-                <i className="fa-solid fa-download"></i> Export my data (JSON)
-              </a>
-            </div>
+            <button type="button" onClick={() => openUserProfile()}
+              className="btn btn-primary" style={{ fontSize: "12px" }}>
+              <i className="fa-solid fa-shield-halved"></i> Manage account &amp; security
+            </button>
           </div>
 
           {/* Tags */}
@@ -204,7 +198,7 @@ export default function SettingsClient({ user, tags }: { user: User; tags: Tag[]
                 Delete your account?
               </h2>
               <p className="text-sm mb-5" style={{ color: "var(--text-2)" }}>
-                This permanently removes all your tasks, timer sessions, tags, and templates.
+                This permanently removes all your tasks, timer sessions, and tags.
                 This <strong>cannot be undone</strong>.
               </p>
               <div className="flex gap-3">

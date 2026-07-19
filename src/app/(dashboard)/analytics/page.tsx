@@ -167,7 +167,8 @@ export default async function AnalyticsPage({
     elapsedMs: s.subItems.reduce((sum, i) => {
       let ms = i.timerAccumMs;
       if (i.timerStartedAt) ms += Date.now() - i.timerStartedAt.getTime();
-      return sum + ms;
+      // Never count a sub-item past its allocated time.
+      return sum + Math.min(ms, i.targetMinutes * 60000);
     }, 0),
   }));
 

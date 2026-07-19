@@ -124,10 +124,10 @@ export default function OnboardingPage() {
           </div>
           <div className="flex gap-3">
             <Link
-              href="/templates"
+              href="/timer"
               className="btn btn-outline flex-1 justify-center py-3"
             >
-              <i className="fa-solid fa-layer-group"></i> Apply Template
+              <i className="fa-solid fa-stopwatch"></i> Start Focus
             </Link>
             <Link
               href="/today"

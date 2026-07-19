@@ -27,7 +27,10 @@ export default async function TodayPage({
   const [tasks, tags] = await Promise.all([
     prisma.task.findMany({
       where: { userId: user.id, date },
-      include: { tag: true },
+      include: {
+        tag: true,
+        subItems: { orderBy: { createdAt: "asc" } },
+      },
       orderBy: { startTime: "asc" },
     }),
     prisma.tag.findMany({
@@ -58,6 +61,7 @@ export default async function TodayPage({
     recurringRuleId: t.recurringRuleId,
     carriedFromId: t.carriedFromId,
     alreadyCarried: carriedIds.has(t.id),
+    subItems: t.subItems.map((s) => ({ id: s.id, title: s.title, done: s.done })),
   }));
 
   const todayISO = toISODate(today);

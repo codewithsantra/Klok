@@ -38,3 +38,18 @@ export async function updateTaskNoteAction(taskId: string, note: string) {
   });
   revalidatePath("/today");
 }
+
+// ── Sub-items: a simple checklist nested inside a task. Add/remove happens in
+// the task modal (via the tasks API); the list only toggles items done here.
+export async function toggleTaskSubItemAction(subItemId: string) {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const item = await prisma.taskSubItem.findFirst({
+    where: { id: subItemId, task: { userId: user.id } },
+    select: { id: true, done: true },
+  });
+  if (!item) return;
+
+  await prisma.taskSubItem.update({ where: { id: item.id }, data: { done: !item.done } });
+  revalidatePath("/today");
+}
